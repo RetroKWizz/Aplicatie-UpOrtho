@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C ~/Desktop/UPorthoApp status)",
+      "Bash(mkdir -p '/Users/mihaim/Desktop/ClaudeC/Aplicatie UpOrtho/Rezultate')",
+      "Bash(mkdir -p '/Users/mihaim/Desktop/ClaudeC/Aplicatie UpOrtho/Agents')",
+      "Bash(mv ~/Desktop/UPorthoApp '/Users/mihaim/Desktop/ClaudeC/Aplicatie UpOrtho/Rezultate/UPorthoApp')",
+      "WebFetch(domain:www.reddit.com)",
+      "WebSearch",
+      "Bash(curl *)",
+      "Bash(xcrun simctl *)",
+      "Bash(open *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c ')",
+      "Bash(xcodegen generate *)",
+      "Bash(xcodebuild -project UPorthoApp.xcodeproj -scheme UPorthoApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build)"
+    ]
+  }
+}

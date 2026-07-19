@@ -1,0 +1,590 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		09E934A2F571802DBDC4119D /* PriceText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDAE86F3E08360353B57A1A /* PriceText.swift */; };
+		10A76BE0475B481490243B19 /* CheckoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E537348C3C6981B03DB4EAB5 /* CheckoutService.swift */; };
+		1401144B68DDC999939369DD /* ProductDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762A46F22E25802D582AB979 /* ProductDetailView.swift */; };
+		17063CCF630D4B492EFA5F2D /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 357456EFDA4282AF287D723D /* AccountView.swift */; };
+		20E70CE99957E58CD68D0DD9 /* Banner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEBD011F68308DFC5EBA0840 /* Banner.swift */; };
+		22F535E94C98E9AB841385C6 /* OdooConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3282C1EBF637194628AC6533 /* OdooConfig.swift */; };
+		232E3C0ECEFF11DE0D7E4D83 /* Invoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45AB4F71591F9553DECB67EF /* Invoice.swift */; };
+		23C664D5313B54C63CD71789 /* CartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9442D29618B3C5C58974ECBD /* CartView.swift */; };
+		2D2B1C862EEC6478CDD6FAAA /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71625EE00AEA3E1FCA07C53F /* NotificationManager.swift */; };
+		36CB3481E70394FC06A96444 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B7EB06DCAF67DC8875C88C00 /* Assets.xcassets */; };
+		3D23F0DA7E961852722F5AAC /* OdooRPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A379737766D6AAE41FC2E47 /* OdooRPCClient.swift */; };
+		416EF39235290F853F249D4F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB4E51BEAE0BEA942C12A32 /* HomeView.swift */; };
+		446AB5E1E96C026A3D19461E /* CheckoutViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D0923E360A7D9779D8AAF5 /* CheckoutViewModel.swift */; };
+		461E9B605B7D639AD68ABEB3 /* CategoryProductsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE4E41E3CAAFB600999EAB5F /* CategoryProductsView.swift */; };
+		4CCDAE8405926ADC575160E4 /* Product.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA77432C3F01FB33827CB5A5 /* Product.swift */; };
+		58BD85D08A2A6CBCC13ABAAF /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1956A9B6B6570DE069AF5002 /* HomeViewModel.swift */; };
+		6891C3534EE15544D9D005D0 /* Checkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E7FFEF63F079682A6A9D878 /* Checkout.swift */; };
+		762719704DA01CC3350C1EBD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37C75C90D277108B6FB2B86 /* AppDelegate.swift */; };
+		7DC3D831D4E70EB9071C7FEF /* CheckoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E83325182E5EF5358B97280 /* CheckoutView.swift */; };
+		8F453DA17D0E3E5931AD896E /* AccountViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3602580F4836198B6DC91555 /* AccountViewModel.swift */; };
+		924A3C2DB700448CDA628C42 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D0784DF2211E941D6105DB8 /* SessionStore.swift */; };
+		93B8A4722713BE1147277F6E /* CartItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A6BC0D70CEB6F9E126761AF /* CartItem.swift */; };
+		94BED3986CBCC610D169C541 /* CatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A303B4180F2CFB19F4045A /* CatalogView.swift */; };
+		990CAB88EA06A2421F6E44CA /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F943DC1FA177FB975C18C50 /* KeychainStore.swift */; };
+		9C1BC9C29FD3BB5EF49172DD /* BannerCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8016D1029E9402A371E4AD8D /* BannerCardView.swift */; };
+		9C2EA952050CE778592ED5C9 /* CartViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20BEA1B2E39B33441CA4962 /* CartViewModel.swift */; };
+		9E241930BEC7FB6E6EC67F46 /* UPorthoAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8B463FEC6938AB427F7879 /* UPorthoAppApp.swift */; };
+		A1F19BE00FCD7B5A07A247EA /* OdooClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9307F6CE1915500221512AA /* OdooClient.swift */; };
+		A297DD36B38AA89E2C4A7A72 /* RealOdooClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA3D171A3F2ECFE91FB354D /* RealOdooClient.swift */; };
+		B5FD3A42E4A732268B9B36E1 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E29BDD07853BD4337FCFD38 /* CategoryIcon.swift */; };
+		B62449CCAB7E6A96598404FA /* ProductCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B83B1AA51814A5B6C81A25 /* ProductCategory.swift */; };
+		B6968B62ADDDD28DBE05FDC2 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 075C930EBC9FE387972C060F /* Preview Assets.xcassets */; };
+		C296145937514332ACB45F48 /* OdooClientEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E9E1640AFCA2AF5E600EE98 /* OdooClientEnvironment.swift */; };
+		C8BCE0F9F491FC72FC5F95D0 /* ProductCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77299E8041BFD49AADF899E /* ProductCardView.swift */; };
+		CD2B9012F55B9F23D6544F66 /* ProductVariant.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA71085F19E4C5AA4119928 /* ProductVariant.swift */; };
+		D042CB2B8FC15A5466FA2742 /* OdooWebSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7F0F9CA59E9A27BD889F00 /* OdooWebSession.swift */; };
+		D21378550DDB6AC76357C7D7 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB84C9323DFAE88FC321188 /* RootTabView.swift */; };
+		D2FAD5221B7A5C6288E42C1B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14A28B1C1854EEB6DB7160E /* LoginView.swift */; };
+		DEF036DAE6A588967D3C27DB /* UserAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA499746AE21C223240525 /* UserAccount.swift */; };
+		E754E0355C1D137CB3916582 /* CatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2140BEAF4F188ECB470F14E5 /* CatalogViewModel.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		075C930EBC9FE387972C060F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		0C7F0F9CA59E9A27BD889F00 /* OdooWebSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OdooWebSession.swift; sourceTree = "<group>"; };
+		0CB4E51BEAE0BEA942C12A32 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		0E9E1640AFCA2AF5E600EE98 /* OdooClientEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OdooClientEnvironment.swift; sourceTree = "<group>"; };
+		0FA3D171A3F2ECFE91FB354D /* RealOdooClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealOdooClient.swift; sourceTree = "<group>"; };
+		1956A9B6B6570DE069AF5002 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
+		2140BEAF4F188ECB470F14E5 /* CatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogViewModel.swift; sourceTree = "<group>"; };
+		3282C1EBF637194628AC6533 /* OdooConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OdooConfig.swift; sourceTree = "<group>"; };
+		357456EFDA4282AF287D723D /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
+		3602580F4836198B6DC91555 /* AccountViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountViewModel.swift; sourceTree = "<group>"; };
+		3D0A9442AD0D5C845A3A25DC /* UPorthoApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = UPorthoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3E29BDD07853BD4337FCFD38 /* CategoryIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryIcon.swift; sourceTree = "<group>"; };
+		45AB4F71591F9553DECB67EF /* Invoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invoice.swift; sourceTree = "<group>"; };
+		4CB84C9323DFAE88FC321188 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		5D0784DF2211E941D6105DB8 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		5E7FFEF63F079682A6A9D878 /* Checkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkout.swift; sourceTree = "<group>"; };
+		60A303B4180F2CFB19F4045A /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
+		6F943DC1FA177FB975C18C50 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		71625EE00AEA3E1FCA07C53F /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		762A46F22E25802D582AB979 /* ProductDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductDetailView.swift; sourceTree = "<group>"; };
+		79B83B1AA51814A5B6C81A25 /* ProductCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductCategory.swift; sourceTree = "<group>"; };
+		7A379737766D6AAE41FC2E47 /* OdooRPCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OdooRPCClient.swift; sourceTree = "<group>"; };
+		8016D1029E9402A371E4AD8D /* BannerCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BannerCardView.swift; sourceTree = "<group>"; };
+		9442D29618B3C5C58974ECBD /* CartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartView.swift; sourceTree = "<group>"; };
+		9A6BC0D70CEB6F9E126761AF /* CartItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartItem.swift; sourceTree = "<group>"; };
+		9E83325182E5EF5358B97280 /* CheckoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckoutView.swift; sourceTree = "<group>"; };
+		A14A28B1C1854EEB6DB7160E /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		A77299E8041BFD49AADF899E /* ProductCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductCardView.swift; sourceTree = "<group>"; };
+		B212264C14D399963B096240 /* UPorthoApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = UPorthoApp.entitlements; sourceTree = "<group>"; };
+		B37C75C90D277108B6FB2B86 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		B7EB06DCAF67DC8875C88C00 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BDDAE86F3E08360353B57A1A /* PriceText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceText.swift; sourceTree = "<group>"; };
+		D20BEA1B2E39B33441CA4962 /* CartViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartViewModel.swift; sourceTree = "<group>"; };
+		D9307F6CE1915500221512AA /* OdooClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OdooClient.swift; sourceTree = "<group>"; };
+		DBAA499746AE21C223240525 /* UserAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAccount.swift; sourceTree = "<group>"; };
+		DCA71085F19E4C5AA4119928 /* ProductVariant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductVariant.swift; sourceTree = "<group>"; };
+		E4D0923E360A7D9779D8AAF5 /* CheckoutViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckoutViewModel.swift; sourceTree = "<group>"; };
+		E537348C3C6981B03DB4EAB5 /* CheckoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckoutService.swift; sourceTree = "<group>"; };
+		EC8B463FEC6938AB427F7879 /* UPorthoAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UPorthoAppApp.swift; sourceTree = "<group>"; };
+		FA77432C3F01FB33827CB5A5 /* Product.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Product.swift; sourceTree = "<group>"; };
+		FE4E41E3CAAFB600999EAB5F /* CategoryProductsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryProductsView.swift; sourceTree = "<group>"; };
+		FEBD011F68308DFC5EBA0840 /* Banner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Banner.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		06E243959CC668CDE5F08C31 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				6F943DC1FA177FB975C18C50 /* KeychainStore.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		0C6A11421A5FB5C88188771A /* Cart */ = {
+			isa = PBXGroup;
+			children = (
+				9442D29618B3C5C58974ECBD /* CartView.swift */,
+				D20BEA1B2E39B33441CA4962 /* CartViewModel.swift */,
+				9E83325182E5EF5358B97280 /* CheckoutView.swift */,
+				E4D0923E360A7D9779D8AAF5 /* CheckoutViewModel.swift */,
+			);
+			path = Cart;
+			sourceTree = "<group>";
+		};
+		13F22B7ADC4FAB25BCB9351D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B7EB06DCAF67DC8875C88C00 /* Assets.xcassets */,
+				E7FA2DB67556A8E102D5990B /* Preview Content */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		162044DB24EED07375877FDB /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B37C75C90D277108B6FB2B86 /* AppDelegate.swift */,
+				4CB84C9323DFAE88FC321188 /* RootTabView.swift */,
+				EC8B463FEC6938AB427F7879 /* UPorthoAppApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		6AE00C786B2D1EB6C0C4E022 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				8016D1029E9402A371E4AD8D /* BannerCardView.swift */,
+				3E29BDD07853BD4337FCFD38 /* CategoryIcon.swift */,
+				FE4E41E3CAAFB600999EAB5F /* CategoryProductsView.swift */,
+				0CB4E51BEAE0BEA942C12A32 /* HomeView.swift */,
+				1956A9B6B6570DE069AF5002 /* HomeViewModel.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		6AE5CF896EF8878FCCF8C1E3 = {
+			isa = PBXGroup;
+			children = (
+				BB667D2AC24D0752A9064930 /* UPorthoApp */,
+				A02BD5073083B26F8466BE34 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		80E1D30CE39A4711062331C0 /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				357456EFDA4282AF287D723D /* AccountView.swift */,
+				3602580F4836198B6DC91555 /* AccountViewModel.swift */,
+			);
+			path = Account;
+			sourceTree = "<group>";
+		};
+		8ECF25422FC8E5F98779FA2B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				FEBD011F68308DFC5EBA0840 /* Banner.swift */,
+				9A6BC0D70CEB6F9E126761AF /* CartItem.swift */,
+				5E7FFEF63F079682A6A9D878 /* Checkout.swift */,
+				45AB4F71591F9553DECB67EF /* Invoice.swift */,
+				FA77432C3F01FB33827CB5A5 /* Product.swift */,
+				79B83B1AA51814A5B6C81A25 /* ProductCategory.swift */,
+				DCA71085F19E4C5AA4119928 /* ProductVariant.swift */,
+				DBAA499746AE21C223240525 /* UserAccount.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A02BD5073083B26F8466BE34 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3D0A9442AD0D5C845A3A25DC /* UPorthoApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A9513CC4BF47802441B7F847 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				CF88A9B8D8AA102BC49FDE93 /* Config */,
+				8ECF25422FC8E5F98779FA2B /* Models */,
+				D30A2B79A8AF34E0A0349BD9 /* Networking */,
+				06E243959CC668CDE5F08C31 /* Security */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		ACCB5E3B055368B344D5E21F /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				A14A28B1C1854EEB6DB7160E /* LoginView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		BB667D2AC24D0752A9064930 /* UPorthoApp */ = {
+			isa = PBXGroup;
+			children = (
+				B212264C14D399963B096240 /* UPorthoApp.entitlements */,
+				162044DB24EED07375877FDB /* App */,
+				A9513CC4BF47802441B7F847 /* Core */,
+				D005A52E0C4692610EA621AE /* Features */,
+				13F22B7ADC4FAB25BCB9351D /* Resources */,
+			);
+			path = UPorthoApp;
+			sourceTree = "<group>";
+		};
+		CF88A9B8D8AA102BC49FDE93 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				3282C1EBF637194628AC6533 /* OdooConfig.swift */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		D005A52E0C4692610EA621AE /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				80E1D30CE39A4711062331C0 /* Account */,
+				ACCB5E3B055368B344D5E21F /* Auth */,
+				0C6A11421A5FB5C88188771A /* Cart */,
+				FA5213951D3DC39C85839615 /* Catalog */,
+				6AE00C786B2D1EB6C0C4E022 /* Home */,
+				D5241D836B70F07D9508FC85 /* Notifications */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		D30A2B79A8AF34E0A0349BD9 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				E537348C3C6981B03DB4EAB5 /* CheckoutService.swift */,
+				D9307F6CE1915500221512AA /* OdooClient.swift */,
+				0E9E1640AFCA2AF5E600EE98 /* OdooClientEnvironment.swift */,
+				7A379737766D6AAE41FC2E47 /* OdooRPCClient.swift */,
+				0C7F0F9CA59E9A27BD889F00 /* OdooWebSession.swift */,
+				0FA3D171A3F2ECFE91FB354D /* RealOdooClient.swift */,
+				5D0784DF2211E941D6105DB8 /* SessionStore.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		D5241D836B70F07D9508FC85 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				71625EE00AEA3E1FCA07C53F /* NotificationManager.swift */,
+			);
+			path = Notifications;
+			sourceTree = "<group>";
+		};
+		E7FA2DB67556A8E102D5990B /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				075C930EBC9FE387972C060F /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		FA5213951D3DC39C85839615 /* Catalog */ = {
+			isa = PBXGroup;
+			children = (
+				60A303B4180F2CFB19F4045A /* CatalogView.swift */,
+				2140BEAF4F188ECB470F14E5 /* CatalogViewModel.swift */,
+				BDDAE86F3E08360353B57A1A /* PriceText.swift */,
+				A77299E8041BFD49AADF899E /* ProductCardView.swift */,
+				762A46F22E25802D582AB979 /* ProductDetailView.swift */,
+			);
+			path = Catalog;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8834C47D02B3627602315A76 /* UPorthoApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 40E766E56F1DE0EC0225EC2B /* Build configuration list for PBXNativeTarget "UPorthoApp" */;
+			buildPhases = (
+				60649D94E8AA5B49464AE5A1 /* Sources */,
+				435FB821D81D152DF96DA9AA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = UPorthoApp;
+			packageProductDependencies = (
+			);
+			productName = UPorthoApp;
+			productReference = 3D0A9442AD0D5C845A3A25DC /* UPorthoApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0799F49A423A92B1E4174E87 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					8834C47D02B3627602315A76 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = EA14E67467BF3B2E2D454652 /* Build configuration list for PBXProject "UPorthoApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 6AE5CF896EF8878FCCF8C1E3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A02BD5073083B26F8466BE34 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8834C47D02B3627602315A76 /* UPorthoApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		435FB821D81D152DF96DA9AA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				36CB3481E70394FC06A96444 /* Assets.xcassets in Resources */,
+				B6968B62ADDDD28DBE05FDC2 /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		60649D94E8AA5B49464AE5A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				17063CCF630D4B492EFA5F2D /* AccountView.swift in Sources */,
+				8F453DA17D0E3E5931AD896E /* AccountViewModel.swift in Sources */,
+				762719704DA01CC3350C1EBD /* AppDelegate.swift in Sources */,
+				20E70CE99957E58CD68D0DD9 /* Banner.swift in Sources */,
+				9C1BC9C29FD3BB5EF49172DD /* BannerCardView.swift in Sources */,
+				93B8A4722713BE1147277F6E /* CartItem.swift in Sources */,
+				23C664D5313B54C63CD71789 /* CartView.swift in Sources */,
+				9C2EA952050CE778592ED5C9 /* CartViewModel.swift in Sources */,
+				94BED3986CBCC610D169C541 /* CatalogView.swift in Sources */,
+				E754E0355C1D137CB3916582 /* CatalogViewModel.swift in Sources */,
+				B5FD3A42E4A732268B9B36E1 /* CategoryIcon.swift in Sources */,
+				461E9B605B7D639AD68ABEB3 /* CategoryProductsView.swift in Sources */,
+				6891C3534EE15544D9D005D0 /* Checkout.swift in Sources */,
+				10A76BE0475B481490243B19 /* CheckoutService.swift in Sources */,
+				7DC3D831D4E70EB9071C7FEF /* CheckoutView.swift in Sources */,
+				446AB5E1E96C026A3D19461E /* CheckoutViewModel.swift in Sources */,
+				416EF39235290F853F249D4F /* HomeView.swift in Sources */,
+				58BD85D08A2A6CBCC13ABAAF /* HomeViewModel.swift in Sources */,
+				232E3C0ECEFF11DE0D7E4D83 /* Invoice.swift in Sources */,
+				990CAB88EA06A2421F6E44CA /* KeychainStore.swift in Sources */,
+				D2FAD5221B7A5C6288E42C1B /* LoginView.swift in Sources */,
+				2D2B1C862EEC6478CDD6FAAA /* NotificationManager.swift in Sources */,
+				A1F19BE00FCD7B5A07A247EA /* OdooClient.swift in Sources */,
+				C296145937514332ACB45F48 /* OdooClientEnvironment.swift in Sources */,
+				22F535E94C98E9AB841385C6 /* OdooConfig.swift in Sources */,
+				3D23F0DA7E961852722F5AAC /* OdooRPCClient.swift in Sources */,
+				D042CB2B8FC15A5466FA2742 /* OdooWebSession.swift in Sources */,
+				09E934A2F571802DBDC4119D /* PriceText.swift in Sources */,
+				4CCDAE8405926ADC575160E4 /* Product.swift in Sources */,
+				C8BCE0F9F491FC72FC5F95D0 /* ProductCardView.swift in Sources */,
+				B62449CCAB7E6A96598404FA /* ProductCategory.swift in Sources */,
+				1401144B68DDC999939369DD /* ProductDetailView.swift in Sources */,
+				CD2B9012F55B9F23D6544F66 /* ProductVariant.swift in Sources */,
+				A297DD36B38AA89E2C4A7A72 /* RealOdooClient.swift in Sources */,
+				D21378550DDB6AC76357C7D7 /* RootTabView.swift in Sources */,
+				924A3C2DB700448CDA628C42 /* SessionStore.swift in Sources */,
+				9E241930BEC7FB6E6EC67F46 /* UPorthoAppApp.swift in Sources */,
+				DEF036DAE6A588967D3C27DB /* UserAccount.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2F9B5C6374F9A99BC67A7EE6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = UPorthoApp/UPorthoApp.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"UPorthoApp/Resources/Preview Content\"";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = UPortho;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.uportho.app;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		96F26292DE04B267BFA560BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AC73DBCC94D610F4C3B9FF2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = UPorthoApp/UPorthoApp.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"UPorthoApp/Resources/Preview Content\"";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = UPortho;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.uportho.app;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		D2276B8EEF17972C3AC60E54 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		40E766E56F1DE0EC0225EC2B /* Build configuration list for PBXNativeTarget "UPorthoApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2F9B5C6374F9A99BC67A7EE6 /* Debug */,
+				AC73DBCC94D610F4C3B9FF2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EA14E67467BF3B2E2D454652 /* Build configuration list for PBXProject "UPorthoApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				96F26292DE04B267BFA560BA /* Debug */,
+				D2276B8EEF17972C3AC60E54 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0799F49A423A92B1E4174E87 /* Project object */;
+}
