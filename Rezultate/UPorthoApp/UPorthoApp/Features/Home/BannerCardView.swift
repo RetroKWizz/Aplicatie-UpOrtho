@@ -32,26 +32,32 @@ struct BannerCardView: View {
                     .offset(x: 90, y: 10)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Spacer()
-                Text(banner.title)
-                    .font(.title3.bold())
-                    .foregroundStyle(.white)
-                Text(banner.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.9))
-                    .lineLimit(2)
+            // Bannerele fara titlu structurat (h3) sunt imagini "flatten" cu textul si CTA-ul
+            // deja "coapte" in imagine (ex. un hero nou din Website Builder) — desenarea peste
+            // ele a inca unui titlu/CTA ar produce text dublat si ilizibil, asa ca in acel caz
+            // afisam DOAR imaginea, fara overlay de text.
+            if !banner.title.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Spacer()
+                    Text(banner.title)
+                        .font(.title3.bold())
+                        .foregroundStyle(.white)
+                    Text(banner.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.9))
+                        .lineLimit(2)
 
-                Text(banner.ctaText)
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(.white, in: Capsule())
-                    .foregroundStyle(banner.gradientColors.first ?? .accentColor)
-                    .padding(.top, 4)
+                    Text(banner.ctaText)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.white, in: Capsule())
+                        .foregroundStyle(banner.gradientColors.first ?? .accentColor)
+                        .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
         }
         .frame(height: 170)
         .clipShape(RoundedRectangle(cornerRadius: 20))

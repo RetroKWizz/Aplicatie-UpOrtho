@@ -4,6 +4,7 @@ struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @Environment(\.odooClient) private var client
     @State private var bannerIndex = 0
+    @State private var presentedBannerURL: URL?
 
     private let bannerTimer = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
 
@@ -56,17 +57,37 @@ struct HomeView: View {
             .refreshable {
                 await viewModel.load(client: client)
             }
+            .sheet(isPresented: Binding(
+                get: { presentedBannerURL != nil },
+                set: { isPresented in if !isPresented { presentedBannerURL = nil } }
+            )) {
+                if let presentedBannerURL {
+                    SafariView(url: presentedBannerURL)
+                }
+            }
         }
     }
 
-    /// Bannerul sliderului real de pe homepage navigheaza la categoria Odoo reala legata de el
-    /// (`banner.categoryId`), cautata recursiv in arborele deja incarcat de `viewModel.categories`
-    /// — vezi `ProductCategory.findCategory(withId:)`. Cand nu avem categoria (banner mock/fallback
-    /// fara link, sau id inca negasit in arbore), bannerul ramane doar vizual, neapasabil.
+    /// Bannerul de pe homepage navigheaza catre destinatia lui REALA din Odoo, oricare ar fi ea —
+    /// "live", fara nimic hardcodat in aplicatie:
+    /// - daca are `categoryId` (link `/shop/category/...`), navigheaza in-app catre categoria Odoo
+    ///   reala legata de el, cautata recursiv in arborele deja incarcat de `viewModel.categories`
+    ///   (`ProductCategory.findCategory(withId:)`);
+    /// - altfel, daca are orice alt `linkURL` (ex. short-link de marketing), il deschide intr-un
+    ///   browser in-app — orice link pus pe banner in Website Builder functioneaza, fara sa fie
+    ///   nevoie de vreo schimbare de cod cand se schimba linkul acolo;
+    /// - altfel (banner mock/fallback fara niciun link), ramane doar vizual, neapasabil.
     @ViewBuilder
     private func bannerSlot(for banner: Banner) -> some View {
         if let categoryId = banner.categoryId, let category = viewModel.categories.findCategory(withId: categoryId) {
             NavigationLink(value: category) {
+                BannerCardView(banner: banner)
+            }
+            .buttonStyle(.plain)
+        } else if let linkURL = banner.linkURL {
+            Button {
+                presentedBannerURL = linkURL
+            } label: {
                 BannerCardView(banner: banner)
             }
             .buttonStyle(.plain)

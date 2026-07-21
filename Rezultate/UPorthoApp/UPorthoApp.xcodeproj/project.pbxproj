@@ -25,6 +25,7 @@
 		58BD85D08A2A6CBCC13ABAAF /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1956A9B6B6570DE069AF5002 /* HomeViewModel.swift */; };
 		6891C3534EE15544D9D005D0 /* Checkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E7FFEF63F079682A6A9D878 /* Checkout.swift */; };
 		762719704DA01CC3350C1EBD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37C75C90D277108B6FB2B86 /* AppDelegate.swift */; };
+		7B1004774A20A282C949C44B /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B77B0806F29B6B3ADAA8DA7 /* SafariView.swift */; };
 		7DC3D831D4E70EB9071C7FEF /* CheckoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E83325182E5EF5358B97280 /* CheckoutView.swift */; };
 		8F453DA17D0E3E5931AD896E /* AccountViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3602580F4836198B6DC91555 /* AccountViewModel.swift */; };
 		924A3C2DB700448CDA628C42 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D0784DF2211E941D6105DB8 /* SessionStore.swift */; };
@@ -51,6 +52,7 @@
 
 /* Begin PBXFileReference section */
 		075C930EBC9FE387972C060F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		0B77B0806F29B6B3ADAA8DA7 /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		0C7F0F9CA59E9A27BD889F00 /* OdooWebSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OdooWebSession.swift; sourceTree = "<group>"; };
 		0CB4E51BEAE0BEA942C12A32 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		0E9E1640AFCA2AF5E600EE98 /* OdooClientEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OdooClientEnvironment.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				FE4E41E3CAAFB600999EAB5F /* CategoryProductsView.swift */,
 				0CB4E51BEAE0BEA942C12A32 /* HomeView.swift */,
 				1956A9B6B6570DE069AF5002 /* HomeViewModel.swift */,
+				0B77B0806F29B6B3ADAA8DA7 /* SafariView.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -385,6 +388,7 @@
 				CD2B9012F55B9F23D6544F66 /* ProductVariant.swift in Sources */,
 				A297DD36B38AA89E2C4A7A72 /* RealOdooClient.swift in Sources */,
 				D21378550DDB6AC76357C7D7 /* RootTabView.swift in Sources */,
+				7B1004774A20A282C949C44B /* SafariView.swift in Sources */,
 				924A3C2DB700448CDA628C42 /* SessionStore.swift in Sources */,
 				9E241930BEC7FB6E6EC67F46 /* UPorthoAppApp.swift in Sources */,
 				DEF036DAE6A588967D3C27DB /* UserAccount.swift in Sources */,

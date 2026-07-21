@@ -49,11 +49,21 @@ actor CheckoutService {
     }
 
     /// Fixeaza cantitatea unei linii existente (`sale.order.line`) la `quantity` (0 = elimina).
+    ///
+    /// `productId` e OBLIGATORIU aici: controller-ul temei (`ThemePrimeWebsiteSale.cart_update_json`,
+    /// suprascrierea locala a rutei standard `website_sale`) declara `product_id` ca parametru
+    /// pozitional fara valoare implicita — un POST cu doar `line_id`/`set_qty` (care functioneaza pe
+    /// `website_sale` standard) pica cu 200 OK dar payload de eroare JSON-RPC: "cart_update_json()
+    /// missing 1 required positional argument: 'product_id'" (reprodus live 21.07.2026, la pasul de
+    /// sincronizare a coșului: eliminarea unei linii ramase pe server dintr-o incercare anterioara,
+    /// pt un produs care nu mai era in coșul local, bloca tot fluxul de checkout chiar inainte de
+    /// pasul de facturare). `syncCart` are deja `productId`-ul (cheia dictionarului `serverLines`) —
+    /// il pasam mereu.
     @discardableResult
-    func setCartLineQuantity(lineId: Int, quantity: Int) async throws -> CartServerState {
+    func setCartLineQuantity(lineId: Int, productId: Int, quantity: Int) async throws -> CartServerState {
         let result = try await session.postJSON(
             path: "/shop/cart/update_json",
-            params: ["line_id": lineId, "set_qty": quantity]
+            params: ["line_id": lineId, "product_id": productId, "set_qty": quantity]
         )
         return Self.parseCartState(from: result)
     }
@@ -379,7 +389,19 @@ private extension CheckoutService {
 
     /// Curierii: input-uri `<input name="o_delivery_radio" data-dm-id="<carrierId>"
     /// data-delivery-type="...">`. `data-dm-id` E id-ul de `delivery.carrier` (== `carrier_id`
-    /// pt `/shop/set_delivery_method`). Numele/tariful se iau din textul randului (best-effort).
+    /// pt `/shop/set_delivery_method`). Numele vine din eticheta dedicata
+    /// `<label class="o_delivery_carrier_label" for="o_delivery_<id>">NUME</label>` (randata imediat
+    /// dupa input, in acelasi `<div class="d-flex form-check">`) — NU din textul intregului rand.
+    ///
+    /// BUG reprodus live (21.07.2026): textul randului mai contine, mai jos, un
+    /// `<span class="o_wsale_delivery_price_badge" name="price">Selectați pentru a calcula tariful
+    /// de livrare</span>` — placeholder-ul pe care JS-ul site-ului il inlocuieste cu tariful real
+    /// dupa un apel AJAX (`/shop/get_delivery_rate`), pe care aplicatia nu-l declanseaza (nu executam
+    /// JS). Cand `rowText` (tot textul dintre acest radio si urmatorul) era folosit direct ca sursa
+    /// pt nume, acest placeholder ajungea concatenat dupa numele curierului — "Fan Courier Selectați
+    /// pentru a calcula tariful de livrare" — afisat garbled in UI (asta a fost eroarea semnalata la
+    /// pasul de livrare). Extragem numele STRICT din `<label>`; `rowText` ramane folosit doar pt
+    /// detectia "gratuit"/pretului numeric (cand exista deja un tarif fix in HTML).
     static func parseDeliveryOptions(from html: String) -> [DeliveryOption] {
         var results: [DeliveryOption] = []
         var seen = Set<Int>()
@@ -391,7 +413,9 @@ private extension CheckoutService {
             let rowText = rowText(after: tag, in: html, until: index + 1 < tags.count ? tags[index + 1] : nil)
             let isFree = rowText.range(of: "gratuit", options: .caseInsensitive) != nil
             let price = decimal(fromLoose: rowText)
-            let name = cleanCarrierName(rowText)
+            let inputId = tagAttribute("id", in: tag)
+            let name = inputId.flatMap { carrierLabelName(forInputId: $0, in: html) }
+                ?? cleanCarrierName(rowText)
             results.append(DeliveryOption(
                 id: carrierId, carrierId: carrierId, name: name,
                 priceRON: isFree ? 0 : price, isFree: isFree
@@ -492,11 +516,29 @@ private extension CheckoutService {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Curata numele curierului: scoate pretul/"gratuit" din textul randului.
+    /// Numele curierului, extras strict din `<label class="o_delivery_carrier_label" for="<inputId>">
+    /// NUME</label>` (verificat live 21.07.2026) — sursa robusta, spre deosebire de `rowText`
+    /// (tot textul dintre doi radio-i), care include si placeholder-ul de pret necalculat
+    /// ("Selectați pentru a calcula tariful de livrare"). `nil` daca eticheta nu se gaseste
+    /// (markup schimbat) — apelantul cade pe `cleanCarrierName(rowText)`.
+    static func carrierLabelName(forInputId inputId: String, in html: String) -> String? {
+        let escapedId = NSRegularExpression.escapedPattern(for: inputId)
+        guard let match = regexFirst(
+            in: html,
+            pattern: "<label\\b[^>]*\\bfor=\"\(escapedId)\"[^>]*>([\\s\\S]*?)</label>"
+        ) else { return nil }
+        let text = stripTags(match)
+        return text.isEmpty ? nil : text
+    }
+
+    /// Curata numele curierului: scoate pretul/"gratuit" si placeholder-ul de pret necalculat
+    /// ("Selectați pentru a calcula tariful de livrare") din textul randului. Fallback defensiv,
+    /// folosit doar cand `carrierLabelName` nu gaseste eticheta dedicata.
     static func cleanCarrierName(_ rowText: String) -> String {
         var name = rowText
         name = name.replacingOccurrences(of: "\\d[\\d.]*,\\d{2}\\s*lei", with: "", options: [.regularExpression, .caseInsensitive])
         name = name.replacingOccurrences(of: "gratuit", with: "", options: .caseInsensitive)
+        name = name.replacingOccurrences(of: "Selectați pentru a calcula tariful de livrare", with: "", options: .caseInsensitive)
         name = name.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
         return name.trimmingCharacters(in: .whitespacesAndNewlines)
     }

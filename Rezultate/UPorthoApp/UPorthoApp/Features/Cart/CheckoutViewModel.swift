@@ -114,12 +114,12 @@ final class CheckoutViewModel: ObservableObject {
         )
 
         for (productId, server) in serverLines where localQuantities[productId] == nil {
-            try await service.setCartLineQuantity(lineId: server.lineId, quantity: 0)
+            try await service.setCartLineQuantity(lineId: server.lineId, productId: productId, quantity: 0)
         }
         for (productId, quantity) in localQuantities {
             if let server = serverLines[productId] {
                 if server.quantity != quantity {
-                    try await service.setCartLineQuantity(lineId: server.lineId, quantity: quantity)
+                    try await service.setCartLineQuantity(lineId: server.lineId, productId: productId, quantity: quantity)
                 }
             } else {
                 try await service.addToCart(productId: productId, quantity: quantity)
