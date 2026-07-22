@@ -35,6 +35,7 @@
 		9C1BC9C29FD3BB5EF49172DD /* BannerCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8016D1029E9402A371E4AD8D /* BannerCardView.swift */; };
 		9C2EA952050CE778592ED5C9 /* CartViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20BEA1B2E39B33441CA4962 /* CartViewModel.swift */; };
 		9E241930BEC7FB6E6EC67F46 /* UPorthoAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8B463FEC6938AB427F7879 /* UPorthoAppApp.swift */; };
+		A1288E944D44AD784C00DC03 /* HeroBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE58C3B1B00B9E7C5ABF2CE /* HeroBannerView.swift */; };
 		A1F19BE00FCD7B5A07A247EA /* OdooClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9307F6CE1915500221512AA /* OdooClient.swift */; };
 		A297DD36B38AA89E2C4A7A72 /* RealOdooClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA3D171A3F2ECFE91FB354D /* RealOdooClient.swift */; };
 		B5FD3A42E4A732268B9B36E1 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E29BDD07853BD4337FCFD38 /* CategoryIcon.swift */; };
@@ -66,6 +67,7 @@
 		3E29BDD07853BD4337FCFD38 /* CategoryIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryIcon.swift; sourceTree = "<group>"; };
 		45AB4F71591F9553DECB67EF /* Invoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invoice.swift; sourceTree = "<group>"; };
 		4CB84C9323DFAE88FC321188 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		5BE58C3B1B00B9E7C5ABF2CE /* HeroBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroBannerView.swift; sourceTree = "<group>"; };
 		5D0784DF2211E941D6105DB8 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		5E7FFEF63F079682A6A9D878 /* Checkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkout.swift; sourceTree = "<group>"; };
 		60A303B4180F2CFB19F4045A /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				8016D1029E9402A371E4AD8D /* BannerCardView.swift */,
 				3E29BDD07853BD4337FCFD38 /* CategoryIcon.swift */,
 				FE4E41E3CAAFB600999EAB5F /* CategoryProductsView.swift */,
+				5BE58C3B1B00B9E7C5ABF2CE /* HeroBannerView.swift */,
 				0CB4E51BEAE0BEA942C12A32 /* HomeView.swift */,
 				1956A9B6B6570DE069AF5002 /* HomeViewModel.swift */,
 				0B77B0806F29B6B3ADAA8DA7 /* SafariView.swift */,
@@ -369,6 +372,7 @@
 				10A76BE0475B481490243B19 /* CheckoutService.swift in Sources */,
 				7DC3D831D4E70EB9071C7FEF /* CheckoutView.swift in Sources */,
 				446AB5E1E96C026A3D19461E /* CheckoutViewModel.swift in Sources */,
+				A1288E944D44AD784C00DC03 /* HeroBannerView.swift in Sources */,
 				416EF39235290F853F249D4F /* HomeView.swift in Sources */,
 				58BD85D08A2A6CBCC13ABAAF /* HomeViewModel.swift in Sources */,
 				232E3C0ECEFF11DE0D7E4D83 /* Invoice.swift in Sources */,

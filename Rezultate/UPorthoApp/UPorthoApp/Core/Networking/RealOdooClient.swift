@@ -260,325 +260,89 @@ actor RealOdooClient: OdooClient {
         return moves.compactMap(Self.makeInvoice(from:))
     }
 
-    // MARK: - Banner (zona de marketing REALA de pe homepage — orice sectiune noua adaugata in
-    // Website Builder intre header si grila de categorii/produse, indiferent ce snippet foloseste)
+    // MARK: - Banner (continut controlat din Odoo Studio — model custom `x_app_banner`)
 
-    /// `website_id` al site-ului "uportho.ro 2025" — instanta Odoo gazduieste MAI MULTE site-uri
-    /// (tunealigners.ro, ortho-shop.ro etc.) care au TOATE cate un `ir.ui.view` cu acelasi
-    /// `key = "website.homepage"` — fara acest filtru am putea citi din greseala homepage-ul
-    /// altui site. Confirmat manual, read-only.
-    private static let homepageWebsiteId = 11
-
-    /// Prefixul linkurilor de categorie (`/shop/category/<slug>-<id>`) — cand un banner are un
-    /// asemenea link, e navigabil in-app catre categoria respectiva.
-    private static let shopCategoryLinkPrefix = "/shop/category/"
-
-    /// Prefixul short-link-urilor Odoo (`link.tracker`, generate din Website Builder pt bannere
-    /// de marketing) — au nevoie de un GET separat ca sa le aflam tinta reala (vezi
-    /// `resolveCategoryId(fromShortLinkPath:)`).
-    private static let shortLinkPrefix = "/r/"
-
-    /// Snippet-uri intalnite pe homepage care NU sunt bannere de marketing (grila de categorii/
-    /// branduri, titlul si grila de produse, newsletter, Instagram, footer-ul de text de la
-    /// final) — excluse explicit ca sa nu fie tratate gresit ca bannere. Scanarea se opreste
-    /// oricum la primul `s_title`/`s_d_products_snippet` (vezi `parseMarketingBanners`), deci
-    /// singura excludere care conteaza efectiv aici e `s_category_brands`.
-    private static let nonBannerSnippets: Set<String> = ["s_category_brands"]
-
-    /// Snippet-uri care marcheaza sfarsitul zonei de marketing — tot ce urmeaza (grila de
-    /// produse, newsletter, Instagram, footer) nu mai e scanat pt bannere.
-    private static let marketingZoneEndSnippets: Set<String> = ["s_title", "s_d_products_snippet"]
-
-    /// Gradient/icon de rezerva pt cazul (neasteptat) in care un banner nu are imagine valida —
-    /// rotite ciclic intre bannere, ca sa nu arate toate identic.
+    /// Gradient/icon de rezerva pt cazul (neasteptat) in care un banner nu are imagine
+    /// incarcata in Odoo — rotite ciclic intre bannere, ca sa nu arate toate identic.
     private static let bannerFallbackStyles: [(symbolName: String, gradientColors: [Color])] = [
         ("newspaper.fill", [Color(red: 0.42, green: 0.25, blue: 0.63), Color(red: 0.60, green: 0.41, blue: 0.80)]),
         ("doc.text.fill", [Color(red: 0.20, green: 0.45, blue: 0.55), Color(red: 0.30, green: 0.65, blue: 0.70)]),
         ("text.book.closed.fill", [Color(red: 0.85, green: 0.35, blue: 0.30), Color(red: 0.95, green: 0.55, blue: 0.25)])
     ]
 
-    /// Bannerele de pe Acasa clonează acum ZONA de marketing REALA a homepage-ului uportho.ro —
-    /// orice sectiune noua adaugata acolo in Website Builder apare automat, indiferent ce
-    /// snippet foloseste (nu mai e legat de un singur snippet fix ca `s_banner_12`). Fara
-    /// sesiune autentificata, sau daca parsarea esueaza complet (structura paginii s-a schimbat
-    /// radical), cadem pe `MockOdooClient` (la fel ca la catalog).
+    /// Bannerele de pe Acasa (hero + promo) vin dintr-un model custom Odoo Studio
+    /// (`x_app_banner`), NU din parsarea HTML a homepage-ului — un `search_read` obisnuit,
+    /// la fel ca la produse/categorii, controlat direct de Mihai din Odoo (Website Builder
+    /// nu mai are nicio legatura), fara sa depinda de structura interna a temei sau de
+    /// upgrade-ul planificat la Odoo 19.
+    ///
+    /// Nume tehnice de campuri (confirmate din Odoo, `Settings > Technical > Models >
+    /// x_app_banner > Fields`):
+    ///   x_name              — titlu (eticheta afisata in formular: "Titlu")
+    ///   x_studio_subtitlu   — subtitlu
+    ///   x_studio_buton      — text CTA
+    ///   x_studio_plasare    — selection: "Hero" / "Promo"
+    ///   x_studio_tip_link   — selection: "Categorie" / "URL extern" / "Fara link"
+    ///   x_studio_categorie  — many2one -> product.public.category (cand tip link = Categorie)
+    ///   x_studio_url_extern — link extern (cand tip link = URL extern)
+    ///   x_studio_image      — imagine (servita via /web/image/x_app_banner/<id>/x_studio_image,
+    ///                         la fel ca la poza de produs — NU o citim in `fields`, doar
+    ///                         construim URL-ul din id, ca sa nu tragem base64 inutil)
+    ///   x_studio_sequence   — ordine (din feature-ul "Sortare personalizata" din Studio)
+    ///   x_active            — activ/arhivat (din feature-ul "Arhivare" din Studio — NU e
+    ///                         campul standard Odoo `active`, deci se filtreaza EXPLICIT in
+    ///                         domain, nu se aplica automat ca la modelele native)
     func fetchBanners() async throws -> [Banner] {
         guard let uid, let password else {
             return try await catalogFallback.fetchBanners()
         }
-        if let banners = try? await fetchHomepageMarketingBanners(uid: uid, password: password), !banners.isEmpty {
-            return banners
-        }
-        return try await catalogFallback.fetchBanners()
-    }
-
-    /// Gaseste dinamic view-ul homepage-ului site-ului uportho.ro (NU hardcodat dupa id — vezi
-    /// comentariul de la `homepageWebsiteId`), citeste `arch_db` (HTML-ul complet al paginii) si
-    /// parseaza zona de marketing.
-    private func fetchHomepageMarketingBanners(uid: Int, password: String) async throws -> [Banner]? {
-        let viewRows = try await searchRead(
-            model: "ir.ui.view",
-            domain: [["key", "=", "website.homepage"], ["website_id", "=", Self.homepageWebsiteId]],
-            fields: ["id"],
-            limit: 1, uid: uid, password: password
+        let rows = try await searchRead(
+            model: "x_app_banner",
+            domain: [["x_active", "=", true]],
+            fields: [
+                "id", "x_name", "x_studio_subtitlu", "x_studio_buton", "x_studio_plasare",
+                "x_studio_tip_link", "x_studio_categorie", "x_studio_url_extern", "x_studio_image"
+            ],
+            order: "x_studio_sequence asc",
+            uid: uid, password: password
         )
-        guard let viewId = viewRows.first.flatMap({ Self.asInt($0["id"]) }) else { return nil }
-
-        let archRows = try await read(
-            model: "ir.ui.view", ids: [viewId], fields: ["arch_db"], uid: uid, password: password
-        )
-        guard let arch = archRows.first?["arch_db"] as? String, !arch.isEmpty else { return nil }
-
-        return await Self.parseMarketingBanners(fromHomepageArch: arch)
+        let banners = rows.compactMap { Self.makeAppBanner(fromRow: $0) }
+        guard !banners.isEmpty else {
+            return try await catalogFallback.fetchBanners()
+        }
+        return banners
     }
 
-    /// Parcurge TOATE sectiunile de top-level ale homepage-ului, in ordine, se opreste la prima
-    /// sectiune care marcheaza inceputul grilei de produse (`marketingZoneEndSnippets`), sare
-    /// peste cele care stim sigur ca nu sunt bannere (`nonBannerSnippets`), si extrage cate un
-    /// banner din fiecare sectiune ramasa: daca sectiunea are sloturi `o_grid_item` (ca vechiul
-    /// slider `s_banner_12`) le extrage pe fiecare separat, altfel trateaza toata sectiunea ca UN
-    /// singur banner (ex. un hero nou cu o singura imagine). Asa apare automat orice banner nou
-    /// adaugat in Website Builder, indiferent ce snippet foloseste — NU mai trebuie ajustat codul
-    /// de fiecare data cand se schimba tipul de sectiune.
-    private static func parseMarketingBanners(fromHomepageArch arch: String) async -> [Banner]? {
-        let sections = extractTopLevelSections(fromArch: arch)
-        guard !sections.isEmpty else { return nil }
+    private static func makeAppBanner(fromRow row: [String: Any]) -> Banner? {
+        guard let id = asInt(row["id"]) else { return nil }
+        let title = (row["x_name"] as? String) ?? ""
+        let subtitle = (row["x_studio_subtitlu"] as? String) ?? ""
+        let ctaRaw = row["x_studio_buton"] as? String
+        let ctaText = (ctaRaw?.isEmpty == false) ? ctaRaw! : "Vezi produse"
+        let isHero = (row["x_studio_plasare"] as? String)?.caseInsensitiveCompare("Hero") == .orderedSame
 
-        var banners: [Banner] = []
-        for section in sections {
-            if let snippet = section.snippet, marketingZoneEndSnippets.contains(snippet) { break }
-            if let snippet = section.snippet, nonBannerSnippets.contains(snippet) { continue }
-            // Website Builder adauga automat `o_snippet_desktop_invisible` pe varianta MOBIL a
-            // oricarei sectiuni ori de cate ori adminul foloseste toggle-ul "Show/Hide on
-            // Desktop/Mobile" (mecanism generic Odoo, nu specific unui snippet — vezi
-            // `toggleDeviceVisibility` din editorul de site) — perechea desktop/mobil e ACELASI
-            // banner de doua ori in `arch_db`, deci sarim peste copia mobil ca sa nu-l afisam dublu.
-            if section.classAttribute.contains("o_snippet_desktop_invisible") { continue }
-
-            let slots = splitGridItems(fromSectionContent: section.content)
-            if !slots.isEmpty {
-                for slotHTML in slots {
-                    if let banner = await makeBanner(fromHTML: slotHTML, fallbackStyleIndex: banners.count) {
-                        banners.append(banner)
-                    }
-                }
-            } else if let banner = await makeBanner(fromHTML: section.content, fallbackStyleIndex: banners.count) {
-                banners.append(banner)
-            }
-        }
-        return banners.isEmpty ? nil : banners
-    }
-
-    /// Izoleaza fiecare sectiune de top-level `<section ...>...</section>` din `arch`, in ordinea
-    /// aparitiei, impreuna cu `data-snippet`-ul ei (`nil` daca sectiunea nu are acest atribut).
-    /// Presupune (confirmat empiric) ca sectiunile nu sunt imbricate unele in altele, deci un
-    /// lazy-match pana la urmatorul `</section>` e suficient (acelasi stil simplu ca la
-    /// descrierea de produs, NU se justifica un parser HTML complet).
-    private static func extractTopLevelSections(fromArch arch: String) -> [(snippet: String?, classAttribute: String, content: String)] {
-        guard let openRegex = try? NSRegularExpression(pattern: "<section\\b[^>]*>", options: [.caseInsensitive])
-        else { return [] }
-
-        let nsArch = arch as NSString
-        let fullRange = NSRange(location: 0, length: nsArch.length)
-        let openMatches = openRegex.matches(in: arch, range: fullRange)
-
-        var sections: [(snippet: String?, classAttribute: String, content: String)] = []
-        for openMatch in openMatches {
-            let openTag = nsArch.substring(with: openMatch.range)
-            let snippet = firstCapturedGroup(pattern: "data-snippet=\"([^\"]+)\"", in: openTag)
-            let classAttribute = firstCapturedGroup(pattern: "class=\"([^\"]+)\"", in: openTag) ?? ""
-
-            let contentStart = openMatch.range.location + openMatch.range.length
-            let searchRange = NSRange(location: contentStart, length: nsArch.length - contentStart)
-            let closeRange = nsArch.range(of: "</section>", options: [], range: searchRange)
-            guard closeRange.location != NSNotFound else { continue }
-
-            let content = nsArch.substring(with: NSRange(location: contentStart, length: closeRange.location - contentStart))
-            sections.append((snippet: snippet, classAttribute: classAttribute, content: content))
-        }
-        return sections
-    }
-
-    /// Imparte continutul unei sectiuni in N sloturi, dupa fiecare `<div class="... o_grid_item
-    /// ...">` gasit (structura sliderului cu mai multe bannere intr-o sectiune, ca `s_banner_12`)
-    /// — gol daca sectiunea nu foloseste aceasta structura (majoritatea sectiunilor noi, cu UN
-    /// singur banner). Fiecare slot e continutul de la inceputul div-ului sau pana la inceputul
-    /// urmatorului (sau finalul sectiunii pt ultimul).
-    private static func splitGridItems(fromSectionContent content: String) -> [String] {
-        guard let regex = try? NSRegularExpression(
-            pattern: "<div\\b[^>]*class=\"[^\"]*\\bo_grid_item\\b[^\"]*\"[^>]*>",
-            options: [.caseInsensitive]
-        ) else { return [] }
-
-        let nsContent = content as NSString
-        let matches = regex.matches(in: content, range: NSRange(location: 0, length: nsContent.length))
-        guard !matches.isEmpty else { return [] }
-
-        return matches.enumerated().map { index, match in
-            let start = match.range.location
-            let end = index + 1 < matches.count ? matches[index + 1].range.location : nsContent.length
-            return nsContent.substring(with: NSRange(location: start, length: end - start))
-        }
-    }
-
-    /// Extrage un `Banner` dintr-un fragment HTML (un slot de slider SAU o sectiune intreaga cu
-    /// un singur banner): imagine (`img src`, obligatorie — fara imagine nu e banner), badge de
-    /// discount (`h5`, poate contine markup `<font>` in interior), titlu (concatenarea tuturor
-    /// `h3`-urilor gasite — poate fi gol, ex. la un hero flatten intr-o singura imagine, unde
-    /// textul e deja "copt" in imagine), si CTA + id de categorie (din primul
-    /// `<a href="/shop/category/...">`; daca sectiunea are un short-link Odoo (`/r/xxx`, folosit
-    /// de Website Builder pt bannere de marketing), il rezolva urmarind redirectul — daca tinta
-    /// finala e tot o categorie, bannerul navigheaza NATIV in-app, la fel ca un link direct de
-    /// categorie; altfel bannerul tot apare dar nu e apasabil — la fel ca bannerele mock/fallback
-    /// fara categorie).
-    private static func makeBanner(fromHTML html: String, fallbackStyleIndex: Int) async -> Banner? {
-        guard let rawImageSrc = firstCapturedGroup(pattern: "<img\\b[^>]*\\bsrc=\"([^\"]+)\"", in: html),
-              let imageURL = URL(string: rawImageSrc, relativeTo: OdooConfig.baseURL)?.absoluteURL else {
-            return nil
-        }
-
-        let badgeRaw = firstCapturedGroup(
-            pattern: "<h5\\b[^>]*>(.*?)</h5>", in: html, options: [.dotMatchesLineSeparators, .caseInsensitive]
-        )
-        let badge = badgeRaw.map(stripHTMLTags) ?? ""
-
-        let titleParts = allCapturedGroups(
-            pattern: "<h3\\b[^>]*>(.*?)</h3>", in: html, options: [.dotMatchesLineSeparators, .caseInsensitive]
-        ).map(stripHTMLTags).filter { !$0.isEmpty }
-        let title = titleParts.joined(separator: " ")
-
-        var ctaText = "Vezi produse"
+        let linkType = (row["x_studio_tip_link"] as? String) ?? "Fara link"
         var categoryId: Int?
         var linkURL: URL?
-        if let anchor = firstShopCategoryAnchor(in: html) {
-            let anchorText = stripHTMLTags(anchor.text)
-            if !anchorText.isEmpty { ctaText = anchorText }
-            categoryId = extractTrailingId(fromPath: anchor.href)
-            linkURL = URL(string: anchor.href, relativeTo: OdooConfig.baseURL)?.absoluteURL
-        } else if let anchor = firstAnchor(in: html) {
-            // Fara link de categorie recunoscut in href-ul brut — bannerul tot ramane apasabil,
-            // catre orice link pus pe el in Odoo, "live": urmeaza mereu tinta curenta din Odoo,
-            // fara sa fie nevoie de vreo schimbare de cod cand se schimba linkul acolo.
-            let anchorText = stripHTMLTags(anchor.text)
-            if !anchorText.isEmpty { ctaText = anchorText }
-            linkURL = URL(string: anchor.href, relativeTo: OdooConfig.baseURL)?.absoluteURL
-
-            // Short-link Odoo (`link.tracker`, prefix `/r/`) — folosit des pt bannere puse din
-            // Website Builder, in loc de linkul direct de categorie. Urmarim redirectul (cerere
-            // GET publica, fara autentificare — acelasi request pe care l-ar face orice vizitator
-            // care apasa bannerul pe site) ca sa vedem tinta REALA; daca e tot o categorie,
-            // bannerul navigheaza nativ in-app, nu se mai deschide in browser.
-            if anchor.href.contains(shortLinkPrefix), let resolvedCategoryId = await resolveCategoryId(fromShortLinkPath: anchor.href) {
-                categoryId = resolvedCategoryId
-            }
+        if linkType.caseInsensitiveCompare("Categorie") == .orderedSame {
+            categoryId = asMany2OneId(row["x_studio_categorie"])
+        } else if linkType.caseInsensitiveCompare("URL extern") == .orderedSame,
+                  let urlString = row["x_studio_url_extern"] as? String, !urlString.isEmpty {
+            linkURL = URL(string: urlString)
         }
 
-        let style = bannerFallbackStyles[fallbackStyleIndex % bannerFallbackStyles.count]
-        // Id stabil, nu conteaza pt navigare (doar `categoryId`/`linkURL` conteaza) — folosit doar
-        // ca `Identifiable` pt `ForEach`/`TabView` selection.
-        let id = categoryId ?? fallbackStyleIndex
+        // Ruta publica `/web/image/x_app_banner/<id>/x_studio_image` NU functioneaza (drepturi
+        // de acces separate de XML-RPC, verificat live — raspunde mereu cu placeholder-ul
+        // generic Odoo). Cititm imaginea direct ca base64 prin acelasi canal XML-RPC autentificat
+        // care deja citeste restul campurilor cu succes, fara sa umblam la drepturi in Odoo.
+        let imageData = (row["x_studio_image"] as? String).flatMap { Data(base64Encoded: $0) }
+        let style = bannerFallbackStyles[id % bannerFallbackStyles.count]
 
         return Banner(
-            id: id, title: title, subtitle: badge, ctaText: ctaText,
+            id: id, title: title, subtitle: subtitle, ctaText: ctaText,
             symbolName: style.symbolName, gradientColors: style.gradientColors,
-            imageURL: imageURL, categoryId: categoryId, linkURL: linkURL
+            imageData: imageData, categoryId: categoryId, linkURL: linkURL, isHero: isHero
         )
-    }
-
-    /// Primul `<a href="...">...</a>` din slot al carui href contine `/shop/category/` — sloturile
-    /// pot avea si alte linkuri (ex. imaginea insasi ar putea fi invelita intr-un `<a>`), dar CTA-ul
-    /// de categorie e cel relevant pt navigare.
-    private static func firstShopCategoryAnchor(in html: String) -> (href: String, text: String)? {
-        firstAnchor(in: html) { $0.contains(shopCategoryLinkPrefix) }
-    }
-
-    /// Primul `<a href="...">...</a>` din HTML, optional filtrat dupa href — folosit atat pt
-    /// linkul de categorie (cu filtru), cat si ca fallback generic (fara filtru) pt orice alt
-    /// link pus pe un banner (ex. short-link Odoo de marketing).
-    private static func firstAnchor(
-        in html: String, where predicate: (String) -> Bool = { _ in true }
-    ) -> (href: String, text: String)? {
-        guard let regex = try? NSRegularExpression(
-            pattern: "<a\\b[^>]*\\bhref=\"([^\"]+)\"[^>]*>(.*?)</a>",
-            options: [.dotMatchesLineSeparators, .caseInsensitive]
-        ) else { return nil }
-
-        let nsHTML = html as NSString
-        let matches = regex.matches(in: html, range: NSRange(location: 0, length: nsHTML.length))
-        for match in matches where match.numberOfRanges > 2 {
-            let href = nsHTML.substring(with: match.range(at: 1))
-            guard predicate(href) else { continue }
-            let text = nsHTML.substring(with: match.range(at: 2))
-            return (href, text)
-        }
-        return nil
-    }
-
-    /// Urmareste redirectul unui short-link Odoo (`/r/xxx`) si, daca tinta finala e o categorie
-    /// (`/shop/category/<slug>-<id>`), intoarce id-ul ei. Cerere GET simpla, publica — fara
-    /// autentificare, `URLSession` urmareste automat redirectul 301/302. `nil` la orice esec
-    /// (retea, tinta care nu e o categorie etc.) — apelantul cade inapoi pe `linkURL` generic.
-    private static func resolveCategoryId(fromShortLinkPath path: String) async -> Int? {
-        guard let shortURL = URL(string: path, relativeTo: OdooConfig.baseURL)?.absoluteURL else { return nil }
-        guard let (_, response) = try? await URLSession.shared.data(from: shortURL),
-              let finalPath = response.url?.path,
-              finalPath.contains(shopCategoryLinkPrefix) else {
-            return nil
-        }
-        return extractTrailingId(fromPath: finalPath)
-    }
-
-    /// Extrage id-ul numeric de la finalul unui path gen `/shop/category/mini-implanturi-596`
-    /// (`product.public.category.id` real din Odoo).
-    private static func extractTrailingId(fromPath path: String) -> Int? {
-        guard let regex = try? NSRegularExpression(pattern: "-(\\d+)/?$") else { return nil }
-        let nsPath = path as NSString
-        guard let match = regex.firstMatch(in: path, range: NSRange(location: 0, length: nsPath.length)),
-              match.numberOfRanges > 1 else { return nil }
-        return Int(nsPath.substring(with: match.range(at: 1)))
-    }
-
-    /// Prima grupa capturata a unui regex intr-un text, sau `nil` daca nu se potriveste.
-    private static func firstCapturedGroup(
-        pattern: String, in text: String, options: NSRegularExpression.Options = []
-    ) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else { return nil }
-        let nsText = text as NSString
-        guard let match = regex.firstMatch(in: text, range: NSRange(location: 0, length: nsText.length)),
-              match.numberOfRanges > 1 else { return nil }
-        return nsText.substring(with: match.range(at: 1))
-    }
-
-    /// Toate grupele capturate (una per match) ale unui regex intr-un text.
-    private static func allCapturedGroups(
-        pattern: String, in text: String, options: NSRegularExpression.Options = []
-    ) -> [String] {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else { return [] }
-        let nsText = text as NSString
-        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
-        return matches.compactMap { match in
-            guard match.numberOfRanges > 1 else { return nil }
-            return nsText.substring(with: match.range(at: 1))
-        }
-    }
-
-    /// Elimina tag-urile HTML dintr-un fragment scurt (ex. continutul unui `<h5>`/`<h3>`/`<a>`) si
-    /// decodeaza entitatile HTML comune intalnite pe site (`&nbsp;` etc.) — parsing simplu, NU un
-    /// decoder HTML complet (suficient pt fragmente scurte de titlu/badge/CTA).
-    private static func stripHTMLTags(_ html: String) -> String {
-        let withoutTags = html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        // "&amp;" TREBUIE decodat PRIMUL — sursa de pe site contine des entitati dublu-codate
-        // (ex. literal "&amp;nbsp;" in arch_db), asa ca decodand intai "&amp;"->"&" obtinem
-        // "&nbsp;" abia apoi, gata sa fie decodat corect la pasul urmator. Ordinea inversa
-        // lasa "&nbsp;" netradus, vizibil ca text brut in UI (bug confirmat vizual).
-        let decoded = withoutTags
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;", with: "'")
-            .replacingOccurrences(of: "&apos;", with: "'")
-        let collapsedWhitespace = decoded.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-        return collapsedWhitespace.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func fetchCategories() async throws -> [ProductCategory] {

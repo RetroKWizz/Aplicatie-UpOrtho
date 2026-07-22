@@ -488,9 +488,13 @@ private extension CheckoutService {
         regexAll(in: html, pattern: "(<[a-zA-Z][^>]*\\b\(attr)=\"[^\"]*\"[^>]*>)")
     }
 
-    /// Valoarea unui atribut dintr-un tag deja izolat.
+    /// Valoarea unui atribut dintr-un tag deja izolat. Cere ca numele atributului sa fie precedat
+    /// de spatiu (sau inceputul tag-ului) — NU doar `\b` — altfel cautarea atributului `id` s-ar
+    /// potrivi din greseala pe finalul lui `data-dm-id="..."` (cratima e tot "non-word" pt `\b`,
+    /// deci `\bid="` gasea acolo un fals-pozitiv inaintea adevaratului atribut `id="..."`, reprodus
+    /// live 22.07.2026 — bug care anula fix-ul de nume de curier din `carrierLabelName`).
     static func tagAttribute(_ attr: String, in tag: String) -> String? {
-        regexFirst(in: tag, pattern: "\\b\(attr)=\"([^\"]*)\"")
+        regexFirst(in: tag, pattern: "(?:^|\\s)\(attr)=\"([^\"]*)\"")
     }
 
     static func tagAttributeInt(_ attr: String, in tag: String) -> Int? {

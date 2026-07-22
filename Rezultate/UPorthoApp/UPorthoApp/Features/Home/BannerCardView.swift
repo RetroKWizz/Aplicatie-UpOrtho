@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct BannerCardView: View {
     let banner: Banner
@@ -7,7 +8,19 @@ struct BannerCardView: View {
         ZStack {
             LinearGradient(colors: banner.gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing)
 
-            if let imageURL = banner.imageURL {
+            if let imageData = banner.imageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                // Overlay intunecat peste imaginea reala, ca titlul/subtitlul (text alb) sa
+                // ramana lizibil indiferent de cat de deschisa la culoare e imaginea de coperta.
+                LinearGradient(
+                    colors: [.black.opacity(0.55), .black.opacity(0.15)],
+                    startPoint: .bottom, endPoint: .top
+                )
+            } else if let imageURL = banner.imageURL {
                 AsyncImage(url: imageURL) { phase in
                     if let image = phase.image {
                         image
@@ -33,9 +46,10 @@ struct BannerCardView: View {
             }
 
             // Bannerele fara titlu structurat (h3) sunt imagini "flatten" cu textul si CTA-ul
-            // deja "coapte" in imagine (ex. un hero nou din Website Builder) — desenarea peste
-            // ele a inca unui titlu/CTA ar produce text dublat si ilizibil, asa ca in acel caz
-            // afisam DOAR imaginea, fara overlay de text.
+            // deja "coapte" in imagine (ex. hero-ul Ixion din Website Builder, cu propriul buton
+            // "Precomandă acum" desenat in imagine) — desenarea peste ele a inca unui titlu/CTA
+            // ar produce text dublat si ilizibil, si pe site nu exista un asemenea overlay
+            // generic, asa ca in acel caz afisam DOAR imaginea, la fel ca pe site.
             if !banner.title.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Spacer()

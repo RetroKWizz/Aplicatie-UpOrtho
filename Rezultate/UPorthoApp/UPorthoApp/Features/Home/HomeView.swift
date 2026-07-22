@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @Environment(\.odooClient) private var client
+    @Environment(\.scenePhase) private var scenePhase
     @State private var bannerIndex = 0
     @State private var presentedBannerURL: URL?
 
@@ -14,24 +15,46 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     searchBar
 
-                    if !viewModel.banners.isEmpty {
-                        TabView(selection: $bannerIndex) {
-                            ForEach(Array(viewModel.banners.enumerated()), id: \.element.id) { index, banner in
-                                bannerSlot(for: banner)
-                                    .padding(.horizontal)
-                                    .tag(index)
+                    // Hero-ul singur de sus (ex. Ixion) — la fel ca pe site, NU e amestecat intr-un
+                    // carusel cu cardurile de promo de mai jos, si NU e fortat intr-o inaltime fixa
+                    // mica (imaginea are titlu/CTA "coapte" in ea, deci are nevoie de tot spatiul
+                    // dat de aspect-ratio-ul ei — vezi `HeroBannerView`). Daca vreodata exista mai
+                    // multe hero-uri (mai multe sectiuni "singure" pe homepage), tot ramane un mic
+                    // carusel — dar un singur hero (cazul de azi) se afiseaza static, fara swipe.
+                    if !heroBanners.isEmpty {
+                        if heroBanners.count == 1 {
+                            heroBannerSlot(for: heroBanners[0])
+                                .padding(.horizontal)
+                        } else {
+                            TabView(selection: $bannerIndex) {
+                                ForEach(Array(heroBanners.enumerated()), id: \.element.id) { index, banner in
+                                    heroBannerSlot(for: banner)
+                                        .padding(.horizontal)
+                                        .tag(index)
+                                }
                             }
-                        }
-                        .tabViewStyle(.page(indexDisplayMode: .always))
-                        .frame(height: 200)
-                        .onReceive(bannerTimer) { _ in
-                            withAnimation {
-                                bannerIndex = (bannerIndex + 1) % viewModel.banners.count
+                            .tabViewStyle(.page(indexDisplayMode: .always))
+                            .frame(height: 220)
+                            .onReceive(bannerTimer) { _ in
+                                // Nu avansam carusel-ul cat timp un banner e deschis intr-un
+                                // `SafariView` deasupra — altfel utilizatorul revine din Safari si
+                                // gaseste alt banner selectat decat cel pe care l-a apasat.
+                                guard presentedBannerURL == nil else { return }
+                                withAnimation {
+                                    bannerIndex = (bannerIndex + 1) % heroBanners.count
+                                }
                             }
                         }
                     }
 
                     quickCategories
+
+                    // Grila de promo de mai jos (ex. "Brackeți metalici" / "Ligaturi elastice") —
+                    // 2 carduri unul langa altul, la fel ca pe site, fiecare cu titlu/subtitlu/CTA
+                    // proprii (NU un carusel cu hero-ul de sus).
+                    if !promoBanners.isEmpty {
+                        promoBannerGrid
+                    }
 
                     productSection(title: "Oferta zilei", products: viewModel.deals)
                     productSection(title: "Recomandate pentru tine", products: viewModel.recommended)
@@ -57,6 +80,15 @@ struct HomeView: View {
             .refreshable {
                 await viewModel.load(client: client)
             }
+            .onChange(of: scenePhase) { newPhase in
+                // Reincarca datele din Odoo de fiecare data cand aplicatia revine in prim-plan
+                // (nu doar la prima deschidere / pull-to-refresh) — homepage-ul e editat live din
+                // Website Builder, deci vrem ca App-ul sa reflecte mereu ce e ACUM pe site, nu ce
+                // era la ultima deschidere.
+                if newPhase == .active {
+                    Task { await viewModel.load(client: client) }
+                }
+            }
             .sheet(isPresented: Binding(
                 get: { presentedBannerURL != nil },
                 set: { isPresented in if !isPresented { presentedBannerURL = nil } }
@@ -65,6 +97,23 @@ struct HomeView: View {
                     SafariView(url: presentedBannerURL)
                 }
             }
+        }
+    }
+
+    private var heroBanners: [Banner] { viewModel.banners.filter(\.isHero) }
+    private var promoBanners: [Banner] { viewModel.banners.filter { !$0.isHero } }
+
+    /// Grila de promo de sub categorii — 2 carduri unul langa altul (ca pe site); daca sunt mai
+    /// mult de 2, restul se vad prin scroll orizontal, fara sa strice layout-ul de 2 coloane.
+    private var promoBannerGrid: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 12) {
+                ForEach(promoBanners) { banner in
+                    bannerSlot(for: banner)
+                        .frame(width: 260, height: 170)
+                }
+            }
+            .padding(.horizontal)
         }
     }
 
@@ -93,6 +142,26 @@ struct HomeView: View {
             .buttonStyle(.plain)
         } else {
             BannerCardView(banner: banner)
+        }
+    }
+
+    /// La fel ca `bannerSlot`, dar pt hero (`HeroBannerView` in loc de `BannerCardView`).
+    @ViewBuilder
+    private func heroBannerSlot(for banner: Banner) -> some View {
+        if let categoryId = banner.categoryId, let category = viewModel.categories.findCategory(withId: categoryId) {
+            NavigationLink(value: category) {
+                HeroBannerView(banner: banner)
+            }
+            .buttonStyle(.plain)
+        } else if let linkURL = banner.linkURL {
+            Button {
+                presentedBannerURL = linkURL
+            } label: {
+                HeroBannerView(banner: banner)
+            }
+            .buttonStyle(.plain)
+        } else {
+            HeroBannerView(banner: banner)
         }
     }
 

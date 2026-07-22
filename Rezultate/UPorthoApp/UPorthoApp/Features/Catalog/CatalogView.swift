@@ -3,6 +3,7 @@ import SwiftUI
 struct CatalogView: View {
     @StateObject private var viewModel = CatalogViewModel()
     @Environment(\.odooClient) private var client
+    @Environment(\.scenePhase) private var scenePhase
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -42,6 +43,18 @@ struct CatalogView: View {
                     await viewModel.select(category: selectedCategory, client: client)
                 } else {
                     await viewModel.load(client: client)
+                }
+            }
+            .onChange(of: scenePhase) { newPhase in
+                // La fel ca pe Acasa — reincarca din Odoo cand aplicatia revine in prim-plan,
+                // pastrand categoria selectata curent (nu reseta filtrul la "Toate").
+                guard newPhase == .active else { return }
+                Task {
+                    if let selectedCategory = viewModel.selectedCategory {
+                        await viewModel.select(category: selectedCategory, client: client)
+                    } else {
+                        await viewModel.load(client: client)
+                    }
                 }
             }
         }
