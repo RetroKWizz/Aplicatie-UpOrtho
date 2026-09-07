@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from odoo.exceptions import ValidationError
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -54,9 +55,9 @@ class TestAppBanner(TransactionCase):
         self.assertEqual(result[:2].mapped('name'), ['A', 'B'])
 
     def test_category_link_requires_category(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             self._make(link_type='category', category_id=False)
 
     def test_url_link_requires_url(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             self._make(link_type='url', external_url=False)
