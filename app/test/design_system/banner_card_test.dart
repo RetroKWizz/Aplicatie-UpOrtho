@@ -1,0 +1,32 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:uportho_app/api/models/banner.dart';
+import 'package:uportho_app/design_system/widgets/banner_card.dart';
+
+void main() {
+  const banner = AppBanner(
+    id: 1, title: 'Titlu', subtitle: 'Sub', ctaText: 'Vezi', placement: BannerPlacement.hero,
+    imageUrl: null, link: BannerLink(type: BannerLinkType.none),
+  );
+
+  testWidgets('shows title, subtitle and cta', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: BannerCard(banner: banner, imageUrl: null))));
+    expect(find.text('Titlu'), findsOneWidget);
+    expect(find.text('Sub'), findsOneWidget);
+    expect(find.text('Vezi'), findsOneWidget);
+  });
+
+  testWidgets('tap calls onTap', (tester) async {
+    var tapped = false;
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: BannerCard(banner: banner, imageUrl: null, onTap: () => tapped = true))));
+    await tester.tap(find.byType(BannerCard));
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('hides subtitle and cta when null', (tester) async {
+    const bare = AppBanner(id: 2, title: 'T', placement: BannerPlacement.promo, link: BannerLink(type: BannerLinkType.none));
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: BannerCard(banner: bare, imageUrl: null))));
+    expect(find.text('T'), findsOneWidget);
+    expect(find.byType(FilledButton), findsNothing);
+  });
+}
