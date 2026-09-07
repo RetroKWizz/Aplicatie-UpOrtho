@@ -17,11 +17,23 @@ Odoo 19 (estimata in 3-9 luni) fara release in magazine.
   `uportho-main-4035869`. Acces git de deploy: da.
 - Checkout-ul site-ului depinde de tema terta `theme_prime`; markup-ul ei nu e un
   contract si se schimba fara aviz.
-- Pricelist-uri relevante: Public (id 45) si Ortho Club (id 59). `website_id` = 11.
-- Toolchain local (macOS): Xcode 26.6 prezent; Flutter, Dart, Android SDK, CocoaPods
-  lipsesc. Cont Apple Developer si Google Play Console: inca nu exista.
-- Regula de proiect (CLAUDE.md): nimic nu se modifica in Odoo fara acceptul explicit
-  al lui Mihai. Se aplica fiecarui deploy pe odoo.sh, de fiecare data.
+- Exista si o instanta separata `developer.uportho.ro`, verificata read-only
+  (`/web/webclient/version_info` public): ruleaza tot **Odoo 18.0+e**, deci e un mediu
+  de dezvoltare pe aceeasi versiune, NU un staging de 19. E locul potrivit pentru a
+  re-verifica faptele de mai jos inainte de fazele 2-3, fara sa se atinga productia.
+- **ATENTIE — fapte posibil INVECHITE.** Valorile de mai jos au fost culese in perioada
+  aplicatiei SwiftUI si userul a semnalat ulterior ca "sunt chestii diferite de pe la
+  tema si altele". Se RE-VERIFICA pe `developer.uportho.ro` inainte de a scrie planurile
+  Fazei 2 (catalog/preturi) si Fazei 3 (checkout); nu se construieste pe ele ca atare:
+  - Pricelist-uri: Public (id 45), Ortho Club (id 59). `website_id` = 11.
+  - Ancorele DOM si id-urile din checkout enumerate in sectiunea 12.
+- Toolchain local (macOS), stare la 2026-09-07 dupa Faza 0: Flutter 3.47.2 stable,
+  Android SDK 36 + AVD, Xcode 26.6, CocoaPods 1.17.0, openjdk 17 — `flutter doctor`
+  verde pe tot. Cont Apple Developer si Google Play Console: inca nu exista.
+- Regula de proiect (CLAUDE.md), reafirmata explicit de user in 2026-09-07:
+  **nu se face NICIO modificare in Odoo-ul lui** — productie sau odoo.sh, dev/staging/prod.
+  Dezvoltarea ruleaza exclusiv pe un Odoo 18 local in Docker (baza `uportho_test`).
+  Orice deploy pe odoo.sh e o decizie separata a userului, ceruta explicit de el.
 
 ## 3. Decizii luate
 
@@ -237,7 +249,9 @@ dupa, deci un rollback de modul nu cere release. Sesiunile utilizatorilor nu se 
 ## 12. Cunostinte pastrate din aplicatia SwiftUI
 
 Codul din `Rezultate/UPorthoApp/` ramane in repo ca referinta. Ce s-a invatat acolo si
-conteaza pentru modul:
+conteaza pentru modul. **Toate valorile numerice concrete de mai jos (id-uri de
+pricelist, de website, de curier, ancore DOM) se re-verifica pe `developer.uportho.ro`
+inainte de a fi folosite** — vezi avertismentul din sectiunea 2:
 
 - Pricelist: regula cea mai specifica castiga (`1_product` > `2_product_category` >
   `3_global`), la egalitate cea cu `min_quantity` cea mai mare; `compute_price` e
