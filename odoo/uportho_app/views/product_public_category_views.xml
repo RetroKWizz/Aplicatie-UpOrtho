@@ -1,2 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo/>
+<odoo>
+    <record id="product_public_category_form_app" model="ir.ui.view">
+        <field name="name">product.public.category.form.app</field>
+        <field name="model">product.public.category</field>
+        <field name="inherit_id" ref="website_sale.product_public_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Aplicatie mobila">
+                    <field name="app_home_visible"/>
+                    <field name="app_home_sequence"/>
+                    <field name="app_home_icon" widget="image" options="{'size': [0, 96]}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
