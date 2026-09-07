@@ -1,1 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_app_banner_portal,uportho.app.banner portal read,model_uportho_app_banner,base.group_portal,1,0,0,0
+access_app_banner_user,uportho.app.banner user read,model_uportho_app_banner,base.group_user,1,0,0,0
+access_app_banner_designer,uportho.app.banner designer,model_uportho_app_banner,website.group_website_designer,1,1,1,1
