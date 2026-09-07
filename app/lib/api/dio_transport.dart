@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'api_exception.dart';
 import 'api_transport.dart';
 import 'session_store.dart';
 
@@ -21,15 +22,35 @@ class DioTransport implements ApiTransport {
   @override
   Future<ApiResponse> send(String method, String path, {Map<String, dynamic>? body}) async {
     final sessionId = await _sessions.read();
-    final response = await _dio.request<dynamic>(
-      path,
-      data: body,
-      options: Options(
-        method: method,
-        headers: {if (sessionId != null) 'Cookie': 'session_id=$sessionId'},
-        contentType: body == null ? null : Headers.jsonContentType,
-      ),
-    );
+    try {
+      final response = await _dio.request<dynamic>(
+        path,
+        data: body,
+        options: Options(
+          method: method,
+          headers: {if (sessionId != null) 'Cookie': 'session_id=$sessionId'},
+          contentType: body == null ? null : Headers.jsonContentType,
+        ),
+      );
+      return _toApiResponse(response);
+    } on DioException catch (e) {
+      // validateStatus accepta orice cod HTTP, deci un raspuns prezent inseamna
+      // ca serverul chiar a raspuns (ex. eroare de decodare) si mergem pe calea normala.
+      final response = e.response;
+      if (response != null) {
+        return _toApiResponse(response);
+      }
+      // Fara raspuns: timeout, DNS picat, conexiune intrerupta - defect de retea real,
+      // status 0 inseamna "niciun raspuns HTTP primit".
+      throw const ApiException(
+        status: 0,
+        code: 'network_error',
+        message: 'Nu s-a putut contacta serverul. Verifica conexiunea.',
+      );
+    }
+  }
+
+  ApiResponse _toApiResponse(Response<dynamic> response) {
     return ApiResponse(
       status: response.statusCode ?? 0,
       json: response.data is Map<String, dynamic> ? response.data as Map<String, dynamic> : null,

@@ -65,11 +65,36 @@ void main() {
     expect(transport.calls.single.body, {'login': 'a@b.ro', 'password': 'pw'});
   });
 
-  test('logout calls endpoint and clears session even if it fails', () async {
+  test('logout calls endpoint and clears session even on a non-2xx status', () async {
     await store.write('abc');
     transport.when('POST', '/api/app/v1/auth/logout', const ApiResponse(status: 500, json: null));
     await client.logout();
     expect(await store.read(), isNull);
+  });
+
+  test('logout clears session even when the transport call throws', () async {
+    await store.write('abc');
+    transport.whenThrows('POST', '/api/app/v1/auth/logout', const ApiException(
+      status: 0,
+      code: 'network_error',
+      message: 'Nu s-a putut contacta serverul. Verifica conexiunea.',
+    ));
+    await client.logout();
+    expect(await store.read(), isNull);
+  });
+
+  test('network failure from transport surfaces as ApiException(network_error)', () async {
+    transport.whenThrows('GET', '/api/app/v1/home', const ApiException(
+      status: 0,
+      code: 'network_error',
+      message: 'Nu s-a putut contacta serverul. Verifica conexiunea.',
+    ));
+    expect(
+      () => client.get('/home'),
+      throwsA(isA<ApiException>()
+          .having((e) => e.status, 'status', 0)
+          .having((e) => e.code, 'code', 'network_error')),
+    );
   });
 
   test('hasSession reflects store', () async {
