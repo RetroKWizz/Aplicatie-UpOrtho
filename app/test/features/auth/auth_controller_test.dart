@@ -1,0 +1,76 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:uportho_app/api/api_client.dart';
+import 'package:uportho_app/api/api_transport.dart';
+import 'package:uportho_app/api/session_store.dart';
+import 'package:uportho_app/features/auth/auth_controller.dart';
+import 'package:uportho_app/providers.dart';
+
+import '../../api/fake_transport.dart';
+
+const userJson = {'user': {'id': 1, 'name': 'A', 'email': 'a@b.ro', 'partner_id': 2}};
+
+void main() {
+  late FakeTransport transport;
+  late InMemorySessionStore store;
+  late ProviderContainer container;
+
+  setUp(() {
+    transport = FakeTransport();
+    store = InMemorySessionStore();
+    container = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(ApiClient(transport, store, baseUrl: 'http://x')),
+    ]);
+  });
+
+  tearDown(() => container.dispose());
+
+  test('without stored session starts signedOut', () async {
+    final state = await container.read(authControllerProvider.future);
+    expect(state, const AuthState.signedOut());
+  });
+
+  test('with stored session restores profile via /me', () async {
+    await store.write('sess');
+    transport.when('GET', '/api/app/v1/me', const ApiResponse(status: 200, json: userJson));
+    final state = await container.read(authControllerProvider.future);
+    expect(state, isA<SignedIn>().having((s) => s.user.email, 'email', 'a@b.ro'));
+  });
+
+  test('with expired session (/me 401) starts signedOut', () async {
+    await store.write('sess');
+    transport.when('GET', '/api/app/v1/me', const ApiResponse(status: 401, json: {
+      'error': {'code': 'unauthorized', 'message': 'x', 'details': {}}
+    }));
+    final state = await container.read(authControllerProvider.future);
+    expect(state, const AuthState.signedOut());
+  });
+
+  test('login success moves to signedIn', () async {
+    await container.read(authControllerProvider.future);
+    transport.when('POST', '/api/app/v1/auth/login', const ApiResponse(status: 200, json: userJson, sessionCookie: 's'));
+    await container.read(authControllerProvider.notifier).login('a@b.ro', 'pw');
+    expect(container.read(authControllerProvider).value, isA<SignedIn>());
+  });
+
+  test('login failure exposes error and stays signedOut', () async {
+    await container.read(authControllerProvider.future);
+    transport.when('POST', '/api/app/v1/auth/login', const ApiResponse(status: 401, json: {
+      'error': {'code': 'invalid_credentials', 'message': 'Email sau parola gresite.', 'details': {}}
+    }));
+    await container.read(authControllerProvider.notifier).login('a@b.ro', 'bad');
+    final state = container.read(authControllerProvider);
+    expect(state.hasError, isTrue);
+    expect(container.read(authControllerProvider.notifier).lastErrorMessage, 'Email sau parola gresite.');
+  });
+
+  test('logout moves to signedOut and clears session', () async {
+    await store.write('sess');
+    transport.when('GET', '/api/app/v1/me', const ApiResponse(status: 200, json: userJson));
+    await container.read(authControllerProvider.future);
+    transport.when('POST', '/api/app/v1/auth/logout', const ApiResponse(status: 204));
+    await container.read(authControllerProvider.notifier).logout();
+    expect(container.read(authControllerProvider).value, const AuthState.signedOut());
+    expect(await store.read(), isNull);
+  });
+}
