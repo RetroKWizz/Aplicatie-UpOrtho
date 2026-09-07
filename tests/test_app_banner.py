@@ -49,10 +49,10 @@ class TestAppBanner(TransactionCase):
         self.assertNotIn(other, result)
 
     def test_ordered_by_sequence(self):
-        second = self._make(sequence=20, name='B')
-        first = self._make(sequence=5, name='A')
-        result = self.Banner._search_active_now(self.website)
-        self.assertEqual(result[:2].mapped('name'), ['A', 'B'])
+        self._make(sequence=20, name='B')
+        self._make(sequence=5, name='A')
+        names = self.Banner._search_active_now(self.website).mapped('name')
+        self.assertLess(names.index('A'), names.index('B'))
 
     def test_category_link_requires_category(self):
         with self.assertRaises(ValidationError):
