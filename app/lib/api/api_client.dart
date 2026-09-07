@@ -1,0 +1,74 @@
+import 'api_exception.dart';
+import 'api_transport.dart';
+import 'session_store.dart';
+
+/// Clientul contractului /api/app/v1. Nu stie de Odoo; stie doar forma raspunsurilor.
+class ApiClient {
+  ApiClient(this._transport, this._sessions, {required this.baseUrl});
+
+  static const prefix = '/api/app/v1';
+  final ApiTransport _transport;
+  final SessionStore _sessions;
+  final String baseUrl;
+
+  Future<Map<String, dynamic>> get(String path) => _request('GET', path);
+
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body}) =>
+      _request('POST', path, body: body);
+
+  Future<void> delete(String path) async {
+    await _request('DELETE', path);
+  }
+
+  Future<Map<String, dynamic>> login(String login, String password) async {
+    final response = await _transport.send('POST', '$prefix/auth/login',
+        body: {'login': login, 'password': password});
+    final body = _bodyOrThrow(response);
+    if (response.sessionCookie != null) {
+      await _sessions.write(response.sessionCookie!);
+    }
+    return body;
+  }
+
+  Future<void> logout() async {
+    try {
+      await _transport.send('POST', '$prefix/auth/logout');
+    } catch (_) {
+      // Sesiunea locala se sterge oricum; serverul o expira singur.
+    } finally {
+      await _sessions.clear();
+    }
+  }
+
+  Future<bool> hasSession() async => (await _sessions.read()) != null;
+
+  String absoluteUrl(String path) => path.startsWith('http') ? path : '$baseUrl$path';
+
+  Future<Map<String, dynamic>> _request(String method, String path, {Map<String, dynamic>? body}) async {
+    final response = await _transport.send(method, '$prefix$path', body: body);
+    if (response.status == 401) {
+      await _sessions.clear();
+    }
+    return _bodyOrThrow(response);
+  }
+
+  Map<String, dynamic> _bodyOrThrow(ApiResponse response) {
+    if (response.status >= 200 && response.status < 300) {
+      return response.json ?? const {};
+    }
+    final error = response.json?['error'];
+    if (error is Map<String, dynamic>) {
+      throw ApiException(
+        status: response.status,
+        code: error['code'] as String? ?? 'unknown',
+        message: error['message'] as String? ?? 'Eroare necunoscuta.',
+        details: (error['details'] as Map?)?.cast<String, dynamic>() ?? const {},
+      );
+    }
+    throw ApiException(
+      status: response.status,
+      code: response.status == 401 ? 'unauthorized' : 'internal_error',
+      message: 'A aparut o eroare. Incearca din nou.',
+    );
+  }
+}
