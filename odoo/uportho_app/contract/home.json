@@ -1,0 +1,26 @@
+{
+  "banners": [
+    {
+      "id": 1,
+      "title": "Alatura-te Ortho Club",
+      "subtitle": "Preturi speciale pentru membri",
+      "cta_text": "Vezi beneficii",
+      "placement": "hero",
+      "image_url": "/api/app/v1/banners/1/image",
+      "link": { "type": "category", "category_id": 12, "url": null }
+    },
+    {
+      "id": 2,
+      "title": "Bracketi metalici",
+      "subtitle": null,
+      "cta_text": "Vezi produse",
+      "placement": "promo",
+      "image_url": null,
+      "link": { "type": "none", "category_id": null, "url": null }
+    }
+  ],
+  "quick_categories": [
+    { "id": 12, "name": "Bracketi", "icon_url": "/api/app/v1/categories/12/icon" },
+    { "id": 13, "name": "Arcuri", "icon_url": null }
+  ]
+}
