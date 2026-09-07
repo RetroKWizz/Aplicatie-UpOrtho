@@ -1,3 +1,6 @@
 .DS_Store
 build/
 .superpowers/
+app/.dart_tool/
+app/ios/Pods/
+app/android/.gradle/
