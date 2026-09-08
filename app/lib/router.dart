@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
+import 'features/catalog/catalog_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/shell/shell_screen.dart';
 
@@ -36,7 +37,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _, shell) => ShellScreen(navigationShell: shell),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/', builder: (_, _) => const HomeScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/catalog', builder: (_, _) => const PlaceholderScreen('Catalog'))]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/catalog',
+              builder: (_, state) {
+                final categoryId = int.tryParse(state.uri.queryParameters['category_id'] ?? '');
+                return CatalogScreen(initialCategoryId: categoryId);
+              },
+            ),
+          ]),
           StatefulShellBranch(routes: [GoRoute(path: '/cart', builder: (_, _) => const PlaceholderScreen('Cos'))]),
           StatefulShellBranch(routes: [GoRoute(path: '/account', builder: (_, _) => const PlaceholderScreen('Cont'))]),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/api_exception.dart';
@@ -95,9 +96,7 @@ class _HomeContent extends StatelessWidget {
                   name: category.name,
                   iconUrl: iconUrl,
                   httpHeaders: iconUrl == null ? null : headersFor(iconUrl),
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Catalogul vine in Faza 2: ${category.name}')),
-                  ),
+                  onTap: () => context.go('/catalog?category_id=${category.id}'),
                 );
               },
             ),
@@ -153,8 +152,9 @@ class _HomeContent extends StatelessWidget {
           debugPrint('Nu s-a putut deschide link-ul bannerului: $error');
         }
       case BannerLinkType.category:
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catalogul vine in Faza 2.')));
+        final categoryId = banner.link.categoryId;
+        if (categoryId != null && context.mounted) {
+          context.go('/catalog?category_id=$categoryId');
         }
       case BannerLinkType.none:
         break;
