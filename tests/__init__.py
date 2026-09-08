@@ -5,3 +5,4 @@ from . import test_controllers_base
 from . import test_controllers_auth
 from . import test_controllers_home
 from . import test_controllers_devices
+from . import test_controllers_catalog

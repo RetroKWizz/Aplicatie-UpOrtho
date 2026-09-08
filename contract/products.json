@@ -1,0 +1,46 @@
+{
+  "products": [
+    {
+      "id": 101,
+      "name": "Bracket metalic Roth .022",
+      "default_code": "BR-ROTH-022",
+      "image_url": "/api/app/v1/products/101/image?unique=3a1f9c2",
+      "price": {
+        "amount": 148.50,
+        "currency": "RON",
+        "formatted": "148,50 lei",
+        "with_vat": true,
+        "list_amount": 330.00,
+        "discount_pct": 55
+      },
+      "club_price": {
+        "amount": 133.65,
+        "currency": "RON",
+        "formatted": "133,65 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "discount_pct": null
+      },
+      "badge": { "text": "Nou", "color": "green" }
+    },
+    {
+      "id": 102,
+      "name": "Arc NiTi termic .014",
+      "default_code": null,
+      "image_url": null,
+      "price": {
+        "amount": 25.00,
+        "currency": "RON",
+        "formatted": "25,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "discount_pct": null
+      },
+      "club_price": null,
+      "badge": null
+    }
+  ],
+  "total": 2,
+  "offset": 0,
+  "limit": 20
+}

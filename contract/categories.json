@@ -1,0 +1,16 @@
+[
+  {
+    "id": 12,
+    "name": "Bracketi",
+    "parent_id": null,
+    "icon_url": "/api/app/v1/categories/12/icon?unique=8be4d17",
+    "product_count": 42
+  },
+  {
+    "id": 15,
+    "name": "Bracketi metalici",
+    "parent_id": 12,
+    "icon_url": null,
+    "product_count": 18
+  }
+]
