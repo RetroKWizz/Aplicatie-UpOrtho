@@ -42,11 +42,11 @@ inexistent). De citit inainte de Faza 2 si inainte de Faza 5.
 ### Faza 0-1 — Fundatie (plan: `docs/superpowers/plans/2026-09-07-faza-0-1-fundatie.md`) — LIVRATA
 
 - [x] Modul Odoo `uportho_app`: banner + categorii rapide, autentificare pe sesiune,
-  `/home`, rute de imagine, model device pentru push (40 teste)
+  `/home`, rute de imagine, model device pentru push (46 teste)
 - [x] Editare continut din backend Odoo (Website → Aplicatie mobila), fara developer
 - [x] Mediu local: Docker Odoo 18 + Postgres, `run-tests.sh`
 - [x] Aplicatie Flutter: proiect, design system (culori/tipografie/tema din brand),
-  login + restaurare sesiune, ecran Acasa, tab bar cu 4 taburi (46 teste,
+  login + restaurare sesiune, ecran Acasa, tab bar cu 4 taburi (80 teste,
   `flutter analyze` curat)
 - [x] Contract JSON comun Odoo <-> Flutter, sincronizat prin `sync_contract.sh`
 - [ ] Export Odoo Studio ca plasa de siguranta — **decizie deschisa a userului**

@@ -3,7 +3,7 @@
 Aplicatie mobila cross-platform (Flutter, iOS + Android) pentru **uportho.ro**,
 cu backend un modul Odoo 18 propriu care expune un API JSON (`/api/app/v1`).
 Design vizual diferit fata de site, dar culori de brand reale (vezi mai jos).
-Push notifications plantificate (Faza 4), inca neimplementate.
+Push notifications planificate (Faza 4), inca neimplementate.
 
 Verificare si lansare: **intai iOS**. Android ramane configurat (compileaza,
 testele trec) dar nu e exercitat curent pe device/emulator.
@@ -78,13 +78,15 @@ de pe site.
 
 ## Status curent — Faza 0-1 livrata
 
-- Modul Odoo `uportho_app`: 40 teste trecute.
-- Aplicatia Flutter: 46 teste trecute, `flutter analyze` curat. Login, restaurare
+- Modul Odoo `uportho_app`: 46 teste trecute.
+- Aplicatia Flutter: 80 teste trecute, `flutter analyze` curat. Login, restaurare
   silentioasa a sesiunii la relansare, ecran Acasa (banner + categorii rapide din Odoo),
   tab bar cu 4 taburi (doar Acasa e real in Faza 1).
 - Contract JSON comun: `odoo/uportho_app/contract/*.json` e sursa de adevar, copiat in
   `app/test/contract/` prin `app/tool/sync_contract.sh` — o schimbare pe server care
-  rupe aplicatia pica un test inainte de a ajunge in productie.
+  rupe aplicatia pica un test inainte de a ajunge in productie. Divergenta intre cele
+  doua copii e prinsa de `app/test/contract_sync_test.dart` (compara byte cu byte);
+  daca pica, ruleaza `app/tool/sync_contract.sh`.
 - Nu e facut inca: catalog/preturi (Faza 2), cos/checkout/plata (Faza 3), cont/comenzi/
   facturi/push (Faza 4), lansare in store (Faza 5), migrare Odoo 19 (Faza 6).
 - Ramase, de decis doar de user: export Odoo Studio ca plasa de siguranta (plan Task 0.3),
@@ -114,9 +116,15 @@ de pe site.
    (`docker compose restart` in `odoo/`).
 5. **`odoo.tests.stats` logheaza un numar de teste cumulativ, mai mare decat cel real.**
    Linia autoritara e `N failed, M error(s) of K tests`.
-6. **In baza locala `uportho_test` exista deliberat un banner ramas dintr-un test
-   anterior** — tine testele de ordonare oneste, dovedind ca sunt robuste la date
-   preexistente. Nu se sterge.
+6. **Testele nu au voie sa depinda de datele preexistente din baza.** Baza locala
+   `uportho_test` are inregistrari ramase din verificari manuale (bannere, categorii
+   bifate ca vizibile pe Acasa). Un test care compara o lista intoarsa de `/home` cu
+   exact ce si-a creat el pica pe o astfel de baza — s-a si intamplat. Forma corecta:
+   testul filtreaza pe id-urile proprii SI isi creeaza singur inregistrarea care
+   interfereaza. Asa dovada de robustete sta in test si supravietuieste unui clone nou
+   sau unui container reconstruit. (Doctrina anterioara — "lasa bannerul strain in baza,
+   e dovada ca testele sunt robuste" — era gresita: dovada era locala unei masini si
+   facea baza nereproductibila.)
 7. **Acest Flutter foloseste Swift Package Manager pe iOS, nu CocoaPods** — nu exista
    `ios/Podfile`; nu cauta/instala pods.
 
