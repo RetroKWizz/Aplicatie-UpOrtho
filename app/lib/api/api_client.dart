@@ -22,6 +22,17 @@ class ApiClient {
 
   Future<Map<String, dynamic>> get(String path) => _request('GET', path);
 
+  /// Ca `get`, dar pentru endpointuri al caror raspuns e un array JSON la nivelul
+  /// radacinii (contractul `GET /categories`), nu un obiect.
+  Future<List<dynamic>> getList(String path) async {
+    final response = await _transport.send('GET', '$prefix$path');
+    if (response.status == 401) {
+      await _sessions.clear();
+      onUnauthorized?.call();
+    }
+    return _listBodyOrThrow(response);
+  }
+
   Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body}) =>
       _request('POST', path, body: body);
 
@@ -64,9 +75,25 @@ class ApiClient {
 
   Map<String, dynamic> _bodyOrThrow(ApiResponse response) {
     if (response.status >= 200 && response.status < 300) {
-      return response.json ?? const {};
+      final data = response.json;
+      return data is Map<String, dynamic> ? data : const {};
     }
-    final error = response.json?['error'];
+    _throwError(response);
+  }
+
+  List<dynamic> _listBodyOrThrow(ApiResponse response) {
+    if (response.status >= 200 && response.status < 300) {
+      final data = response.json;
+      return data is List ? data : const [];
+    }
+    _throwError(response);
+  }
+
+  /// Forma de eroare e mereu un obiect (`{"error": {...}}`), indiferent daca
+  /// raspunsul de succes al endpointului e un obiect sau un array.
+  Never _throwError(ApiResponse response) {
+    final data = response.json;
+    final error = data is Map<String, dynamic> ? data['error'] : null;
     if (error is Map<String, dynamic>) {
       throw ApiException(
         status: response.status,

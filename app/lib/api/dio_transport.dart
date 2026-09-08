@@ -51,9 +51,13 @@ class DioTransport implements ApiTransport {
   }
 
   ApiResponse _toApiResponse(Response<dynamic> response) {
+    // Corpul poate fi un obiect JSON (majoritatea endpointurilor) sau un array JSON
+    // la nivelul radacinii (`GET /categories`) - orice altceva (text simplu, gol)
+    // e tratat ca "fara corp decodabil", niciodata propagat ca atare.
+    final data = response.data;
     return ApiResponse(
       status: response.statusCode ?? 0,
-      json: response.data is Map<String, dynamic> ? response.data as Map<String, dynamic> : null,
+      json: (data is Map<String, dynamic> || data is List) ? data : null,
       sessionCookie: _extractSessionId(response.headers['set-cookie']),
     );
   }
