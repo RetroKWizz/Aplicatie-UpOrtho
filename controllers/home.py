@@ -1,3 +1,5 @@
+import hashlib
+
 from odoo import http
 from odoo.http import request
 
@@ -8,6 +10,17 @@ def _current_website():
     return request.env['website'].get_current_website()
 
 
+def image_unique(record):
+    """Token de versiune pentru URL-ul unei imagini, ca sa poata fi invalidata din cache.
+
+    `cached_network_image` din aplicatie isi cheie cache-ul de disc dupa URL si ar
+    servi zile la rand imaginea veche dupa ce un editor o schimba in Odoo. Token-ul
+    se calculeaza ca in Odoo pentru `/web/image/...?unique=` (`website.image_url`):
+    primele 7 caractere din sha512 al lui `write_date`. Se schimba la orice scriere
+    pe inregistrare, deci URL-ul devine altul si cache-ul se reincarca."""
+    return hashlib.sha512(str(record.sudo().write_date).encode('utf-8')).hexdigest()[:7]
+
+
 def serialize_banner(banner):
     return {
         'id': banner.id,
@@ -15,7 +28,8 @@ def serialize_banner(banner):
         'subtitle': banner.subtitle or None,
         'cta_text': banner.cta_text or None,
         'placement': banner.placement,
-        'image_url': f'{API_PREFIX}/banners/{banner.id}/image' if banner.image else None,
+        'image_url': f'{API_PREFIX}/banners/{banner.id}/image?unique={image_unique(banner)}'
+                     if banner.image else None,
         'link': {
             'type': banner.link_type,
             'category_id': banner.category_id.id if banner.link_type == 'category' else None,
@@ -28,7 +42,8 @@ def serialize_quick_category(category):
     return {
         'id': category.id,
         'name': category.name,
-        'icon_url': f'{API_PREFIX}/categories/{category.id}/icon' if category.app_home_icon else None,
+        'icon_url': f'{API_PREFIX}/categories/{category.id}/icon?unique={image_unique(category)}'
+                    if category.app_home_icon else None,
     }
 
 
