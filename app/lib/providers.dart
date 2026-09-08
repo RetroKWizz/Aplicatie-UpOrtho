@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api/api_client.dart';
+import 'api/api_transport.dart';
 import 'api/dio_transport.dart';
 import 'api/session_store.dart';
 import 'config.dart';
@@ -8,9 +9,26 @@ import 'features/auth/auth_controller.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) => SecureSessionStore());
 
+// Transportul e provider separat ca testele sa poata inlocui DOAR reteaua si sa
+// exercite constructia reala a lui ApiClient (inclusiv legatura onUnauthorized ->
+// AuthController de mai jos), nu o versiune paralela scrisa in test.
+final apiTransportProvider = Provider<ApiTransport>(
+    (ref) => DioTransport(AppConfig.apiBaseUrl, ref.watch(sessionStoreProvider)));
+
 final apiClientProvider = Provider<ApiClient>((ref) {
   final store = ref.watch(sessionStoreProvider);
-  return ApiClient(DioTransport(AppConfig.apiBaseUrl, store), store, baseUrl: AppConfig.apiBaseUrl);
+  return ApiClient(
+    ref.watch(apiTransportProvider),
+    store,
+    baseUrl: AppConfig.apiBaseUrl,
+    // Un 401 aparut in timpul sesiunii (sesiunea serverului a expirat cat timp
+    // aplicatia era deschisa) trebuie sa duca inapoi la login - spec §8. Fara asta,
+    // ApiClient stergea sesiunea locala dar authControllerProvider ramanea pe
+    // SignedIn, iar userul ramanea blocat pe un card de eroare cu "Reincearca" care
+    // ar fi dat 401 la infinit. `ref.read` (nu watch) fiindca apelul se face mult
+    // dupa build, iar apiClientProvider nu trebuie sa depinda de starea de auth.
+    onUnauthorized: () => ref.read(authControllerProvider.notifier).onSessionExpired(),
+  );
 });
 
 // Headerele HTTP necesare ca imaginile din bannere/categorii (rute Odoo auth='user')

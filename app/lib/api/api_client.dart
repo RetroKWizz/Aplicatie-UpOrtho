@@ -4,12 +4,21 @@ import 'session_store.dart';
 
 /// Clientul contractului /api/app/v1. Nu stie de Odoo; stie doar forma raspunsurilor.
 class ApiClient {
-  ApiClient(this._transport, this._sessions, {required this.baseUrl});
+  ApiClient(this._transport, this._sessions, {required this.baseUrl, this.onUnauthorized});
 
   static const prefix = '/api/app/v1';
   final ApiTransport _transport;
   final SessionStore _sessions;
   final String baseUrl;
+
+  /// Semnal de "sesiune expirata": un 401 pe o cerere obisnuita, dupa ce sesiunea
+  /// locala a fost stearsa. Cine asculta (AuthController) trece aplicatia in
+  /// SignedOut, iar routerul redirectioneaza la login.
+  ///
+  /// Nu se declanseaza pentru `login()`: acolo 401 inseamna date de autentificare
+  /// gresite - un esec asteptat, cu mesajul lui, nu o expirare de sesiune. `login()`
+  /// vorbeste direct cu transportul tocmai ca sa nu treaca prin acest drum.
+  final void Function()? onUnauthorized;
 
   Future<Map<String, dynamic>> get(String path) => _request('GET', path);
 
@@ -48,6 +57,7 @@ class ApiClient {
     final response = await _transport.send(method, '$prefix$path', body: body);
     if (response.status == 401) {
       await _sessions.clear();
+      onUnauthorized?.call();
     }
     return _bodyOrThrow(response);
   }

@@ -59,6 +59,20 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
   }
 
+  /// Sesiunea serverului a expirat in timpul folosirii aplicatiei: ApiClient a primit
+  /// 401 pe o cerere obisnuita si si-a sters sesiunea locala. Trecem in SignedOut, iar
+  /// `refreshListenable` al routerului duce userul la login (spec §8).
+  ///
+  /// Ne miscam DOAR dintr-o stare SignedIn. Asta exclude, prin constructie, cele doua
+  /// cazuri care nu sunt expirari de sesiune: un login cu date gresite (starea e
+  /// AsyncLoading/AsyncError, iar 401-ul are deja mesajul lui) si restaurarea de la
+  /// pornire cu o sesiune veche (suntem in build(), unde nu avem voie sa scriem state).
+  void onSessionExpired() {
+    if (state.value is! SignedIn) return;
+    lastErrorMessage = null;
+    state = const AsyncData(AuthState.signedOut());
+  }
+
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
     state = const AsyncData(AuthState.signedOut());
