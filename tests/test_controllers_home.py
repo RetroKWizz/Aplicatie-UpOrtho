@@ -57,11 +57,19 @@ class TestControllersHome(AppHttpCase):
         self.assertIsNone(promo['image_url'])
 
     def test_home_quick_categories_visible_only_in_order(self):
+        # Ca si la bannere: nu presupunem ca baza contine EXACT categoriile create aici
+        # (o baza locala poate avea categorii vizibile ramase dintr-o verificare manuala).
+        # Filtram pe id-urile proprii si ne cream singuri inregistrarea care interfereaza -
+        # dovada de robustete trebuie sa fie in test, nu in starea unei anume baze de date.
         self.api_login()
-        categories = self.api_get('/home').json()['quick_categories']
-        self.assertEqual([c['name'] for c in categories], ['Bracketi', 'Arcuri'])
-        self.assertEqual(categories[0]['icon_url'], f'/api/app/v1/categories/{self.category.id}/icon')
-        self.assertIsNone(categories[1]['icon_url'])
+        intruder = self.env['product.public.category'].create({
+            'name': 'Intrus', 'app_home_visible': True, 'app_home_sequence': 0})
+        own_ids = {self.category.id, self.category_no_icon.id, intruder.id}
+        categories = [c for c in self.api_get('/home').json()['quick_categories'] if c['id'] in own_ids]
+        self.assertEqual([c['name'] for c in categories], ['Intrus', 'Bracketi', 'Arcuri'])
+        by_id = {c['id']: c for c in categories}
+        self.assertEqual(by_id[self.category.id]['icon_url'], f'/api/app/v1/categories/{self.category.id}/icon')
+        self.assertIsNone(by_id[self.category_no_icon.id]['icon_url'])
 
     def test_banner_image_is_served_for_logged_user(self):
         self.api_login()
