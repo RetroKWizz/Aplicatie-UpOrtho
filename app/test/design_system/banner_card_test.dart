@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/models/banner.dart';
@@ -30,11 +31,36 @@ void main() {
     expect(find.byType(FilledButton), findsNothing);
   });
 
-  testWidgets('accepts httpHeaders without crashing when imageUrl is null', (tester) async {
+  // Testul de dinainte se numea "accepts httpHeaders without crashing" si verifica doar
+  // ca se randeaza o eticheta de text - ar fi trecut si daca parametrul httpHeaders ar fi
+  // fost sters cu totul. Aici verificam efectiv ca headerele ajung pe cererea de imagine,
+  // adica exact garantia pe care se sprijina autentificarea imaginilor din Odoo.
+  testWidgets('httpHeaders ajung pe CachedNetworkImage cand exista imageUrl', (tester) async {
+    const headers = {'Cookie': 'session_id=abc'};
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: BannerCard(
+        banner: banner,
+        imageUrl: 'https://example.test/api/app/v1/banners/1/image?unique=3a1f9c2',
+        httpHeaders: headers,
+      )),
+    ));
+    final image = tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage));
+    expect(image.httpHeaders, headers);
+    expect(image.imageUrl, 'https://example.test/api/app/v1/banners/1/image?unique=3a1f9c2');
+  });
+
+  testWidgets('fara httpHeaders, CachedNetworkImage nu primeste headere inventate', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: BannerCard(banner: banner, imageUrl: 'https://example.test/i.png')),
+    ));
+    expect(tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage)).httpHeaders, isNull);
+  });
+
+  testWidgets('fara imageUrl nu se cere nicio imagine', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: BannerCard(banner: banner, imageUrl: null, httpHeaders: {'Cookie': 'session_id=abc'})),
     ));
-    expect(find.text('Titlu'), findsOneWidget);
+    expect(find.byType(CachedNetworkImage), findsNothing);
   });
 
   testWidgets('promo card cu titlu si subtitlu lungi nu da overflow, in grila reala 2 coloane', (tester) async {
