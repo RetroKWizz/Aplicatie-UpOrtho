@@ -1,15 +1,32 @@
-# Setup Odoo Studio — continut/design aplicatie (Partea 1 din plan)
+# Setup Odoo Studio — DEPASIT, pastrat pentru retragerea lui `x_app_banner`
 
-Plan complet: `/Users/mihaim/.claude/plans/crystalline-drifting-snowflake.md`
+> **Nu mai urma acest ghid pentru continut nou.** Abordarea prin Odoo Studio a fost
+> inlocuita de modulul `odoo/uportho_app/`, care defineste aceleasi lucruri ca modele si
+> campuri in cod, versionate in git, cu ecrane proprii de editare sub
+> **Website → Aplicatie mobila**. Vezi `CLAUDE.md` si
+> `docs/superpowers/specs/2026-09-07-uportho-flutter-odoo-design.md`.
+>
+> Modulul acopera continutul asa:
+> - bannerele → modelul `uportho.app.banner`
+> - categoriile rapide de pe Acasa → campuri `app_home_visible` / `app_home_sequence` /
+>   `app_home_icon` pe `product.public.category` (nu un model separat)
+> - etichetele de produs → campuri `app_badge_text` / `app_badge_color` /
+>   `app_badge_date_end` pe `product.template` (nu un model separat)
+> - ordinea sectiunilor de pe Acasa → fixa in codul aplicatiei, fara model
+>
+> **De ce fisierul asta ramane totusi:** `x_app_banner` inca exista in Odoo de productie,
+> iar exportul customizarilor Studio (plasa de siguranta) **nu a fost facut inca**.
+> Nu retrage `x_app_banner` inainte sa existe exportul — modulul nou nu migreaza datele
+> vechi. Pana atunci, procedura de mai jos ramane referinta pentru ce e acolo.
+>
+> Modelele 2, 3 si 4 de mai jos **nu au fost create si nu trebuie create** — sunt
+> inlocuite de campurile enumerate mai sus.
 
-**Status:**
-- ✅ Model 1 — `x_app_banner` — FACUT, testat, conectat in aplicatie (functioneaza live)
-- ⬜ Model 2 — `x_app_home_category`
-- ⬜ Model 3 — `x_app_home_section`
-- ⬜ Model 4 — `x_app_product_badge`
-
-Acest fisier e ghidul complet, actualizat cu tot ce am invatat facand Model 1 —
-il poti urma singur, fara sa mai astepti confirmare pas-cu-pas de fiecare data.
+**Status istoric:**
+- ✅ Model 1 — `x_app_banner` — creat in Studio, inca prezent in productie
+- ⬜ Model 2 — `x_app_home_category` — abandonat, inlocuit de campuri pe categorie
+- ⬜ Model 3 — `x_app_home_section` — abandonat, ordinea e in codul aplicatiei
+- ⬜ Model 4 — `x_app_product_badge` — abandonat, inlocuit de campuri pe produs
 
 ---
 
