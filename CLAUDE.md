@@ -50,6 +50,15 @@ Endpointuri curente: `POST /auth/login`, `POST /auth/logout`, `GET /me`, `GET /h
 `GET /categories/<id>/icon` (rute de imagine autentificate), `POST /devices`,
 `DELETE /devices/<token>` (token FCM, pregatire push Faza 4).
 
+**Parametru de sistem, de setat la fiecare deploy**: `uportho_app.website_id`
+(Setari → Tehnic → Parametri de sistem) = id-ul website-ului magazinului
+(pe instanta reala: **11**). Fara el, controllerul cade pe `get_current_website()`,
+care rezolva din header-ul HTTP `Host` contra domeniilor configurate si, daca nu
+potriveste, ia primul website din baza — pe o instanta cu mai multe website-uri
+`/home` ar returna gol si aplicatia ar afisa "Nu exista continut inca.", ca si cum
+ar fi o problema de continut, nu un bug. Fallback-ul logheaza un warning
+(`odoo.addons.uportho_app.controllers.home`), tocmai ca sa fie vizibil in loguri.
+
 Modele de continut care inlocuiesc Odoo Studio: `uportho.app.banner`, plus campuri
 `app_home_visible` / `app_home_sequence` / `app_home_icon` pe `product.public.category`
 si `app_badge_text` / `app_badge_color` / `app_badge_date_end` pe `product.template`.
