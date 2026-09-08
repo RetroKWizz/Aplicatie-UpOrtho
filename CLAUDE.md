@@ -16,6 +16,7 @@ testele trec) dar nu e exercitat curent pe device/emulator.
 - `Rezultate/UPorthoApp/` — vechiul prototip SwiftUI, **arhivat, nu mai e produsul curent** (pastrat ca referinta; a lasat mostenire comportamentul de pricelist si harta rutelor de checkout, preluate in spec-ul de design)
 - `docs/superpowers/specs/2026-09-07-uportho-flutter-odoo-design.md` — spec-ul de design (sursa comuna pentru toate fazele)
 - `docs/superpowers/plans/2026-09-07-faza-0-1-fundatie.md` — planul Fazei 0-1
+- `docs/DE-FACUT.md` — decizii amanate: ce se scoate inainte de lansare (cleartext, ping de debug, semnare cu chei de debug, nume placeholder) si datoria tehnica cunoscuta. **Se citeste inainte de Faza 2 si inainte de Faza 5.**
 - `.claude/agents/` — subagenti Claude Code pentru acest proiect
 - `PROIECT.md` — planul general, scope, roadmap (limba romana, pentru om)
 - `CLAUDE.md` — acest fisier, context tehnic pentru Claude Code
@@ -88,6 +89,8 @@ de pe site.
   facturi/push (Faza 4), lansare in store (Faza 5), migrare Odoo 19 (Faza 6).
 - Ramase, de decis doar de user: export Odoo Studio ca plasa de siguranta (plan Task 0.3),
   deploy pe odoo.sh (plan Task 1.9, sarit deliberat).
+- Ce a fost amanat constient (setari de dezvoltare de scos la lansare + datorie tehnica):
+  `docs/DE-FACUT.md`.
 
 ## Gotchas de mediu (cost real de timp la redescoperire)
 

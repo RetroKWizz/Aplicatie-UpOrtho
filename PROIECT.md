@@ -28,6 +28,15 @@ neexercitat curent.
   produsul curent. A lasat mostenire comportamentul de pricelist si harta rutelor de
   checkout, preluate in spec-ul de design.
 
+## Ce a ramas de facut din Faza 0-1
+
+Lucrurile amanate constient sunt scrise in **`docs/DE-FACUT.md`**: setarile de
+dezvoltare care trebuie scoase inainte de lansare (trafic HTTP in clar pe Android,
+ruta de debug din modulul Odoo, semnarea Android cu chei de debug, numele de
+placeholder ale aplicatiei) si datoria tehnica cunoscuta (cuplajul design system <->
+modele API, parametrii de query lipsa din clientul API, contractul de preturi
+inexistent). De citit inainte de Faza 2 si inainte de Faza 5.
+
 ## Faze (spec: `docs/superpowers/specs/2026-09-07-uportho-flutter-odoo-design.md`)
 
 ### Faza 0-1 — Fundatie (plan: `docs/superpowers/plans/2026-09-07-faza-0-1-fundatie.md`) — LIVRATA
