@@ -55,9 +55,13 @@ class TestControllersCategories(AppHttpCase):
         self.assertTrue(by_id[self.child.id]['icon_url'].startswith(
             f'/api/app/v1/categories/{self.child.id}/icon?unique='))
 
-    def test_categories_product_count_is_direct_not_recursive(self):
+    def test_categories_product_count_is_recursive(self):
         # Categoriile sunt proaspete (create in acest test), deci un numar de 0 la
         # inceput e garantat - nu depindem de ce mai exista in baza locala.
+        # product_count trebuie sa fie identic cu ce filtreaza /products pe aceeasi
+        # categorie (care foloseste 'child_of', recursiv) - altfel userul vede
+        # "Bracketi - 42" pe /categories si un numar diferit de produse cand
+        # intra efectiv pe categorie.
         self.api_login()
         Template = self.env['product.template']
         Template.create({
@@ -68,8 +72,22 @@ class TestControllersCategories(AppHttpCase):
             'public_categ_ids': [(6, 0, [self.child.id])]})
         by_id = {c['id']: c for c in self.api_get('/categories').json()
                  if c['id'] in (self.parent.id, self.child.id)}
-        # product_count e per-nod (direct), nu insumat cu descendentii - aplicatia
-        # construieste arborele si poate insuma singura daca vrea un total pe ramura.
+        # Parintele numara si propriul produs direct, si pe cel al copilului: 2.
+        # Copilul numara doar al lui: 1.
+        self.assertEqual(by_id[self.parent.id]['product_count'], 2)
+        self.assertEqual(by_id[self.child.id]['product_count'], 1)
+
+    def test_categories_product_count_does_not_double_count_shared_product(self):
+        # Un produs prins DIRECT atat in parinte cat si in copil trebuie numarat o
+        # singura data la parinte (child_of numara fiecare produs o data; o simpla
+        # insumare a numerelor directe per nod l-ar numara de doua ori).
+        self.api_login()
+        Template = self.env['product.template']
+        Template.create({
+            'name': 'Produs pe ambele categorii', 'is_published': True,
+            'public_categ_ids': [(6, 0, [self.parent.id, self.child.id])]})
+        by_id = {c['id']: c for c in self.api_get('/categories').json()
+                 if c['id'] in (self.parent.id, self.child.id)}
         self.assertEqual(by_id[self.parent.id]['product_count'], 1)
         self.assertEqual(by_id[self.child.id]['product_count'], 1)
 
