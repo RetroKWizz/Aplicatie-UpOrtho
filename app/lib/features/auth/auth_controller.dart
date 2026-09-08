@@ -26,7 +26,14 @@ class SignedIn extends AuthState {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository(ref.watch(apiClientProvider)));
 
-final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);
+// retry: null dezactiveaza reincercarea automata (Riverpod 3 reincearca implicit
+// erorile de build() cu backoff exponential pana la ~38s); userul trebuie sa
+// ajunga rapid la ecranul de login, nu sa astepte un backoff cand build() da eroare
+// (ex. fara conexiune, cu sesiune salvata) inainte ca router-ul sa il redirectioneze.
+final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+  retry: (retryCount, error) => null,
+);
 
 class AuthController extends AsyncNotifier<AuthState> {
   String? lastErrorMessage;

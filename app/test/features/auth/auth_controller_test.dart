@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/api_client.dart';
+import 'package:uportho_app/api/api_exception.dart';
 import 'package:uportho_app/api/api_transport.dart';
 import 'package:uportho_app/api/session_store.dart';
 import 'package:uportho_app/features/auth/auth_controller.dart';
@@ -62,6 +63,16 @@ void main() {
     final state = container.read(authControllerProvider);
     expect(state.hasError, isTrue);
     expect(container.read(authControllerProvider.notifier).lastErrorMessage, 'Email sau parola gresite.');
+  });
+
+  test('non-401 error on /me surfaces imediat, fara reincercare automata', () async {
+    await store.write('sess');
+    transport.whenThrows('GET', '/api/app/v1/me',
+        const ApiException(status: 0, code: 'network_error', message: 'Fara conexiune.'));
+    // Riverpod 3 reincearca implicit erorile din build() cu backoff pana la ~38s;
+    // daca authControllerProvider nu ar seta retry: null, acest expectLater ar
+    // depasi timeout-ul default de test (30s) in loc sa arunce prompt.
+    await expectLater(container.read(authControllerProvider.future), throwsA(isA<ApiException>()));
   });
 
   test('logout moves to signedOut and clears session', () async {
