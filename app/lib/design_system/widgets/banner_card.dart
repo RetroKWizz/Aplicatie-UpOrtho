@@ -55,24 +55,60 @@ class BannerCard extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(banner.title, style: AppTypography.bannerTitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    if (banner.subtitle != null) ...[
-                      const SizedBox(height: 4),
-                      Text(banner.subtitle!, style: AppTypography.bannerSubtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    ],
-                    if (banner.ctaText != null) ...[
-                      const SizedBox(height: 10),
-                      FilledButton(
-                        onPressed: onTap,
-                        style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.primary),
-                        child: Text(banner.ctaText!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                // Cardul promo (grid 2 coloane, childAspectRatio 4/3) e mult mai mic decat
+                // hero-ul (16/9): un titlu de 2 randuri + subtitlu + buton nu incape mereu la
+                // inaltimea fixa data de AspectRatio+Stack(fit: expand). LayoutBuilder ne da
+                // latimea reala disponibila (ca Text-urile sa se poata infasura normal pe ea),
+                // iar FittedBox(scaleDown) micsoreaza tot blocul UNIFORM doar daca nu incape pe
+                // inaltime - niciodata nu il mareste. La hero (spatiu suficient) scale-ul ramane
+                // 1.0, deci arata identic ca inainte; la promo cu text lung, se micsoreaza in loc
+                // sa dea overflow. `maxLines` ramane si el mai strans pe forma promo, ca sa nu se
+                // ajunga la un scale prea agresiv (text ilizibil de mic).
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.bottomLeft,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              banner.title,
+                              style: AppTypography.bannerTitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (banner.subtitle != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                banner.subtitle!,
+                                style: AppTypography.bannerSubtitle,
+                                maxLines: hero ? 2 : 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            if (banner.ctaText != null) ...[
+                              SizedBox(height: hero ? 10 : 8),
+                              FilledButton(
+                                onPressed: onTap,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppColors.primary,
+                                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: hero ? 12 : 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(banner.ctaText!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ],
+                    );
+                  },
                 ),
               ),
             ],
