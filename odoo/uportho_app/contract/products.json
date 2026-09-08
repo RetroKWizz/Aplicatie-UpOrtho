@@ -11,6 +11,7 @@
         "formatted": "148,50 lei",
         "with_vat": true,
         "list_amount": 330.00,
+        "list_formatted": "330,00 lei",
         "discount_pct": 55
       },
       "club_price": {
@@ -19,6 +20,7 @@
         "formatted": "133,65 lei",
         "with_vat": true,
         "list_amount": null,
+        "list_formatted": null,
         "discount_pct": null
       },
       "badge": { "text": "Nou", "color": "green" }
@@ -34,6 +36,7 @@
         "formatted": "25,00 lei",
         "with_vat": true,
         "list_amount": null,
+        "list_formatted": null,
         "discount_pct": null
       },
       "club_price": null,

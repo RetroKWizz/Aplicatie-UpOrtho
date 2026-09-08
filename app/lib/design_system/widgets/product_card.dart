@@ -147,9 +147,20 @@ class ProductCard extends StatelessWidget {
                               ),
                               if (clubPriceFormatted != null) ...[
                                 const SizedBox(height: 4),
+                                // Eticheta si suma stau pe randuri separate: pe un card
+                                // de grila cu doua coloane, "Pret Ortho Club: 11.211,50
+                                // lei" nu incape pe un rand, iar cu maxLines:1 tocmai
+                                // suma era retezata de ellipsis - exact informatia
+                                // pentru care exista randul.
                                 Text(
-                                  'Pret Ortho Club: $clubPriceFormatted',
-                                  style: AppTypography.caption.copyWith(color: AppColors.primaryDark, fontWeight: FontWeight.w600),
+                                  'Pret Ortho Club',
+                                  style: AppTypography.caption.copyWith(color: AppColors.primaryDark),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  clubPriceFormatted!,
+                                  style: AppTypography.caption.copyWith(color: AppColors.primaryDark, fontWeight: FontWeight.w700),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),

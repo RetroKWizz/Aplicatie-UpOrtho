@@ -13,6 +13,7 @@ abstract class Price with _$Price {
     required String formatted,
     @JsonKey(name: 'with_vat') @Default(true) bool withVat,
     @JsonKey(name: 'list_amount') double? listAmount,
+    @JsonKey(name: 'list_formatted') String? listFormatted,
     @JsonKey(name: 'discount_pct') int? discountPct,
   }) = _Price;
 

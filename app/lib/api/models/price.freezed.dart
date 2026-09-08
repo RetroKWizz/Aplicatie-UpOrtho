@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Price {
 
- double get amount; String get currency; String get formatted;@JsonKey(name: 'with_vat') bool get withVat;@JsonKey(name: 'list_amount') double? get listAmount;@JsonKey(name: 'discount_pct') int? get discountPct;
+ double get amount; String get currency; String get formatted;@JsonKey(name: 'with_vat') bool get withVat;@JsonKey(name: 'list_amount') double? get listAmount;@JsonKey(name: 'list_formatted') String? get listFormatted;@JsonKey(name: 'discount_pct') int? get discountPct;
 /// Create a copy of Price
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $PriceCopyWith<Price> get copyWith => _$PriceCopyWithImpl<Price>(this as Price, 
 @override
 bool operator ==(Object other) {
   final _this = this as Price;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Price&&(identical(other.amount, _this.amount) || other.amount == _this.amount)&&(identical(other.currency, _this.currency) || other.currency == _this.currency)&&(identical(other.formatted, _this.formatted) || other.formatted == _this.formatted)&&(identical(other.withVat, _this.withVat) || other.withVat == _this.withVat)&&(identical(other.listAmount, _this.listAmount) || other.listAmount == _this.listAmount)&&(identical(other.discountPct, _this.discountPct) || other.discountPct == _this.discountPct));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Price&&(identical(other.amount, _this.amount) || other.amount == _this.amount)&&(identical(other.currency, _this.currency) || other.currency == _this.currency)&&(identical(other.formatted, _this.formatted) || other.formatted == _this.formatted)&&(identical(other.withVat, _this.withVat) || other.withVat == _this.withVat)&&(identical(other.listAmount, _this.listAmount) || other.listAmount == _this.listAmount)&&(identical(other.listFormatted, _this.listFormatted) || other.listFormatted == _this.listFormatted)&&(identical(other.discountPct, _this.discountPct) || other.discountPct == _this.discountPct));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Price;
-  return Object.hash(runtimeType,_this.amount,_this.currency,_this.formatted,_this.withVat,_this.listAmount,_this.discountPct);
+  return Object.hash(runtimeType,_this.amount,_this.currency,_this.formatted,_this.withVat,_this.listAmount,_this.listFormatted,_this.discountPct);
 }
 
 @override
 String toString() {
   final _this = this as Price;
-  return 'Price(amount: ${_this.amount}, currency: ${_this.currency}, formatted: ${_this.formatted}, withVat: ${_this.withVat}, listAmount: ${_this.listAmount}, discountPct: ${_this.discountPct})';
+  return 'Price(amount: ${_this.amount}, currency: ${_this.currency}, formatted: ${_this.formatted}, withVat: ${_this.withVat}, listAmount: ${_this.listAmount}, listFormatted: ${_this.listFormatted}, discountPct: ${_this.discountPct})';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $PriceCopyWith<$Res>  {
   factory $PriceCopyWith(Price value, $Res Function(Price) _then) = _$PriceCopyWithImpl;
 @useResult
 $Res call({
- double amount, String currency, String formatted,@JsonKey(name: 'with_vat') bool withVat,@JsonKey(name: 'list_amount') double? listAmount,@JsonKey(name: 'discount_pct') int? discountPct
+ double amount, String currency, String formatted,@JsonKey(name: 'with_vat') bool withVat,@JsonKey(name: 'list_amount') double? listAmount,@JsonKey(name: 'list_formatted') String? listFormatted,@JsonKey(name: 'discount_pct') int? discountPct
 });
 
 
@@ -71,14 +71,15 @@ class _$PriceCopyWithImpl<$Res>
 
 /// Create a copy of Price
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? amount = null,Object? currency = null,Object? formatted = null,Object? withVat = null,Object? listAmount = freezed,Object? discountPct = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? amount = null,Object? currency = null,Object? formatted = null,Object? withVat = null,Object? listAmount = freezed,Object? listFormatted = freezed,Object? discountPct = freezed,}) {
   return _then(Price(
 amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,formatted: null == formatted ? _self.formatted : formatted // ignore: cast_nullable_to_non_nullable
 as String,withVat: null == withVat ? _self.withVat : withVat // ignore: cast_nullable_to_non_nullable
 as bool,listAmount: freezed == listAmount ? _self.listAmount : listAmount // ignore: cast_nullable_to_non_nullable
-as double?,discountPct: freezed == discountPct ? _self.discountPct : discountPct // ignore: cast_nullable_to_non_nullable
+as double?,listFormatted: freezed == listFormatted ? _self.listFormatted : listFormatted // ignore: cast_nullable_to_non_nullable
+as String?,discountPct: freezed == discountPct ? _self.discountPct : discountPct // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
 }
@@ -164,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double amount,  String currency,  String formatted, @JsonKey(name: 'with_vat')  bool withVat, @JsonKey(name: 'list_amount')  double? listAmount, @JsonKey(name: 'discount_pct')  int? discountPct)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double amount,  String currency,  String formatted, @JsonKey(name: 'with_vat')  bool withVat, @JsonKey(name: 'list_amount')  double? listAmount, @JsonKey(name: 'list_formatted')  String? listFormatted, @JsonKey(name: 'discount_pct')  int? discountPct)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Price() when $default != null:
-return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.listAmount,_that.discountPct);case _:
+return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.listAmount,_that.listFormatted,_that.discountPct);case _:
   return orElse();
 
 }
@@ -185,10 +186,10 @@ return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double amount,  String currency,  String formatted, @JsonKey(name: 'with_vat')  bool withVat, @JsonKey(name: 'list_amount')  double? listAmount, @JsonKey(name: 'discount_pct')  int? discountPct)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double amount,  String currency,  String formatted, @JsonKey(name: 'with_vat')  bool withVat, @JsonKey(name: 'list_amount')  double? listAmount, @JsonKey(name: 'list_formatted')  String? listFormatted, @JsonKey(name: 'discount_pct')  int? discountPct)  $default,) {final _that = this;
 switch (_that) {
 case _Price():
-return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.listAmount,_that.discountPct);case _:
+return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.listAmount,_that.listFormatted,_that.discountPct);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +206,10 @@ return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double amount,  String currency,  String formatted, @JsonKey(name: 'with_vat')  bool withVat, @JsonKey(name: 'list_amount')  double? listAmount, @JsonKey(name: 'discount_pct')  int? discountPct)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double amount,  String currency,  String formatted, @JsonKey(name: 'with_vat')  bool withVat, @JsonKey(name: 'list_amount')  double? listAmount, @JsonKey(name: 'list_formatted')  String? listFormatted, @JsonKey(name: 'discount_pct')  int? discountPct)?  $default,) {final _that = this;
 switch (_that) {
 case _Price() when $default != null:
-return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.listAmount,_that.discountPct);case _:
+return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.listAmount,_that.listFormatted,_that.discountPct);case _:
   return null;
 
 }
@@ -220,7 +221,7 @@ return $default(_that.amount,_that.currency,_that.formatted,_that.withVat,_that.
 @JsonSerializable()
 
 class _Price implements Price {
-  const _Price({required this.amount, required this.currency, required this.formatted, @JsonKey(name: 'with_vat') this.withVat = true, @JsonKey(name: 'list_amount') this.listAmount, @JsonKey(name: 'discount_pct') this.discountPct});
+  const _Price({required this.amount, required this.currency, required this.formatted, @JsonKey(name: 'with_vat') this.withVat = true, @JsonKey(name: 'list_amount') this.listAmount, @JsonKey(name: 'list_formatted') this.listFormatted, @JsonKey(name: 'discount_pct') this.discountPct});
   factory _Price.fromJson(Map<String, dynamic> json) => _$PriceFromJson(json);
 
 @override final  double amount;
@@ -228,6 +229,7 @@ class _Price implements Price {
 @override final  String formatted;
 @override@JsonKey(name: 'with_vat') final  bool withVat;
 @override@JsonKey(name: 'list_amount') final  double? listAmount;
+@override@JsonKey(name: 'list_formatted') final  String? listFormatted;
 @override@JsonKey(name: 'discount_pct') final  int? discountPct;
 
 /// Create a copy of Price
@@ -243,18 +245,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Price&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.formatted, formatted) || other.formatted == formatted)&&(identical(other.withVat, withVat) || other.withVat == withVat)&&(identical(other.listAmount, listAmount) || other.listAmount == listAmount)&&(identical(other.discountPct, discountPct) || other.discountPct == discountPct));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Price&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.formatted, formatted) || other.formatted == formatted)&&(identical(other.withVat, withVat) || other.withVat == withVat)&&(identical(other.listAmount, listAmount) || other.listAmount == listAmount)&&(identical(other.listFormatted, listFormatted) || other.listFormatted == listFormatted)&&(identical(other.discountPct, discountPct) || other.discountPct == discountPct));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,amount,currency,formatted,withVat,listAmount,discountPct);
+    return Object.hash(runtimeType,amount,currency,formatted,withVat,listAmount,listFormatted,discountPct);
 }
 
 @override
 String toString() {
-    return 'Price(amount: $amount, currency: $currency, formatted: $formatted, withVat: $withVat, listAmount: $listAmount, discountPct: $discountPct)';
+    return 'Price(amount: $amount, currency: $currency, formatted: $formatted, withVat: $withVat, listAmount: $listAmount, listFormatted: $listFormatted, discountPct: $discountPct)';
 }
 
 
@@ -265,7 +267,7 @@ abstract mixin class _$PriceCopyWith<$Res> implements $PriceCopyWith<$Res> {
   factory _$PriceCopyWith(_Price value, $Res Function(_Price) _then) = __$PriceCopyWithImpl;
 @override @useResult
 $Res call({
- double amount, String currency, String formatted,@JsonKey(name: 'with_vat') bool withVat,@JsonKey(name: 'list_amount') double? listAmount,@JsonKey(name: 'discount_pct') int? discountPct
+ double amount, String currency, String formatted,@JsonKey(name: 'with_vat') bool withVat,@JsonKey(name: 'list_amount') double? listAmount,@JsonKey(name: 'list_formatted') String? listFormatted,@JsonKey(name: 'discount_pct') int? discountPct
 });
 
 
@@ -282,14 +284,15 @@ class __$PriceCopyWithImpl<$Res>
 
 /// Create a copy of Price
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? amount = null,Object? currency = null,Object? formatted = null,Object? withVat = null,Object? listAmount = freezed,Object? discountPct = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? amount = null,Object? currency = null,Object? formatted = null,Object? withVat = null,Object? listAmount = freezed,Object? listFormatted = freezed,Object? discountPct = freezed,}) {
   return _then(_Price(
 amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,formatted: null == formatted ? _self.formatted : formatted // ignore: cast_nullable_to_non_nullable
 as String,withVat: null == withVat ? _self.withVat : withVat // ignore: cast_nullable_to_non_nullable
 as bool,listAmount: freezed == listAmount ? _self.listAmount : listAmount // ignore: cast_nullable_to_non_nullable
-as double?,discountPct: freezed == discountPct ? _self.discountPct : discountPct // ignore: cast_nullable_to_non_nullable
+as double?,listFormatted: freezed == listFormatted ? _self.listFormatted : listFormatted // ignore: cast_nullable_to_non_nullable
+as String?,discountPct: freezed == discountPct ? _self.discountPct : discountPct // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
 }

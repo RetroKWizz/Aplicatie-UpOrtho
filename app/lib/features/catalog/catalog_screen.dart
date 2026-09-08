@@ -170,7 +170,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       imageUrl: imageUrl,
                       httpHeaders: imageUrl == null ? null : headersFor(imageUrl),
                       priceFormatted: product.price.formatted,
-                      listAmountFormatted: product.price.listAmount == null ? null : _formatListAmount(product),
+                      listAmountFormatted: product.price.listFormatted,
                       discountLabel: product.price.discountPct == null ? null : '-${product.price.discountPct}%',
                       clubPriceFormatted: product.clubPrice?.formatted,
                       badgeText: product.badge?.text,
@@ -189,17 +189,6 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     );
   }
 
-  // Serverul trimite `list_amount` ca numar brut (pentru comparatii), nu ca text
-  // formatat - contractul nu are un `list_amount_formatted`. Cardul afiseaza totusi
-  // doar text (nicio aritmetica): acesta e singurul loc unde un numar de pret e citit
-  // direct, doar ca sa fie randat ca sir, niciodata calculat.
-  String _formatListAmount(Product product) {
-    final currency = product.price.currency;
-    final amount = product.price.listAmount!;
-    final isRon = currency.toUpperCase() == 'RON';
-    final text = amount.toStringAsFixed(2).replaceAll('.', ',');
-    return isRon ? '$text lei' : '$text $currency';
-  }
 }
 
 class _CategoryChips extends ConsumerWidget {

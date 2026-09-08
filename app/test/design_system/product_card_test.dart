@@ -26,7 +26,10 @@ void main() {
     expect(find.text('148,50 lei'), findsOneWidget);
     expect(find.text('330,00 lei'), findsOneWidget);
     expect(find.text('-55%'), findsOneWidget);
-    expect(find.text('Pret Ortho Club: 133,65 lei'), findsOneWidget);
+    // Eticheta si suma sunt doua randuri: pe cardul ingust de grila suma era
+    // altfel retezata de ellipsis.
+    expect(find.text('Pret Ortho Club'), findsOneWidget);
+    expect(find.text('133,65 lei'), findsOneWidget);
     expect(find.text('Nou'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
