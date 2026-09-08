@@ -85,22 +85,46 @@ def _products_domain(website, category_id, query):
     return domain
 
 
-def _product_count(category, website):
-    return request.env['product.template'].search_count([
+def _product_counts_by_category(categories, website):
+    """Numarul de produse per categorie, recursiv (echivalent cu search_count pe
+    ('public_categ_ids', 'child_of', category.id) pentru fiecare categorie), dar
+    intr-o singura interogare grupata in loc de una per categorie (78 de categorii
+    pe baza reala ar insemna 78 de query-uri separate pe ecranul de cold-start al
+    aplicatiei).
+
+    `_read_group` grupat pe un camp many2many da, per categorie, multimea produselor
+    prinse DIRECT in ea (agregat 'id:recordset'). Insumarea directa a acestor multimi
+    pe un subarbore ar duplica un produs prins in mai multe categorii ale aceluiasi
+    subarbore (parinte + copil) - exact eroarea pe care 'child_of' o evita numarand
+    fiecare produs o singura data. De aceea facem reuniunea (set union) multimilor de
+    id-uri ale descendentilor, nu suma cardinalelor lor."""
+    base_domain = [
         ('is_published', '=', True),
         '|', ('website_id', '=', False), ('website_id', '=', website.id),
-        ('public_categ_ids', '=', category.id),
-    ])
+    ]
+    groups = request.env['product.template']._read_group(
+        base_domain, ['public_categ_ids'], ['id:recordset'])
+    direct_ids_by_category = {category.id: set(ids.ids) for category, ids in groups}
+
+    counts = {}
+    for category in categories:
+        prefix = category.parent_path or ''
+        descendant_ids = [c.id for c in categories if (c.parent_path or '').startswith(prefix)]
+        union_ids = set()
+        for descendant_id in descendant_ids:
+            union_ids |= direct_ids_by_category.get(descendant_id, set())
+        counts[category.id] = len(union_ids)
+    return counts
 
 
-def serialize_category(category, website):
+def serialize_category(category, website, product_count):
     return {
         'id': category.id,
         'name': category.name,
         'parent_id': category.parent_id.id or None,
         'icon_url': (f'{API_PREFIX}/categories/{category.id}/icon?unique={image_unique(category)}'
                      if category.app_home_icon else None),
-        'product_count': _product_count(category, website),
+        'product_count': product_count,
     }
 
 
@@ -151,7 +175,8 @@ class AppCatalog(http.Controller):
         website = _current_website()
         domain = ['|', ('website_id', '=', False), ('website_id', '=', website.id)]
         categories = request.env['product.public.category'].search(domain)
-        return json_ok([serialize_category(c, website) for c in categories])
+        counts = _product_counts_by_category(categories, website)
+        return json_ok([serialize_category(c, website, counts[c.id]) for c in categories])
 
     @app_route('/products', methods=['GET'])
     def products(self, **kw):
