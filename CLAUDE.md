@@ -1,47 +1,127 @@
 # Aplicatie UpOrtho — context proiect
 
-Aplicatie iOS nativa (SwiftUI) pentru **uportho.ro**, descarcabila din App Store,
-cu backend Odoo (cont client, facturare — aceleasi date/structura ca site-ul),
-dar cu design vizual diferit fata de site. Include push notifications.
+Aplicatie mobila cross-platform (Flutter, iOS + Android) pentru **uportho.ro**,
+cu backend un modul Odoo 18 propriu care expune un API JSON (`/api/app/v1`).
+Design vizual diferit fata de site, dar culori de brand reale (vezi mai jos).
+Push notifications plantificate (Faza 4), inca neimplementate.
+
+Verificare si lansare: **intai iOS**. Android ramane configurat (compileaza,
+testele trec) dar nu e exercitat curent pe device/emulator.
 
 ## Structura folderelor din acest proiect
 
-- `Rezultate/UPorthoApp/` — proiectul Xcode propriu-zis (codul aplicatiei, singurul folder deschis in Xcode)
-- `.claude/agents/` — subagenti Claude Code reali pentru acest proiect (`ios-development`, `odoo-integration`, `design`)
+- `odoo/uportho_app/` — modulul Odoo 18 (controllere, modele, views, teste, `contract/`)
+- `odoo/docker-compose.yml`, `odoo/odoo.conf`, `odoo/run-tests.sh` — mediu local Odoo+Postgres si rulare teste
+- `app/` — aplicatia Flutter (`lib/api`, `lib/design_system`, `lib/features/{auth,home,shell}`, `test/`, `tool/sync_contract.sh`)
+- `Rezultate/UPorthoApp/` — vechiul prototip SwiftUI, **arhivat, nu mai e produsul curent** (pastrat ca referinta; a lasat mostenire comportamentul de pricelist si harta rutelor de checkout, preluate in spec-ul de design)
+- `docs/superpowers/specs/2026-09-07-uportho-flutter-odoo-design.md` — spec-ul de design (sursa comuna pentru toate fazele)
+- `docs/superpowers/plans/2026-09-07-faza-0-1-fundatie.md` — planul Fazei 0-1
+- `.claude/agents/` — subagenti Claude Code pentru acest proiect
 - `PROIECT.md` — planul general, scope, roadmap (limba romana, pentru om)
 - `CLAUDE.md` — acest fisier, context tehnic pentru Claude Code
 
 ## REGULA CRITICA DE SIGURANTA — Odoo
 
-**NU se modifica NIMIC in Odoo fara acceptul explicit al userului.**
+**NU se modifica NIMIC in Odoo real (uportho.ro / developer.uportho.ro / orice host odoo.sh) fara acceptul explicit al userului.**
 Este permis doar accesul de citire (browsing, API read-only). Niciodata:
-- scrieri/updateuri prin XML-RPC/JSON-RPC fara confirmare explicita
+- scrieri/updateuri prin XML-RPC/JSON-RPC catre Odoo real fara confirmare explicita
 - submit real de comenzi/checkout
-- orice alta modificare de date in Odoo
+- orice alta modificare de date in Odoo real
+- niciun apel de retea catre uportho.ro, developer.uportho.ro sau vreun host odoo.sh in timpul dezvoltarii
 
-Pana la confirmarea userului, orice integrare Odoo ramane read-only sau mock.
+Toata dezvoltarea ruleaza contra instantei **locale Docker** (`http://localhost:8069`, baza `uportho_test`).
+Deploy pe odoo.sh e o decizie separata, doar a userului (Task 1.9 din plan a fost
+sarit deliberat).
 
 ## Stack tehnic
 
-- SwiftUI, iOS 16+ deployment target, pattern MVVM
-- XcodeGen pentru generarea `.xcodeproj` din `project.yml` (nu se editeaza manual pbxproj)
-- `xcodebuild` / `xcrun simctl` pentru build si testare in simulator
-- Model de date + `MockOdooClient` (protocol `OdooClient`) gata pregatite pentru inlocuire cu implementare reala Odoo (XML-RPC/JSON-RPC), cand vom avea acces (host, nume DB, API key)
+**Aplicatie:** Flutter, package `uportho_app`, org `ro.uportho`, iOS + Android.
+Riverpod (state), go_router (navigare), dio (HTTP), freezed (modele). iOS foloseste
+Swift Package Manager, nu CocoaPods — nu exista `ios/Podfile` in acest Flutter.
 
-## Status curent
+**Backend:** modul Odoo 18 `odoo/uportho_app/`, depinde de `website_sale`, `sale`,
+`product`, `portal`. Rute `type='http'` cu coduri HTTP reale, o singura forma de eroare
+`{"error": {"code", "message", "details"}}`; orice request non-GET necesita header
+`X-UpOrtho-App: 1`. Sesiune Odoo standard (cookie), parola nu se persista niciodata
+in app.
 
-- Scaffold complet functional: Home (banner + categorii + recomandari), Catalog (grid + filtre categorii),
-  Detaliu produs (variante, tiers de pret, pret Ortho Club), Cos + Checkout (demo, fara request-uri reale),
-  Cont, 4 taburi (Acasa/Catalog/Cos/Cont)
-- Toate datele sunt mock, aliniate structural cu uportho.ro (verificat prin navigare read-only pe site)
-- Integrare Odoo reala: **neinceputa** — in asteptarea cheii API (userul are login backend/admin separat,
-  cauta sectiunea Account Security > API Keys din propriul profil)
-- Fara commit-uri git facute pana acum (doar la cerere explicita)
+Endpointuri curente: `POST /auth/login`, `POST /auth/logout`, `GET /me`, `GET /home`
+(banner + categorii rapide intr-un singur call), `GET /banners/<id>/image`,
+`GET /categories/<id>/icon` (rute de imagine autentificate), `POST /devices`,
+`DELETE /devices/<token>` (token FCM, pregatire push Faza 4).
+
+Modele de continut care inlocuiesc Odoo Studio: `uportho.app.banner`, plus campuri
+`app_home_visible` / `app_home_sequence` / `app_home_icon` pe `product.public.category`
+si `app_badge_text` / `app_badge_color` / `app_badge_date_end` pe `product.template`.
+Editare din Website → Aplicatie mobila (fara developer).
+
+**Motivul modulului**: aplicatia vorbeste doar cu `/api/app/v1`. O migrare Odoo 19
+(asteptata in 3-9 luni) se repara in Python intr-un singur loc, fara release de App Store.
+
+**Regula de business**: aplicatia nu face niciodata aritmetica pe bani — preturile vin
+preformatate de la server. (Neexercitat inca; conteaza de la Faza 2.)
+
+**Culori de brand** (citite din stylesheet-ul public uportho.ro — nu le "corecta" din
+ghiceala): primary `#78449B`, secondary `#BA9FCC`, background `#F9FAFE`,
+text `#232F3E`. Accent `#F28C28` e o culoare functionala deliberata (oferte), nu vine
+de pe site.
+
+## Status curent — Faza 0-1 livrata
+
+- Modul Odoo `uportho_app`: 40 teste trecute.
+- Aplicatia Flutter: 46 teste trecute, `flutter analyze` curat. Login, restaurare
+  silentioasa a sesiunii la relansare, ecran Acasa (banner + categorii rapide din Odoo),
+  tab bar cu 4 taburi (doar Acasa e real in Faza 1).
+- Contract JSON comun: `odoo/uportho_app/contract/*.json` e sursa de adevar, copiat in
+  `app/test/contract/` prin `app/tool/sync_contract.sh` — o schimbare pe server care
+  rupe aplicatia pica un test inainte de a ajunge in productie.
+- Nu e facut inca: catalog/preturi (Faza 2), cos/checkout/plata (Faza 3), cont/comenzi/
+  facturi/push (Faza 4), lansare in store (Faza 5), migrare Odoo 19 (Faza 6).
+- Ramase, de decis doar de user: export Odoo Studio ca plasa de siguranta (plan Task 0.3),
+  deploy pe odoo.sh (plan Task 1.9, sarit deliberat).
+
+## Gotchas de mediu (cost real de timp la redescoperire)
+
+1. **Android `compileSdk = 37` depinde de un symlink din afara repo-ului.**
+   `flutter_secure_storage` 11.0.0 cere compileSdk 37, dar SDK-ul instalat local are
+   doar `android-37.0` (denumire noua major.minor). S-a creat manual un symlink
+   `android-37 → android-37.0` in `$ANDROID_HOME`
+   (`/opt/homebrew/share/android-commandlinetools/platforms/`). Fara el, un clone nou
+   pica Gradle sync cu "Failed to find target with hash string 'android-37'".
+2. **`ANDROID_HOME` si `JAVA_HOME` nu sunt exportate in profilul de shell.** Valorile:
+   `ANDROID_HOME=/opt/homebrew/share/android-commandlinetools`,
+   `JAVA_HOME=/opt/homebrew/opt/openjdk@17`. `flutter config` le stie deja, deci
+   `flutter` merge fara ele exportate; apeluri directe `sdkmanager`/`adb`/Gradle au
+   nevoie sa fie exportate manual in sesiunea de shell.
+3. **Riverpod 3 reincearca automat erorile aparute in `build()`-ul unui provider**,
+   cu backoff exponential pana la ~38 secunde. Fiecare provider de aici al carui
+   `build()` poate arunca eroare primeste `retry: (retryCount, error) => null`.
+   Daca uiti asta, un ecran de eroare apare abia dupa 38 de secunde.
+4. **Containerul Odoo poate servi cod de controller invechit.** Daca rutele
+   `/api/app/v1/...` dau 404 neasteptat, restarteaza containerul
+   (`docker compose restart` in `odoo/`).
+5. **`odoo.tests.stats` logheaza un numar de teste cumulativ, mai mare decat cel real.**
+   Linia autoritara e `N failed, M error(s) of K tests`.
+6. **In baza locala `uportho_test` exista deliberat un banner ramas dintr-un test
+   anterior** — tine testele de ordonare oneste, dovedind ca sunt robuste la date
+   preexistente. Nu se sterge.
+7. **Acest Flutter foloseste Swift Package Manager pe iOS, nu CocoaPods** — nu exista
+   `ios/Podfile`; nu cauta/instala pods.
+
+## Comenzi utile
+
+```bash
+cd odoo && docker compose up -d     # porneste Odoo 18 + Postgres local pe :8069, baza uportho_test
+odoo/run-tests.sh                   # testele modulului Odoo, in container
+app/tool/sync_contract.sh           # sincronizeaza fixture-urile de contract Odoo -> app
+cd app && flutter test              # testele aplicatiei Flutter
+cd app && flutter analyze
+cd app && flutter run -d <simulator-id> --dart-define=API_BASE_URL=http://localhost:8069
+```
 
 ## Conventii de lucru
 
-- Commit doar cand userul cere explicit
-- Dupa orice swap temporar de root view (pentru screenshot-uri de verificare), reinstaleaza si relanseaza
-  intotdeauna aplicatia pe simulator (nu doar recompilare) inainte de a considera revert-ul complet
-- Numele de model `Category` intra in conflict cu `ObjectiveC.Category` (typealias catre `OpaquePointer`) —
-  se foloseste `ProductCategory`
+- Commit doar cand userul cere explicit.
+- Numele de model `Category` din vechiul prototip SwiftUI intra in conflict cu
+  `ObjectiveC.Category` — daca se mai atinge acel cod, foloseste `ProductCategory`
+  (irelevant pentru codul Flutter/Odoo curent).

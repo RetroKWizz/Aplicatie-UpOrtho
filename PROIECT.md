@@ -1,50 +1,74 @@
-# Proiect: Aplicatie iOS UpOrtho
+# Proiect: Aplicatie UpOrtho (Flutter, iOS + Android)
 
 ## Obiectiv
 
-Aplicatie de sine statatoare pentru iOS (nativa, SwiftUI), descarcabila din App Store,
-pentru clientii uportho.ro. Foloseste Odoo ca backend (acelasi cont client, aceleasi
-facturi, aceeasi structura de produse/categorii/preturi ca pe site), dar cu un design
-vizual propriu, diferit de site — inspirat si din emag.ro pentru UX (navigare, home
-cu banner, categorii rapide).
+Aplicatie mobila de sine statatoare, cross-platform (Flutter, un singur cod pentru
+iPhone si Android), pentru clientii uportho.ro. Foloseste Odoo ca backend (acelasi
+cont client, aceleasi facturi, aceeasi structura de produse/categorii/preturi ca pe
+site), printr-un modul Odoo propriu (`odoo/uportho_app/`) care expune un API JSON
+(`/api/app/v1`), nu XML-RPC direct. Design vizual propriu, dar cu culorile reale de
+brand ale site-ului. Verificare si lansare: **intai iOS**; Android ramane configurat,
+neexercitat curent.
 
 ## Reguli critice
 
-- **Niciodata nu se modifica ceva in Odoo fara acordul explicit al lui Mihai.**
-  Doar citire/read-only pana la alta instructiune.
-- Fara Apple Developer Account inca — de facut inainte de publicarea in App Store.
+- **Niciodata nu se modifica ceva in Odoo real (uportho.ro / odoo.sh) fara acordul
+  explicit al lui Mihai.** Toata dezvoltarea ruleaza contra unei instante Odoo locale
+  in Docker. Doar citire pe Odoo real, pana la alta instructiune.
+- Fara Apple Developer Account / Google Play Console inca — de facut inainte de
+  publicarea in store (Faza 5).
 
-## Scope MVP (faza 1 — in lucru)
+## Decizii de arhitectura
 
-- [x] Scaffold aplicatie SwiftUI (XcodeGen, MVVM)
-- [x] Home: banner rotativ, categorii rapide, sectiuni recomandari
-- [x] Catalog: grid produse, filtrare pe categorii
-- [x] Detaliu produs: tiers de pret pe cantitate, pret Ortho Club, variante (SKU)
-- [x] Cos + Checkout (demo, fara integrare reala inca)
-- [x] Cont (ecran de baza)
-- [x] Tab bar cu 4 sectiuni (Acasa / Catalog / Cos / Cont)
-- [ ] Integrare reala Odoo (read-only): categorii, produse, preturi, cont, facturi
-- [ ] Push notifications functionale (in prezent doar schela de cod e pregatita)
+- Motorul din spate a fost rescris ca modul Odoo propriu in loc de Odoo Studio +
+  XML-RPC, ca sa existe un API JSON stabil, versionat, testat — o migrare Odoo 19
+  (asteptata in 3-9 luni) se repara intr-un singur loc, in Python, fara release nou
+  de aplicatie.
+- Vechiul prototip nativ SwiftUI (`Rezultate/UPorthoApp/`) e arhivat, nu mai e
+  produsul curent. A lasat mostenire comportamentul de pricelist si harta rutelor de
+  checkout, preluate in spec-ul de design.
 
-## Scope faza 2 (dupa validarea MVP)
+## Faze (spec: `docs/superpowers/specs/2026-09-07-uportho-flutter-odoo-design.md`)
 
-- [ ] Checkout real (trimitere comanda in Odoo) — **necesita acord explicit inainte de implementare**
-- [ ] Autentificare cont real (login cu credentialele de portal client Odoo)
-- [ ] Facturi reale (listare + descarcare PDF din Odoo)
-- [ ] Cautare functionala + filtre avansate in catalog
-- [ ] Push notifications reale (status comanda, oferte, memento facturi scadente)
-- [ ] Pregatire pentru App Store: cont Apple Developer, iconite, screenshots, descriere
+### Faza 0-1 — Fundatie (plan: `docs/superpowers/plans/2026-09-07-faza-0-1-fundatie.md`) — LIVRATA
 
-## Ce ne trebuie de la Odoo (in asteptare)
+- [x] Modul Odoo `uportho_app`: banner + categorii rapide, autentificare pe sesiune,
+  `/home`, rute de imagine, model device pentru push (40 teste)
+- [x] Editare continut din backend Odoo (Website → Aplicatie mobila), fara developer
+- [x] Mediu local: Docker Odoo 18 + Postgres, `run-tests.sh`
+- [x] Aplicatie Flutter: proiect, design system (culori/tipografie/tema din brand),
+  login + restaurare sesiune, ecran Acasa, tab bar cu 4 taburi (46 teste,
+  `flutter analyze` curat)
+- [x] Contract JSON comun Odoo <-> Flutter, sincronizat prin `sync_contract.sh`
+- [ ] Export Odoo Studio ca plasa de siguranta — **decizie deschisa a userului**
+- [ ] Deploy pe odoo.sh — sarit deliberat, **decizie deschisa a userului**
 
-- Host / URL instanta Odoo
-- Numele bazei de date (necesar pentru XML-RPC/JSON-RPC)
-- Cheie API generata din profilul propriu (avatar > My Profile > Account Security > New API Key)
-- Confirmare ca API-ul extern (XML-RPC/JSON-RPC) e activat pentru cont
+### Faza 2 — Catalog
 
-## Note / decizii
+- [ ] `/categories`, `/products`, `/products/<id>` cu serializator de pret
+  (pricelist-uri Odoo: Public 45 / Ortho Club 59, tiers normalizate)
+- [ ] `recommended` in `/home`
+- [ ] Ecrane catalog / cautare / detaliu, `PriceText`, badge-uri
 
-- Design diferit de site, dar structura de date identica (categorii, subcategorii,
-  tiers de pret pe cantitate, pret membru Ortho Club)
-- Toate produsele mock au acum pret Ortho Club valid (pentru inaltime uniforma a cardurilor)
-- Proiectul Xcode traieste in `Rezultate/UPorthoApp/`
+### Faza 3 — Cumparare
+
+- [ ] Cos, checkout, confirm cu idempotenta
+- [ ] Plata offline + WebView card (provider `card` prov 8 / `wire_transfer` prov 5
+  pe instanta), curieri Fan Courier 3/5, ridicare 4, `country_id` 188, judete 710-751
+- [ ] **Trimiterea reala a unei comenzi necesita acord explicit inainte de implementare**
+
+### Faza 4 — Cont
+
+- [ ] Comenzi, facturi PDF
+- [ ] Push FCM din modul (foloseste `uportho.app.device`, deja in modul)
+- [ ] Proiect Firebase (deschis, nefacut inca)
+
+### Faza 5 — Lansare
+
+- [ ] Cont Apple Developer, cont Google Play Console (deschise, nefacute inca)
+- [ ] Iconite, screenshots, descriere store
+
+### Faza 6 — Migrare Odoo 19
+
+- [ ] De executat cand Odoo 19 devine disponibil pe instanta; scop: schimbari izolate
+  in modulul `uportho_app`, fara release de aplicatie
