@@ -33,7 +33,7 @@ Continut de test creat: doua bannere (`uportho.app.banner`) si sase categorii ma
 `app_home_visible` (Bracketi, Tuburi si inele, Arcuri, Elastomeri, Adezivi, Instrumentar).
 
 Cont de test, portal obisnuit, creat special — **nu e contul niciunui client real**:
-`app.test@uportho.ro` / `UporthoTest2026`
+`app.test@uportho.ro` — parola NU se scrie aici (repo-ul de transfer e public). E la user.
 
 ## Unde se editeaza continutul
 
