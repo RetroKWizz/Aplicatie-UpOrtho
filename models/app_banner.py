@@ -16,7 +16,14 @@ class AppBanner(models.Model):
     link_type = fields.Selection(
         [('category', 'Categorie'), ('url', 'URL extern'), ('none', 'Fara link')],
         string='Tip link', required=True, default='none')
-    category_id = fields.Many2one('product.public.category', string='Categorie')
+    # Categoria trebuie sa fie rezolvabila de aplicatie pe website-ul pe care apare
+    # bannerul: fie o categorie fara website (valabila peste tot), fie una de pe exact
+    # acelasi website. Un banner fara website apare pe toate website-urile, deci poate
+    # tinti doar categorii fara website. Fara acest domeniu, /home ar putea emite un
+    # category_id pe care catalogul (Faza 2) nu il gaseste.
+    category_id = fields.Many2one(
+        'product.public.category', string='Categorie',
+        domain="['|', ('website_id', '=', False), ('website_id', '=', website_id)]")
     external_url = fields.Char(string='URL extern')
     sequence = fields.Integer(string='Ordine', default=10)
     active = fields.Boolean(default=True)
