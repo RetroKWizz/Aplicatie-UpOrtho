@@ -1,12 +1,45 @@
 import hashlib
+import logging
 
 from odoo import http
 from odoo.http import request
 
 from .base import API_PREFIX, ApiError, app_route, json_ok
 
+_logger = logging.getLogger(__name__)
+
+WEBSITE_PARAM = 'uportho_app.website_id'
+
 
 def _current_website():
+    """Website-ul al carui continut il serveste API-ul aplicatiei.
+
+    Sursa preferata e parametrul de sistem `uportho_app.website_id` (Setari →
+    Tehnic → Parametri de sistem). Fara el cadem pe `get_current_website()`, care
+    rezolva din header-ul HTTP `Host` contra domeniilor configurate ale
+    website-urilor si, daca nu potriveste, ia primul website din baza. Pe instanta
+    reala magazinul e un anume website (11) si e foarte probabil ca host-ul prin
+    care intra aplicatia sa nu fie domeniul lui: atunci `_search_active_now` si
+    `_search_app_home` nu ar returna nimic, iar userul ar vedea "Nu exista continut
+    inca." - un bug care arata ca o problema de continut. De aceea fallback-ul
+    logheaza un warning, ca esecul sa fie vizibil in loguri."""
+    Website = request.env['website'].sudo()
+    raw = request.env['ir.config_parameter'].sudo().get_param(WEBSITE_PARAM)
+    if raw:
+        try:
+            website = Website.browse(int(raw)).exists()
+        except (TypeError, ValueError):
+            website = Website.browse()
+        if website:
+            return website
+        _logger.warning(
+            'Parametrul de sistem %s = %r nu indica un website existent; '
+            'cad pe get_current_website().', WEBSITE_PARAM, raw)
+    else:
+        _logger.warning(
+            'Parametrul de sistem %s nu e setat; cad pe get_current_website(), '
+            'care rezolva din header-ul Host si poate alege alt website decat magazinul. '
+            'Seteaza-l la id-ul website-ului magazinului.', WEBSITE_PARAM)
     return request.env['website'].get_current_website()
 
 

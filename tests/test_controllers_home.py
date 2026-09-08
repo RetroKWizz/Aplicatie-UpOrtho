@@ -145,3 +145,57 @@ class TestControllersHome(AppHttpCase):
         self.api_login()
         self.assertEqual(self.api_get(f'/categories/{self.category.id}/icon').status_code, 200)
         self.assertEqual(self.api_get(f'/categories/{self.category_no_icon.id}/icon').status_code, 404)
+
+
+@tagged('post_install', '-at_install')
+class TestHomeWebsiteSelection(AppHttpCase):
+    """Ce website serveste /home cand exista mai multe.
+
+    Pe instanta reala magazinul e un anume website (11) si host-ul prin care intra
+    aplicatia nu e neaparat domeniul lui; fara parametrul de sistem, continutul ar
+    disparea tacut."""
+
+    # Numele parametrului e scris aici literal, ca testul sa il si fixeze:
+    # cine face deploy trebuie sa seteze exact acest parametru.
+    WEBSITE_PARAM = 'uportho_app.website_id'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.website_a = cls.env['website'].search([], limit=1)
+        cls.website_b = cls.env['website'].create({'name': 'Al doilea website'})
+        cls.banner_a = cls.env['uportho.app.banner'].create({
+            'name': 'Doar pe A', 'placement': 'hero', 'link_type': 'none',
+            'website_id': cls.website_a.id})
+        cls.banner_b = cls.env['uportho.app.banner'].create({
+            'name': 'Doar pe B', 'placement': 'hero', 'link_type': 'none',
+            'website_id': cls.website_b.id})
+
+    def setUp(self):
+        super().setUp()
+        # ir.config_parameter e citit prin ormcache; rollback-ul tranzactiei de test nu
+        # curata cache-ul, deci il golim explicit ca sa nu se scurga intre teste.
+        self.addCleanup(self.registry.clear_cache)
+
+    def _banner_ids(self):
+        return {b['id'] for b in self.api_get('/home').json()['banners']}
+
+    def test_without_parameter_falls_back_to_get_current_website(self):
+        self.api_login()
+        ids = self._banner_ids()
+        self.assertIn(self.banner_a.id, ids)
+        self.assertNotIn(self.banner_b.id, ids)
+
+    def test_config_parameter_wins_over_the_host_header(self):
+        self.env['ir.config_parameter'].sudo().set_param(self.WEBSITE_PARAM, str(self.website_b.id))
+        self.api_login()
+        ids = self._banner_ids()
+        self.assertIn(self.banner_b.id, ids)
+        self.assertNotIn(self.banner_a.id, ids)
+
+    def test_parameter_pointing_to_a_missing_website_falls_back_with_a_warning(self):
+        self.env['ir.config_parameter'].sudo().set_param(self.WEBSITE_PARAM, '999999')
+        self.api_login()
+        with self.assertLogs('odoo.addons.uportho_app.controllers.home', level='WARNING'):
+            ids = self._banner_ids()
+        self.assertIn(self.banner_a.id, ids)
