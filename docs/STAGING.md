@@ -27,7 +27,7 @@ Parametri de sistem (Setari > Tehnic > Parametri de sistem):
 | Parametru | Valoare | De ce |
 |---|---|---|
 | `uportho_app.website_id` | `11` | Magazinul romanesc. Fara el, `/home` vine gol si arata a problema de continut, nu a bug |
-| `uportho_app.club_pricelist_id` | (de setat) | Lista Ortho Club, pentru pretul afisat membrilor. Se schimba anual — de-aia e parametru, nu constanta in cod |
+| `uportho_app.club_pricelist_id` | `59` | Lista Ortho Club, pentru pretul afisat membrilor. Se schimba anual — de-aia e parametru, nu constanta in cod |
 
 Continut de test creat: doua bannere (`uportho.app.banner`) si sase categorii marcate
 `app_home_visible` (Bracketi, Tuburi si inele, Arcuri, Elastomeri, Adezivi, Instrumentar).
@@ -62,10 +62,23 @@ intr-o sectiune "Aplicatie mobila".
 
 Din terminalul editorului odoo.sh (JupyterLab -> Launcher -> Terminal):
 
+Modulul se transfera printr-un branch care contine **doar modulul**, fara documentatie
+si fara conturi de test (`git subtree split -P odoo/uportho_app -b modul-transfer`,
+apoi `git push origin modul-transfer`). Repo-ul de transfer e privat in mod normal;
+se face public doar pentru cele doua minute ale clonarii.
+
 ```bash
 cd ~/src/user/custom_modules
-git clone --depth 1 <repo-ul-cu-modulul> /tmp/up && cp -r /tmp/up/odoo/uportho_app . && rm -rf /tmp/up
-odoo-update uportho_app          # improspateaza lista de aplicatii
+git clone --depth 1 -b modul-transfer <repo-ul-cu-modulul> /tmp/up && rm -rf /tmp/up/.git
+mv uportho_app uportho_app.bak.$(date +%s)      # nu stergem, mutam
+cp -r /tmp/up uportho_app && rm -rf /tmp/up
+odoo-update uportho_app          # actualizeaza modulul deja instalat
+odoosh-restart http              # ca sa intre controllerele noi
+```
+
+La **prima** instalare (modulul nu exista inca in baza), `odoo-update` nu ajunge:
+
+```bash
 echo "env['ir.module.module'].search([('name','=','uportho_app')]).button_immediate_install(); env.cr.commit()" | odoo-bin shell
 ```
 
@@ -79,6 +92,12 @@ Note practice invatate pe drum:
   fac pe URL-ul public al build-ului.
 - Build-ul hiberneaza; se trezeste cu butonul **CONNECT** din odoo.sh sau accesand URL-ul.
 - Atentie la `!` in parole cand scrii comenzi in bash — declanseaza expansiune de istoric.
+- Terminalul din JupyterLab moare daca sesiunea sta prea mult; textul tastat intr-un
+  terminal mort pare scris dar nu se executa. Bannerul rosu "This terminal session has
+  been closed" e semnul; se deschide altul din `+` -> Terminal.
+- `odoosh-restart http` poate raspunde "no http workers are alive. Restart operation
+  aborted." imediat dupa `odoo-update`. Nu e o eroare: workerii repornesc la prima
+  cerere HTTP.
 
 ## Ce ramane de decis, si e decizia userului
 
