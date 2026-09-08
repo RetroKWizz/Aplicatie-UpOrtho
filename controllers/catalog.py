@@ -30,13 +30,15 @@ def _current_club_pricelist():
             CLUB_PRICELIST_PARAM)
         return Pricelist.browse()
     try:
-        pricelist = Pricelist.browse(int(raw)).exists()
+        pricelist = Pricelist.browse(int(raw)).exists().filtered('active')
     except (TypeError, ValueError):
         pricelist = Pricelist.browse()
     if not pricelist:
         _logger.warning(
-            'Parametrul de sistem %s = %r nu indica o lista de preturi existenta; '
-            'club_price va fi null pentru toate produsele.', CLUB_PRICELIST_PARAM, raw)
+            'Parametrul de sistem %s = %r nu indica o lista de preturi existenta si activa; '
+            'club_price va fi null pentru toate produsele. Odoo nu filtreaza liniile de '
+            'pricelist arhivate la calculul pretului, deci o lista arhivata ar da un pret '
+            'invechit, nu o eroare.', CLUB_PRICELIST_PARAM, raw)
     return pricelist
 
 

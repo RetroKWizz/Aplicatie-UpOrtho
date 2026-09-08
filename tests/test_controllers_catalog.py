@@ -282,6 +282,20 @@ class TestControllersProductPricing(AppHttpCase):
             product = self._product('Produs fara reducere test pret')
         self.assertIsNone(product['club_price'])
 
+    def test_club_price_null_and_warns_when_pricelist_is_archived(self):
+        # Cazul real de rollover anual: adminul arhiveaza "Ortho Club 2026" cand apare
+        # noul an. Odoo NU filtreaza liniile de pricelist arhivate la calculul
+        # pretului (product/models/product_pricelist.py: "Do not filter out archived
+        # pricelist items"), deci fara acest filtru explicit club_price ar iesi un
+        # pret invechit, nu null.
+        club_pricelist = self.env['product.pricelist'].create({
+            'name': 'Ortho Club arhivata test pret', 'currency_id': self.currency.id,
+            'active': False})
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, str(club_pricelist.id))
+        with self.assertLogs('odoo.addons.uportho_app.controllers.catalog', level='WARNING'):
+            product = self._product('Produs fara reducere test pret')
+        self.assertIsNone(product['club_price'])
+
     def test_badge_present_and_absent(self):
         self.assertEqual(
             self._product('Produs cu eticheta test pret')['badge'], {'text': 'Nou', 'color': 'green'})
