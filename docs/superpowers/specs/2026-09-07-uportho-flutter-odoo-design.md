@@ -21,12 +21,24 @@ Odoo 19 (estimata in 3-9 luni) fara release in magazine.
   (`/web/webclient/version_info` public): ruleaza tot **Odoo 18.0+e**, deci e un mediu
   de dezvoltare pe aceeasi versiune, NU un staging de 19. E locul potrivit pentru a
   re-verifica faptele de mai jos inainte de fazele 2-3, fara sa se atinga productia.
-- **ATENTIE — fapte posibil INVECHITE.** Valorile de mai jos au fost culese in perioada
-  aplicatiei SwiftUI si userul a semnalat ulterior ca "sunt chestii diferite de pe la
-  tema si altele". Se RE-VERIFICA pe `developer.uportho.ro` inainte de a scrie planurile
-  Fazei 2 (catalog/preturi) si Fazei 3 (checkout); nu se construieste pe ele ca atare:
-  - Pricelist-uri: Public (id 45), Ortho Club (id 59). `website_id` = 11.
-  - Ancorele DOM si id-urile din checkout enumerate in sectiunea 12.
+- **RE-VERIFICAT pe staging (2026-09-08), direct in baza de date.** Rezultatul:
+  - `website_id = 11` — CONFIRMAT. E "uportho.ro 2025", magazinul romanesc, 78 categorii
+    publice. Al doilea magazin e 14 ("uportho.com 2025", 55 categorii). Exista 9 website-uri.
+  - Pricelist **45** si **59** — CONFIRMATE ca id-uri, dar numele lor s-au schimbat:
+    45 = "Lista de preturi publica 2026", 59 = "Lista de preturi Ortho Club 2026".
+    Traducerile engleze din baza sunt ramase in urma ("Public Pricelist 2025",
+    "UpOrtho CLUB 2024 Pricelist") si induc in eroare — se citeste `name->>'ro_RO'`.
+  - Exista **14 liste de preturi active** in total (si 25 cu tot cu arhivate), printre care
+    "CAMPANIE Ortho Club 2026" (73), "Ortho Shop" (57), "Euro Discount" (76), liste de
+    furnizor si liste pe alte monede.
+  - Catalog: **925 produse publicate**, **1246 reguli de pret**.
+- **DECIZIE DE ARHITECTURA care rezulta din asta:** aplicatia si modulul **NU hardcodeaza
+  niciun id de pricelist**. Fiecare contact are lista lui alocata pe cont (confirmat de user),
+  deci pretul se cere de la Odoo, care rezolva lista corecta din client + website + moneda.
+  Motivul nu e ca id-urile ar fi instabile — sunt — ci ca un client poate fi pe oricare din
+  cele 14 liste; hardcodarea a doua dintre ele ar da preturi gresite tuturor celorlalti.
+- Ancorele DOM si id-urile din checkout din sectiunea 12 raman NE-verificate; se re-verifica
+  inainte de planul Fazei 3.
 - Toolchain local (macOS), stare la 2026-09-07 dupa Faza 0: Flutter 3.47.2 stable,
   Android SDK 36 + AVD, Xcode 26.6, CocoaPods 1.17.0, openjdk 17 — `flutter doctor`
   verde pe tot. Cont Apple Developer si Google Play Console: inca nu exista.
