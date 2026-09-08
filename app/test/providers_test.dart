@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/api_client.dart';
 import 'package:uportho_app/api/api_transport.dart';
+import 'package:uportho_app/api/same_origin.dart';
 import 'package:uportho_app/api/session_store.dart';
 import 'package:uportho_app/features/auth/auth_controller.dart';
 import 'package:uportho_app/providers.dart';
@@ -81,5 +82,51 @@ void main() {
     // s-a schimbat - headerele de imagine trebuie sa reflecte noua sesiune.
     final after = await container.read(imageHeadersProvider.future);
     expect(after, {'Cookie': 'session_id=sess-ana'});
+  });
+
+  // FINDING 2: cookie-ul de sesiune Odoo nu trebuie trimis catre o origine straina,
+  // chiar daca URL-ul e "absolut" (ramul pass-through din ApiClient.absoluteUrl).
+  group('isSameOrigin / imageHeadersFor', () {
+    const apiBaseUrl = 'http://localhost:8069';
+    const headers = {'Cookie': 'session_id=abc'};
+
+    test('acelasi schema+host+port -> aceeasi origine', () {
+      expect(isSameOrigin('http://localhost:8069/web/image/123', apiBaseUrl), isTrue);
+    });
+
+    test('host diferit -> origine diferita, chiar daca prefixul stringului coincide', () {
+      // Un url care "incepe la fel" cu apiBaseUrl ca text, dar tinteste alt host -
+      // exact cazul pe care o comparatie `startsWith` l-ar rata.
+      expect(isSameOrigin('http://localhost.8069.evil.example/img.png', apiBaseUrl), isFalse);
+    });
+
+    test('port diferit -> origine diferita', () {
+      expect(isSameOrigin('http://localhost:9999/img.png', apiBaseUrl), isFalse);
+    });
+
+    test('url invalid -> tratat ca origine diferita, nu ca eroare', () {
+      expect(isSameOrigin('not a url', apiBaseUrl), isFalse);
+    });
+
+    test('imageHeadersFor ataseaza headerele doar pentru URL de pe originea API-ului', () {
+      expect(
+        imageHeadersFor('http://localhost:8069/web/image/123', apiBaseUrl: apiBaseUrl, headers: headers),
+        headers,
+      );
+    });
+
+    test('imageHeadersFor NU ataseaza headerele pentru un URL absolut de pe alta origine', () {
+      expect(
+        imageHeadersFor('https://cdn.extern.example/img.png', apiBaseUrl: apiBaseUrl, headers: headers),
+        isNull,
+      );
+    });
+
+    test('imageHeadersFor returneaza null cand nu exista inca headere de atasat', () {
+      expect(
+        imageHeadersFor('http://localhost:8069/web/image/123', apiBaseUrl: apiBaseUrl, headers: null),
+        isNull,
+      );
+    });
   });
 }

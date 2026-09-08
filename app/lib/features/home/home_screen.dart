@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/api_exception.dart';
 import '../../api/models/home_response.dart';
+import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/widgets/banner_card.dart';
 import '../../design_system/widgets/category_chip.dart';
@@ -23,6 +24,12 @@ class HomeScreen extends ConsumerWidget {
     // Cat timp sesiunea inca nu s-a citit (sau citirea a picat), imaginile nu au
     // cookie si server-ul le va respinge - widget-urile trateaza asta ca "fara imagine".
     final imageHeaders = ref.watch(imageHeadersProvider).value;
+    // Cookie-ul de sesiune Odoo se trimite doar catre imagini de pe originea proprie
+    // a API-ului - `absoluteUrl` are un ram pass-through pentru URL-uri deja absolute
+    // (raspunsuri viitoare de la backend), iar un URL absolut catre alta origine
+    // (ex. un CDN extern) nu trebuie sa primeasca vreodata acest cookie.
+    Map<String, String>? headersFor(String url) =>
+        imageHeadersFor(url, apiBaseUrl: api.baseUrl, headers: imageHeaders);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,7 +50,7 @@ class HomeScreen extends ConsumerWidget {
         ),
         data: (data) => RefreshIndicator(
           onRefresh: () => ref.read(homeControllerProvider.notifier).refresh(),
-          child: _HomeContent(data: data, absoluteUrl: api.absoluteUrl, imageHeaders: imageHeaders),
+          child: _HomeContent(data: data, absoluteUrl: api.absoluteUrl, headersFor: headersFor),
         ),
       ),
     );
@@ -51,10 +58,12 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.data, required this.absoluteUrl, required this.imageHeaders});
+  const _HomeContent({required this.data, required this.absoluteUrl, required this.headersFor});
   final HomeResponse data;
   final String Function(String) absoluteUrl;
-  final Map<String, String>? imageHeaders;
+  /// Headerele de imagine (cookie de sesiune) pentru un URL absolut dat, sau null
+  /// daca URL-ul nu tinteste originea proprie a API-ului - vezi `headersFor` din HomeScreen.
+  final Map<String, String>? Function(String url) headersFor;
 
   @override
   Widget build(BuildContext context) {
@@ -67,13 +76,7 @@ class _HomeContent extends StatelessWidget {
         for (final banner in heroes)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: BannerCard(
-              banner: banner,
-              hero: true,
-              imageUrl: banner.imageUrl == null ? null : absoluteUrl(banner.imageUrl!),
-              httpHeaders: imageHeaders,
-              onTap: () => _openBanner(context, banner),
-            ),
+            child: _bannerCard(context, banner, hero: true),
           ),
         if (data.quickCategories.isNotEmpty) ...[
           const SectionHeader('Categorii'),
@@ -86,10 +89,11 @@ class _HomeContent extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (_, index) {
                 final category = data.quickCategories[index];
+                final iconUrl = category.iconUrl == null ? null : absoluteUrl(category.iconUrl!);
                 return CategoryChip(
                   name: category.name,
-                  iconUrl: category.iconUrl == null ? null : absoluteUrl(category.iconUrl!),
-                  httpHeaders: imageHeaders,
+                  iconUrl: iconUrl,
+                  httpHeaders: iconUrl == null ? null : headersFor(iconUrl),
                   onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Catalogul vine in Faza 2: ${category.name}')),
                   ),
@@ -110,13 +114,7 @@ class _HomeContent extends StatelessWidget {
               crossAxisSpacing: 12,
               childAspectRatio: 4 / 3,
               children: [
-                for (final banner in promos)
-                  BannerCard(
-                    banner: banner,
-                    imageUrl: banner.imageUrl == null ? null : absoluteUrl(banner.imageUrl!),
-                    httpHeaders: imageHeaders,
-                    onTap: () => _openBanner(context, banner),
-                  ),
+                for (final banner in promos) _bannerCard(context, banner),
               ],
             ),
           ),
@@ -127,6 +125,17 @@ class _HomeContent extends StatelessWidget {
             child: Center(child: Text('Nu exista continut inca. Adauga bannere si categorii din Odoo.')),
           ),
       ],
+    );
+  }
+
+  Widget _bannerCard(BuildContext context, AppBanner banner, {bool hero = false}) {
+    final imageUrl = banner.imageUrl == null ? null : absoluteUrl(banner.imageUrl!);
+    return BannerCard(
+      banner: banner,
+      hero: hero,
+      imageUrl: imageUrl,
+      httpHeaders: imageUrl == null ? null : headersFor(imageUrl),
+      onTap: () => _openBanner(context, banner),
     );
   }
 
