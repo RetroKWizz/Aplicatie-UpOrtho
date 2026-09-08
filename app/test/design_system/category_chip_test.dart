@@ -15,4 +15,11 @@ void main() {
     await tester.tap(find.text('X'));
     expect(tapped, isTrue);
   });
+
+  testWidgets('accepts httpHeaders without crashing when iconUrl is null', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: CategoryChip(name: 'Y', iconUrl: null, httpHeaders: {'Cookie': 'session_id=abc'})),
+    ));
+    expect(find.text('Y'), findsOneWidget);
+  });
 }

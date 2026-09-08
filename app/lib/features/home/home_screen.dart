@@ -20,6 +20,9 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final home = ref.watch(homeControllerProvider);
     final api = ref.watch(apiClientProvider);
+    // Cat timp sesiunea inca nu s-a citit (sau citirea a picat), imaginile nu au
+    // cookie si server-ul le va respinge - widget-urile trateaza asta ca "fara imagine".
+    final imageHeaders = ref.watch(imageHeadersProvider).value;
 
     return Scaffold(
       appBar: AppBar(
@@ -40,7 +43,7 @@ class HomeScreen extends ConsumerWidget {
         ),
         data: (data) => RefreshIndicator(
           onRefresh: () => ref.read(homeControllerProvider.notifier).refresh(),
-          child: _HomeContent(data: data, absoluteUrl: api.absoluteUrl),
+          child: _HomeContent(data: data, absoluteUrl: api.absoluteUrl, imageHeaders: imageHeaders),
         ),
       ),
     );
@@ -48,9 +51,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.data, required this.absoluteUrl});
+  const _HomeContent({required this.data, required this.absoluteUrl, required this.imageHeaders});
   final HomeResponse data;
   final String Function(String) absoluteUrl;
+  final Map<String, String>? imageHeaders;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +71,7 @@ class _HomeContent extends StatelessWidget {
               banner: banner,
               hero: true,
               imageUrl: banner.imageUrl == null ? null : absoluteUrl(banner.imageUrl!),
+              httpHeaders: imageHeaders,
               onTap: () => _openBanner(context, banner),
             ),
           ),
@@ -84,6 +89,7 @@ class _HomeContent extends StatelessWidget {
                 return CategoryChip(
                   name: category.name,
                   iconUrl: category.iconUrl == null ? null : absoluteUrl(category.iconUrl!),
+                  httpHeaders: imageHeaders,
                   onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Catalogul vine in Faza 2: ${category.name}')),
                   ),
@@ -108,6 +114,7 @@ class _HomeContent extends StatelessWidget {
                   BannerCard(
                     banner: banner,
                     imageUrl: banner.imageUrl == null ? null : absoluteUrl(banner.imageUrl!),
+                    httpHeaders: imageHeaders,
                     onTap: () => _openBanner(context, banner),
                   ),
               ],

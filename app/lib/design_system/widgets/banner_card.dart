@@ -8,13 +8,22 @@ import '../typography.dart';
 /// Card de banner: imagine (daca exista) peste gradient de brand, titlu/subtitlu/CTA.
 /// `hero` = format lat, inaltime mare; altfel format de grila (promo).
 class BannerCard extends StatelessWidget {
-  const BannerCard({super.key, required this.banner, required this.imageUrl, this.onTap, this.hero = false});
+  const BannerCard({
+    super.key,
+    required this.banner,
+    required this.imageUrl,
+    this.onTap,
+    this.hero = false,
+    this.httpHeaders,
+  });
 
   final AppBanner banner;
   /// URL absolut (clientul API il construieste); null = fara imagine.
   final String? imageUrl;
   final VoidCallback? onTap;
   final bool hero;
+  /// Headere pentru cererea de imagine (ex. cookie de sesiune Odoo); null = fara headere.
+  final Map<String, String>? httpHeaders;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +38,12 @@ class BannerCard extends StatelessWidget {
             children: [
               const DecoratedBox(decoration: BoxDecoration(gradient: AppColors.heroGradient)),
               if (imageUrl != null)
-                CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover, errorWidget: (_, _, _) => const SizedBox()),
+                CachedNetworkImage(
+                  imageUrl: imageUrl!,
+                  httpHeaders: httpHeaders,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => const SizedBox(),
+                ),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

@@ -29,4 +29,11 @@ void main() {
     expect(find.text('T'), findsOneWidget);
     expect(find.byType(FilledButton), findsNothing);
   });
+
+  testWidgets('accepts httpHeaders without crashing when imageUrl is null', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: BannerCard(banner: banner, imageUrl: null, httpHeaders: {'Cookie': 'session_id=abc'})),
+    ));
+    expect(find.text('Titlu'), findsOneWidget);
+  });
 }
