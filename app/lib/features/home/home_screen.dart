@@ -11,6 +11,7 @@ import '../../design_system/widgets/category_chip.dart';
 import '../../design_system/widgets/section_header.dart';
 import '../../providers.dart';
 import '../auth/auth_controller.dart';
+import 'banner_link.dart';
 import 'home_controller.dart';
 
 /// Ecranul Acasa: banner hero, categorii rapide, grila de oferte. Un singur apel /home.
@@ -142,8 +143,15 @@ class _HomeContent extends StatelessWidget {
   Future<void> _openBanner(BuildContext context, AppBanner banner) async {
     switch (banner.link.type) {
       case BannerLinkType.url:
-        final uri = Uri.tryParse(banner.link.url ?? '');
-        if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+        // Doar http/https, si niciodata o exceptie de platforma scapata dintr-un
+        // handler de tap fire-and-forget (nimeni nu asteapta acest Future).
+        final uri = externalBannerUri(banner.link.url);
+        if (uri == null) return;
+        try {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (error) {
+          debugPrint('Nu s-a putut deschide link-ul bannerului: $error');
+        }
       case BannerLinkType.category:
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catalogul vine in Faza 2.')));
