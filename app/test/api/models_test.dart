@@ -24,11 +24,14 @@ void main() {
     expect(hero.placement, BannerPlacement.hero);
     expect(hero.link.type, BannerLinkType.category);
     expect(hero.link.categoryId, 12);
-    expect(hero.imageUrl, '/api/app/v1/banners/1/image');
+    // `image_url` e un string opac pentru aplicatie; serverul ii adauga un token
+    // `?unique=` derivat din write_date, ca imaginea sa poata fi invalidata din cache.
+    expect(hero.imageUrl, '/api/app/v1/banners/1/image?unique=3a1f9c2');
     final promo = home.banners.last;
     expect(promo.subtitle, isNull);
     expect(promo.imageUrl, isNull);
     expect(promo.link.type, BannerLinkType.none);
+    expect(home.quickCategories.first.iconUrl, '/api/app/v1/categories/12/icon?unique=8be4d17');
     expect(home.quickCategories.last.iconUrl, isNull);
   });
 

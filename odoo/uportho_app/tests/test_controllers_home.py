@@ -1,4 +1,5 @@
 import base64
+import hashlib
 
 from odoo.tests.common import tagged
 
@@ -8,6 +9,16 @@ from .test_controllers_base import load_contract
 # PNG 1x1 valid, pentru campuri Image
 PNG_1PX = base64.b64decode(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
+# PNG 1x1 diferit (rosu), ca sa putem scrie o imagine noua peste cea existenta
+PNG_1PX_RED = base64.b64decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
+
+
+def expected_unique(record):
+    """Acelasi calcul ca in Odoo pentru `/web/image/...?unique=` (`website.image_url`):
+    primele 7 caractere din sha512 al lui write_date. Calculat aici independent de
+    controller, ca testul sa fie un oracol real, nu o repetare a implementarii."""
+    return hashlib.sha512(str(record.sudo().write_date).encode('utf-8')).hexdigest()[:7]
 
 
 @tagged('post_install', '-at_install')
@@ -52,7 +63,9 @@ class TestControllersHome(AppHttpCase):
         self.assertEqual([b['title'] for b in banners], ['Hero', 'Promo'])
         hero, promo = banners
         self.assertEqual(hero['link'], {'type': 'category', 'category_id': self.category.id, 'url': None})
-        self.assertEqual(hero['image_url'], f'/api/app/v1/banners/{self.hero.id}/image')
+        self.assertEqual(
+            hero['image_url'],
+            f'/api/app/v1/banners/{self.hero.id}/image?unique={expected_unique(self.hero)}')
         self.assertEqual(promo['link'], {'type': 'url', 'category_id': None, 'url': 'https://uportho.ro/promo'})
         self.assertIsNone(promo['image_url'])
 
@@ -68,8 +81,51 @@ class TestControllersHome(AppHttpCase):
         categories = [c for c in self.api_get('/home').json()['quick_categories'] if c['id'] in own_ids]
         self.assertEqual([c['name'] for c in categories], ['Intrus', 'Bracketi', 'Arcuri'])
         by_id = {c['id']: c for c in categories}
-        self.assertEqual(by_id[self.category.id]['icon_url'], f'/api/app/v1/categories/{self.category.id}/icon')
+        self.assertEqual(
+            by_id[self.category.id]['icon_url'],
+            f'/api/app/v1/categories/{self.category.id}/icon?unique={expected_unique(self.category)}')
         self.assertIsNone(by_id[self.category_no_icon.id]['icon_url'])
+
+    def _home_urls(self):
+        body = self.api_get('/home').json()
+        banner = next(b for b in body['banners'] if b['id'] == self.hero.id)
+        category = next(c for c in body['quick_categories'] if c['id'] == self.category.id)
+        return banner['image_url'], category['icon_url']
+
+    def _touch(self, record):
+        """Muta write_date-ul inregistrarii cu o secunda inainte.
+
+        Intr-un test, un `write()` obisnuit NU misca write_date: Odoo il seteaza din
+        `cr.now()`, care e timestamp-ul tranzactiei, constant, iar tot testul ruleaza
+        intr-o singura tranzactie. In productie fiecare cerere e alta tranzactie, deci
+        write_date chiar avanseaza. Impingem write_date direct in SQL ca sa reproducem
+        situatia reala."""
+        record.flush_recordset()
+        self.env.cr.execute(
+            f"UPDATE {record._table} SET write_date = write_date + interval '1 second' WHERE id = %s",
+            (record.id,))
+        record.invalidate_recordset(['write_date'])
+
+    def test_image_urls_change_when_the_record_is_written(self):
+        """Token-ul `?unique=` face imaginea invalidabila din cache-ul aplicatiei:
+        dupa ce un editor schimba imaginea in Odoo, URL-ul emis trebuie sa fie altul,
+        altfel `cached_network_image` serveste zile la rand imaginea veche."""
+        self.api_login()
+        banner_url_before, category_url_before = self._home_urls()
+
+        # Editorul schimba efectiv imaginea...
+        self.hero.write({'image': base64.b64encode(PNG_1PX_RED)})
+        self.category.write({'app_home_icon': base64.b64encode(PNG_1PX_RED)})
+        # ...iar scrierea avanseaza write_date (vezi _touch pentru de ce e nevoie de SQL).
+        self._touch(self.hero)
+        self._touch(self.category)
+
+        banner_url_after, category_url_after = self._home_urls()
+        self.assertNotEqual(banner_url_before, banner_url_after)
+        self.assertNotEqual(category_url_before, category_url_after)
+        # Doar token-ul se schimba; calea ramane aceeasi ruta.
+        self.assertTrue(banner_url_after.startswith(f'/api/app/v1/banners/{self.hero.id}/image?unique='))
+        self.assertTrue(category_url_after.startswith(f'/api/app/v1/categories/{self.category.id}/icon?unique='))
 
     def test_banner_image_is_served_for_logged_user(self):
         self.api_login()
