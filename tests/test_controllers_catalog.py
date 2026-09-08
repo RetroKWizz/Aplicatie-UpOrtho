@@ -341,12 +341,32 @@ class TestControllersProductPricing(AppHttpCase):
         self.assertEqual(price['discount_pct'], 50)
         self.assertTrue(price['with_vat'])
         self.assertEqual(price['formatted'], self._expected_formatted('120,00'))
+        # Pretul taiat vine formatat de server, nu ca numar brut: aplicatia il
+        # afisa altfel cu "22430,00 lei", fara separatorul de mii, langa un pret
+        # curent formatat corect.
+        self.assertEqual(price['list_formatted'], self._expected_formatted('240,00'))
 
     def test_product_price_without_discount(self):
         price = self._product('Produs fara reducere test pret')['price']
         self.assertAlmostEqual(price['amount'], 120.0, places=2)
         self.assertIsNone(price['list_amount'])
+        self.assertIsNone(price['list_formatted'])
         self.assertIsNone(price['discount_pct'])
+
+    def test_list_formatted_has_thousands_separator(self):
+        # Regresie directa pentru ce s-a vazut pe staging: peste 1000, pretul taiat
+        # trebuie sa aiba separator de mii, la fel ca pretul curent.
+        # Fara taxa, ca list_amount sa fie exact 22430 si testul sa vorbeasca
+        # despre separatorul de mii, nu despre calculul de TVA.
+        product = self.env['product.template'].create({
+            'name': 'Produs scump test pret mii', 'is_published': True,
+            'list_price': 22430.0, 'taxes_id': [(6, 0, [])]})
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': product.id, 'compute_price': 'percentage',
+            'percent_price': 30.0})
+        price = self._product('Produs scump test pret mii')['price']
+        self.assertEqual(price['list_formatted'], self._expected_formatted('22.430,00'))
 
     def test_price_formatting_uses_currency_decimal_places_and_position(self):
         # M10: catalog.py presupunea 2 zecimale si simbolul mereu dupa numar. BHD

@@ -76,6 +76,7 @@ def serialize_price(amount, list_amount, currency):
         'formatted': _format_amount(amount, currency),
         'with_vat': True,
         'list_amount': list_amount,
+        'list_formatted': _format_amount(list_amount, currency) if list_amount is not None else None,
         'discount_pct': discount_pct,
     }
 
