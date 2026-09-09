@@ -4,6 +4,8 @@ import lxml.html
 
 from odoo import fields, models
 
+from ..pricing import serialize_price
+
 BADGE_COLORS = [
     ('orange', 'Portocaliu'), ('green', 'Verde'), ('blue', 'Albastru'),
     ('purple', 'Mov'), ('red', 'Rosu'),
@@ -172,13 +174,10 @@ class ProductTemplate(models.Model):
         if fiscal_position is None:
             fiscal_position = self.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
 
-        # Import intarziat (nu la nivel de modul): `models/` se incarca inaintea
-        # `controllers/` in __init__.py-ul modulului, deci un import la nivel de
-        # modul aici ar depinde de ordinea de incarcare. `serialize_price` (si
-        # `_format_amount` pe care il foloseste) raman singura sursa a formei
-        # pretului si a calculului de discount_pct - nu se duplica aici.
-        from odoo.addons.uportho_app.controllers.catalog import serialize_price
-
+        # `serialize_price` (si `_format_amount` pe care il foloseste) traiesc in
+        # `pricing.py`, un modul fara dependente in modul, tocmai ca sa fie o singura
+        # sursa a formei pretului si a calculului de discount_pct, importabila si de
+        # aici si din controllere - nu se duplica.
         date = fields.Datetime.now()
         rules = pricelist._get_applicable_rules(self, date)
         thresholds = sorted({1.0} | set(rules.mapped('min_quantity')))
