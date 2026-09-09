@@ -14,6 +14,7 @@ import '../../design_system/widgets/document_list.dart';
 import '../../design_system/widgets/image_gallery.dart';
 import '../../design_system/widgets/price_tier_table.dart';
 import '../../design_system/widgets/product_card.dart';
+import '../../design_system/widgets/product_tabs.dart';
 import '../../design_system/widgets/variant_order_table.dart';
 import '../../design_system/widgets/variant_picker.dart';
 import '../../providers.dart';
@@ -22,8 +23,13 @@ import 'product_controller.dart';
 
 /// Pagina de produs. Ordinea sectiunilor e cea de pe uportho.ro (plan Faza 2,
 /// Task 6): galerie, badge, titlu, stele, pret, praguri, praguri Ortho Club,
-/// variante, disponibilitate, buton de cos, brand, beneficii, cod, descriere,
-/// specificatii, documente, recenzii, produse similare.
+/// variante, disponibilitate, buton de cos, brand, beneficii, cod, apoi filele
+/// Descriere | Specificatii | Documente | Recenzii si, sub ele, produsele similare.
+///
+/// Cele patru sectiuni de jos sunt **file**, ca pe site, nu sectiuni stivuite una
+/// sub alta: stivuite faceau pagina incarcata. Filtrarea lor se face aici, in ecran
+/// — `ProductTabs` primeste doar filele care chiar au continut, iar produsele
+/// similare raman in afara lor, dedesubt, tot ca pe site.
 ///
 /// **Fiecare sectiune fara date lipseste complet** — nu un chenar gol, nu un titlu
 /// fara continut sub el. Nu e o subtilitate de stil: 354 din 619 produse reale
@@ -138,6 +144,23 @@ class _ProductBody extends ConsumerWidget {
     final descriptionBlocks = [for (final block in detail.description) _describe(block)];
     final availabilityMessage = detail.availability?.message;
 
+    // Filele de jos, in ordinea de pe site (Descriere | Specificatii | Documente |
+    // Recenzii). Una fara continut nu ajunge in lista, deci nu exista nici ca
+    // eticheta — cazul obisnuit pe catalogul real: doar 15 din 619 produse au
+    // recenzii, documentele sunt rare, iar 14 produse n-au nici descriere. Cand
+    // ramane o singura fila, `ProductTabs` ii arata doar continutul, fara bara.
+    final tabs = <ProductTabItem>[
+      if (_hasText(descriptionBlocks))
+        ProductTabItem(
+            label: 'Descriere', content: DescriptionView(blocks: descriptionBlocks)),
+      if (detail.specs.isNotEmpty)
+        ProductTabItem(label: 'Specificatii', content: _SpecTable(specs: detail.specs)),
+      if (documentItems.isNotEmpty)
+        ProductTabItem(label: 'Documente', content: DocumentList(items: documentItems)),
+      if (detail.reviews.isNotEmpty)
+        ProductTabItem(label: 'Recenzii', content: _Reviews(reviews: detail.reviews)),
+    ];
+
     final sections = <Widget>[
       if (galleryItems.isNotEmpty)
         ImageGallery(items: galleryItems, httpHeaders: galleryHeaders),
@@ -179,17 +202,8 @@ class _ProductBody extends ConsumerWidget {
         BenefitList(items: benefitItems, httpHeaders: benefitHeaders),
       if (detail.defaultCode != null && detail.defaultCode!.isNotEmpty)
         Text('Cod: ${detail.defaultCode}', style: AppTypography.caption),
-      if (_hasText(descriptionBlocks))
-        _Section(title: 'Descriere', child: DescriptionView(blocks: descriptionBlocks)),
-      if (detail.specs.isNotEmpty)
-        _Section(title: 'Specificatii', child: _SpecTable(specs: detail.specs)),
-      // Documentele stau langa celelalte sectiuni cu file de pe site (Descriere /
-      // Specificatii / Documente / Recenzii). URL-ul e absolut: se deschide in
-      // afara aplicatiei, unde o cale relativa n-ar insemna nimic.
-      if (documentItems.isNotEmpty)
-        _Section(title: 'Documente', child: DocumentList(items: documentItems)),
-      if (detail.reviews.isNotEmpty)
-        _Section(title: 'Recenzii', child: _Reviews(reviews: detail.reviews)),
+      if (tabs.isNotEmpty) ProductTabs(tabs: tabs),
+      // Produsele similare raman in afara filelor, dedesubt, ca pe site.
       if (detail.similar.isNotEmpty)
         _Section(title: 'Produse similare', child: _SimilarList(products: detail.similar)),
     ];

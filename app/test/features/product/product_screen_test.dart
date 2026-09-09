@@ -15,6 +15,7 @@ import 'package:uportho_app/design_system/widgets/document_list.dart';
 import 'package:uportho_app/design_system/widgets/image_gallery.dart';
 import 'package:uportho_app/design_system/widgets/price_tier_table.dart';
 import 'package:uportho_app/design_system/widgets/product_card.dart';
+import 'package:uportho_app/design_system/widgets/product_tabs.dart';
 import 'package:uportho_app/design_system/widgets/variant_order_table.dart';
 import 'package:uportho_app/design_system/widgets/variant_picker.dart';
 import 'package:uportho_app/features/product/product_controller.dart';
@@ -271,10 +272,9 @@ void main() {
       'brand': top(find.byType(BrandCard)),
       'beneficii': top(find.text('Livrare gratuita')),
       'cod produs': top(find.text('Cod: IX954')),
-      'descriere': top(find.text('Descriere')),
-      'specificatii': top(find.text('Specificatii')),
-      'documente': top(find.text('Documente')),
-      'recenzii': top(find.text('Recenzii')),
+      // Descrierea, specificatiile, documentele si recenziile nu mai sunt sectiuni
+      // stivuite, ci filele de jos — ordinea lor se verifica separat, pe orizontala.
+      'filele de jos': top(find.byType(ProductTabs)),
       'similare': top(find.text('Produse similare')),
     };
 
@@ -290,10 +290,10 @@ void main() {
     expect(find.text('1.399,99 lei'), findsNWidgets(2));
     expect(find.text('-20%'), findsOneWidget);
     expect(find.text('Taxe incluse'), findsOneWidget);
-    // Descrierea si specificatiile chiar au continut, nu doar titluri.
+    // Prima fila e deschisa, deci descrierea chiar are continut, nu doar eticheta.
     expect(find.text('Cleste Tie Back pentru arcuri groase'), findsOneWidget);
-    // Brandul apare de doua ori, ca pe site: in chenarul lui si in specificatii.
-    expect(find.text('DB Orthodontics'), findsNWidgets(2));
+    // Brandul apare in chenarul lui; a doua oara, in specificatii, abia pe fila lor.
+    expect(find.text('DB Orthodontics'), findsOneWidget);
     expect(find.text('Cleste Tie Back mic Ixion'), findsOneWidget);
   });
 
@@ -579,8 +579,9 @@ void main() {
         ApiResponse(status: 200, json: fullProductJson()));
 
     await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+    await tester.tap(find.text('Documente'));
+    await tester.pumpAndSettle();
 
-    expect(find.text('Documente'), findsOneWidget);
     expect(find.text('Fisa tehnica.pdf'), findsOneWidget);
 
     // URL-ul e absolut: documentul se deschide in afara aplicatiei, unde o cale
@@ -589,7 +590,7 @@ void main() {
     expect(list.items.single.url, 'http://x/web/content/4821?download=true');
   });
 
-  testWidgets('documentele stau intre specificatii si recenzii, ca pe site',
+  testWidgets('filele sunt in ordinea de pe site: Descriere, Specificatii, Documente, Recenzii',
       (tester) async {
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/products/101',
@@ -597,11 +598,120 @@ void main() {
 
     await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
 
-    final specs = tester.getTopLeft(find.text('Specificatii')).dy;
-    final documents = tester.getTopLeft(find.text('Documente')).dy;
-    final reviews = tester.getTopLeft(find.text('Recenzii')).dy;
-    expect(documents, greaterThan(specs));
-    expect(reviews, greaterThan(documents));
+    final labels =
+        tester.widget<ProductTabs>(find.byType(ProductTabs)).tabs.map((tab) => tab.label);
+    expect(labels, ['Descriere', 'Specificatii', 'Documente', 'Recenzii']);
+  });
+
+  testWidgets('pe un telefon ingust (320px) bara de file nu da overflow', (tester) async {
+    // Verificarea sta si in testul de widget; aici se face pe ecranul adevarat, cu
+    // toate celelalte sectiuni in jur.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(320, 4000));
+
+    expect(tester.takeException(), isNull);
+    for (final label in const ['Descriere', 'Specificatii', 'Documente', 'Recenzii']) {
+      expect(tester.getRect(find.text(label)).right, lessThanOrEqualTo(320.0),
+          reason: 'eticheta "$label" ramane in ecran');
+    }
+  });
+
+  testWidgets('o fila fara continut nu apare deloc', (tester) async {
+    // Cazul obisnuit pe catalogul real: doar 15 din 619 produse au recenzii, iar
+    // documentele sunt rare.
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...fullProductJson(),
+        'documents': <dynamic>[],
+        'reviews': <dynamic>[],
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.text('Descriere'), findsOneWidget);
+    expect(find.text('Specificatii'), findsOneWidget);
+    expect(find.text('Documente'), findsNothing);
+    expect(find.text('Recenzii'), findsNothing);
+  });
+
+  testWidgets('o singura fila cu continut se arata fara bara de file', (tester) async {
+    // O eticheta singura nu e un tab: se vede doar descrierea.
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...fullProductJson(),
+        'specs': <dynamic>[],
+        'documents': <dynamic>[],
+        'reviews': <dynamic>[],
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.text('Cleste Tie Back pentru arcuri groase'), findsOneWidget);
+    for (final label in const ['Descriere', 'Specificatii', 'Documente', 'Recenzii']) {
+      expect(find.text(label), findsNothing, reason: 'o singura fila nu are bara');
+    }
+  });
+
+  testWidgets('produsele similare raman in afara filelor, oricare ar fi cea deschisa',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.text('Produse similare'), findsOneWidget);
+    await tester.tap(find.text('Recenzii'));
+    await tester.pumpAndSettle();
+    expect(find.text('Produse similare'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Produse similare')).dy,
+        greaterThan(tester.getTopLeft(find.byType(ProductTabs)).dy));
+  });
+
+  testWidgets('schimbarea filei nu recere produsul si nu pierde cantitatile tastate',
+      (tester) async {
+    final price = priceJson(amount: 1120.0, formatted: '1.120,00 lei');
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+    transport.when(
+      'POST',
+      '/api/app/v1/products/101/prices',
+      ApiResponse(status: 200, json: {
+        'lines': [
+          {'variant_id': 501, 'qty': 1, 'price': price, 'subtotal': price},
+        ],
+        'total': price,
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pumpAndSettle();
+    expect(find.text('1'), findsWidgets);
+    final callsBefore = transport.calls.length;
+
+    await tester.tap(find.text('Specificatii'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Descriere'));
+    await tester.pumpAndSettle();
+
+    expect(transport.calls.length, callsBefore,
+        reason: 'schimbarea filei nu vorbeste cu serverul');
+    final table = tester.widget<VariantOrderTable>(find.byType(VariantOrderTable));
+    expect(table.rows.first.qty, 1, reason: 'cantitatea tastata ramane');
   });
 
   testWidgets('chenarul de brand arata numele si descrierea, deasupra descrierii produsului',
@@ -631,8 +741,9 @@ void main() {
         ApiResponse(status: 200, json: fullProductJson()));
 
     await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+    await tester.tap(find.text('Specificatii'));
+    await tester.pumpAndSettle();
 
-    expect(find.text('Specificatii'), findsOneWidget);
     expect(find.text('DB Orthodontics'), findsNWidgets(2),
         reason: 'o data in chenarul de brand, o data in specificatii');
   });
