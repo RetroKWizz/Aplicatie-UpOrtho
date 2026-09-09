@@ -684,8 +684,10 @@ class TestControllersProductsOrdering(AppHttpCase):
             body = self.api_get(
                 f'/products?q=Ordine Geamana&limit=1&offset={offset}').json()
             seen.extend(p['id'] for p in body['products'])
-        # Fiecare o singura data, si in ordinea deterministica data de criteriul 'id'.
-        self.assertEqual(seen, sorted(twins.ids))
+        # Fiecare o singura data, si in ordinea deterministica data de criteriul
+        # 'id desc' - aceeasi departajare pe care o face magazinul, deci cele doua
+        # produse apar la fel ca pe site, nu invers.
+        self.assertEqual(seen, sorted(twins.ids, reverse=True))
 
     def test_nonsense_sort_setting_falls_back_and_warns(self):
         # `shop_default_sort` e text pe care un administrator de site il poate ajunge sa
@@ -743,13 +745,15 @@ class TestControllersProductsOrdering(AppHttpCase):
         Template = self.env['product.template']
         self.assertEqual(
             catalog_controller._sanitized_order('website_sequence asc', Template),
-            'website_sequence asc, id')
+            'website_sequence asc, id desc')
         self.assertEqual(
             catalog_controller._sanitized_order('create_date desc', Template),
-            'create_date desc, id')
-        # Daca sortarea configurata se termina deja pe 'id', nu se mai adauga inca unul
-        # (un al doilea criteriu pe acelasi camp e ignorat de baza, dar ar ascunde in
-        # cod intentia).
+            'create_date desc, id desc')
+        # Daca sortarea configurata se termina deja pe campul 'id', nu se mai adauga
+        # inca unul - indiferent de directia scrisa acolo, ordinea e deja stabila.
         self.assertEqual(
             catalog_controller._sanitized_order('website_sequence asc, id desc', Template),
             'website_sequence asc, id desc')
+        self.assertEqual(
+            catalog_controller._sanitized_order('website_sequence asc, id asc', Template),
+            'website_sequence asc, id asc')
