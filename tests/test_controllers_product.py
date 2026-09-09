@@ -248,6 +248,8 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertIsNone(body['badge'])
         self.assertIsNone(body['club_price'])
         self.assertIsNone(body['availability'])
+        # Fara randuri de varianta nu exista nici total de pornire.
+        self.assertIsNone(body['variant_total'])
         # Fara reduceri de cantitate, singurul rand ar fi "1+" cu pretul deja afisat
         # deasupra: un asemenea tabel nu se trimite deloc.
         self.assertEqual(body['price_tables'], [])
@@ -564,6 +566,122 @@ class TestControllersProductDetail(AppHttpCase):
 
         self.assertEqual([table['title'] for table in body['price_tables']], ['Pret pe cantitate'])
         self.assertEqual([entry['min_qty'] for entry in body['price_tables'][0]['entries']], [1, 5])
+
+    # --- tabelele de pret calculate direct din listele magazinului -------------
+
+    def _site_pricelists(self, *pricelists):
+        """Listele de pret pe care modulul clientului le arata pe pagina de produs.
+
+        Ele se aleg dupa `is_public_pricelist` / `is_compare_pricelist`, doua campuri
+        pe care modulele clientului le adauga pe `product.pricelist` si care nu exista
+        pe baza locala - deci nu se poate crea o lista "publica" aici. Se inlocuieste
+        doar selectia (`_uportho_site_pricelists`); tot restul - pragurile, preturile,
+        titlurile, nota, ordinea, regula tabelului inutil - ruleaza codul adevarat, pe
+        liste de pret si reguli adevarate."""
+        Template = type(self.env['product.template'])
+        selected = self.env['product.pricelist'].browse(
+            [pricelist.id for pricelist in pricelists])
+        return patch.object(Template, '_uportho_site_pricelists', lambda _self: selected)
+
+    def test_price_tables_are_computed_directly_from_the_site_pricelists(self):
+        # Cazul de pe serverul clientului: `_get_combination_info` arunca de fiecare
+        # data (tema randeaza inauntrul lui un template QWeb de website), deci
+        # `other_bulk_prices` nu se poate citi niciodata. Tabelele trebuie sa iasa
+        # totusi cu titlurile listelor magazinului, nu cu titlul nostru implicit.
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        site_pricelist = self.env['product.pricelist'].create({
+            'name': 'Pret public site test', 'currency_id': self.currency.id})
+        for min_qty, pret in ((1, 200.0), (5, 150.0)):
+            self.env['product.pricelist.item'].create({
+                'pricelist_id': site_pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': self.product_bare.id, 'min_quantity': min_qty,
+                'compute_price': 'fixed', 'fixed_price': pret})
+
+        with self._combination_info_raising(), self._site_pricelists(site_pricelist), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
+            body = self._detail(self.product_bare).json()
+
+        self.assertEqual([table['title'] for table in body['price_tables']],
+                         ['Pret public site test'])
+        entries = body['price_tables'][0]['entries']
+        self.assertEqual([entry['label'] for entry in entries], ['1+', '5+'])
+        self.assertAlmostEqual(entries[0]['price']['amount'], 200.0, places=2)
+        self.assertAlmostEqual(entries[1]['price']['amount'], 150.0, places=2)
+
+    def test_site_pricelists_replace_the_module_own_tiers(self):
+        # Cand magazinul are listele lui, tabelul nostru implicit ("Pret pe cantitate")
+        # nu mai apare deloc - altfel pagina din app ar spune altceva decat site-ul.
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
+        site_pricelist = self.env['product.pricelist'].create({
+            'name': 'Pret public site test 2', 'currency_id': self.currency.id})
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': site_pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product_bare.id, 'min_quantity': 3,
+            'compute_price': 'fixed', 'fixed_price': 120.0})
+
+        with self._site_pricelists(site_pricelist):
+            body = self._detail(self.product_bare).json()
+
+        self.assertEqual([table['title'] for table in body['price_tables']],
+                         ['Pret public site test 2'])
+
+    def test_theme_tables_win_over_the_direct_computation(self):
+        # Daca `other_bulk_prices` chiar ajunge sa fie citibil (un server pe care
+        # `_get_combination_info` nu cade), el ramane sursa: e exact ce a calculat
+        # magazinul pentru pagina lui.
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        site_pricelist = self.env['product.pricelist'].create({
+            'name': 'Lista calculata direct', 'currency_id': self.currency.id})
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': site_pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product_bare.id, 'min_quantity': 1,
+            'compute_price': 'fixed', 'fixed_price': 120.0})
+
+        with self._site_pricelists(site_pricelist), \
+                self._combination_info_with_theme_tables([
+                    {'name': 'Tabel din tema', 'prices': [{'qty': 1, 'price': 140.0}]}]):
+            body = self._detail(self.product_bare).json()
+
+        self.assertEqual([table['title'] for table in body['price_tables']], ['Tabel din tema'])
+
+    def test_site_table_equal_to_the_displayed_price_is_dropped(self):
+        # Aceeasi regula ca la celelalte tabele: un singur rand care repeta pretul de
+        # deasupra lui nu se deseneaza.
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        site_pricelist = self.env['product.pricelist'].create({
+            'name': 'Lista identica cu pretul', 'currency_id': self.currency.id})
+        price = self._detail(self.product_bare).json()['price']['amount']
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': site_pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product_bare.id, 'min_quantity': 1,
+            'compute_price': 'fixed', 'fixed_price': price})
+
+        with self._site_pricelists(site_pricelist):
+            body = self._detail(self.product_bare).json()
+
+        self.assertEqual(body['price_tables'], [])
+
+    def test_without_the_client_fields_the_module_own_tiers_are_used(self):
+        # Baza locala (si orice instanta fara modulele clientului): nicio lista de
+        # magazin de ales, deci se cade pe tabelele calculate de modul. Aici nu se
+        # inlocuieste nimic - e ramura reala.
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        self.assertFalse(self.product_bare._uportho_site_pricelists())
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
+        body = self._detail(self.product_bare).json()
+        self.assertEqual([table['title'] for table in body['price_tables']], ['Pret pe cantitate'])
 
     # --- produse similare -----------------------------------------------------
 
@@ -945,11 +1063,49 @@ class TestControllersProductVariantRows(AppHttpCase):
         self.api_login()
         self.assertEqual(self._rows(self.product_single), [])
 
+    # --- subtotalurile si totalul de pornire (cantitati zero) ------------------
+
+    def test_rows_carry_the_subtotal_of_a_zero_quantity(self):
+        # Tabelul porneste cu toate cantitatile pe zero. Fara sumele astea in
+        # raspuns, coloana Subtotal si Totalul raman goale ("—") pana la prima
+        # apasare pe plus - aplicatia nu are voie sa scrie ea "0,00 lei".
+        self.api_login()
+        for row in self._rows():
+            self.assertEqual(row['subtotal']['amount'], 0.0)
+            self.assertIn('0,00', row['subtotal']['formatted'])
+            self.assertIsNone(row['subtotal']['list_amount'])
+
+    def test_detail_carries_the_total_of_zero_quantities(self):
+        self.api_login()
+        body = self.api_get(f'/products/{self.product.id}').json()
+        self.assertEqual(body['variant_total']['amount'], 0.0)
+        self.assertIn('0,00', body['variant_total']['formatted'])
+
+    def test_no_total_for_a_product_without_rows(self):
+        # Fara tabel nu exista total: sectiunea lipseste cu totul de pe ecran.
+        self.api_login()
+        body = self.api_get(f'/products/{self.product_single.id}').json()
+        self.assertIsNone(body['variant_total'])
+
+    def test_starting_amounts_match_what_the_prices_route_returns_for_zero(self):
+        # Dovada ca nu sunt doua adevaruri despre acelasi zero: sumele de pornire din
+        # detaliu sunt exact ce raspunde ruta de preturi cu toate cantitatile pe zero.
+        self.api_login()
+        body = self.api_get(f'/products/{self.product.id}').json()
+        priced = self.api_post(f'/products/{self.product.id}/prices', {
+            'lines': [{'variant_id': row['variant_id'], 'qty': 0} for row in body['variant_rows']],
+        }).json()
+        self.assertEqual([row['subtotal'] for row in body['variant_rows']],
+                         [line['subtotal'] for line in priced['lines']])
+        self.assertEqual(body['variant_total'], priced['total'])
+
     def test_rows_shape_matches_contract(self):
         self.api_login()
         contract = load_contract('product_detail.json')
         row = self._rows()[0]
         self.assertEqual(set(row.keys()), set(contract['variant_rows'][0].keys()))
+        self.assertEqual(set(row['subtotal'].keys()),
+                         set(contract['variant_rows'][0]['subtotal'].keys()))
         self.assertEqual(set(row['attributes'][0].keys()),
                          set(contract['variant_rows'][0]['attributes'][0].keys()))
         self.assertEqual(set(row['price'].keys()),

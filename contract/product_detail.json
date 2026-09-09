@@ -52,14 +52,20 @@
       "default_code": "IX954-M",
       "availability": { "message": null, "in_stock": true },
       "price": { "amount": 1120.0, "currency": "RON", "formatted": "1.120,00 lei", "with_vat": true,
-                 "list_amount": 1399.99, "list_formatted": "1.399,99 lei", "discount_pct": 20 } },
+                 "list_amount": 1399.99, "list_formatted": "1.399,99 lei", "discount_pct": 20 },
+      "subtotal": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
+                    "list_amount": null, "list_formatted": null, "discount_pct": null } },
     { "variant_id": 502,
       "attributes": [ { "name": "Marime", "value": "Mic" } ],
       "default_code": "IX954-S",
       "availability": null,
       "price": { "amount": 990.0, "currency": "RON", "formatted": "990,00 lei", "with_vat": true,
-                 "list_amount": null, "list_formatted": null, "discount_pct": null } }
+                 "list_amount": null, "list_formatted": null, "discount_pct": null },
+      "subtotal": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
+                    "list_amount": null, "list_formatted": null, "discount_pct": null } }
   ],
+  "variant_total": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
+                     "list_amount": null, "list_formatted": null, "discount_pct": null },
   "specs": [ { "name": "Brand", "value": "DB Orthodontics" } ],
   "description": [
     { "type": "heading", "spans": [ { "text": "Cleste Tie Back pentru arcuri groase", "bold": true, "italic": false } ] },
