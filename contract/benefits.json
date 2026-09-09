@@ -1,0 +1,6 @@
+[
+  { "icon": "club", "title": "Alatura-te Ortho Club", "text": "pentru extra beneficii" },
+  { "icon": "delivery", "title": "Livrare gratuita", "text": "pentru comenzi de peste 400 lei" },
+  { "icon": "return", "title": "Retur gratuit", "text": "30 de zile" },
+  { "icon": "payment", "title": "Plata online sigura", "text": "prin Stripe" }
+]
