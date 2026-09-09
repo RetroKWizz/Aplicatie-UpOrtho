@@ -11,6 +11,27 @@ _logger = logging.getLogger(__name__)
 WEBSITE_PARAM = 'uportho_app.website_id'
 
 
+def _bind_website_context(website):
+    """Leaga website-ul rezolvat de contextul cererii (`website_id`) si il intoarce.
+
+    Rutele acestui modul sunt `type='http'` simple, nu rute de website: dispecerul
+    din `website/models/ir_http.py` (care pentru paginile de site face exact
+    `request.update_context(website_id=website.id)`) nu trece pe langa ele, deci
+    cererea nu spune nimanui despre ce website e vorba. Orice cod Odoo chemat mai
+    jos care intreaba `self.env['website'].get_current_website()` - inclusiv
+    `product.template._get_combination_info` din `website_sale` si override-urile
+    de tema din el - ar rezolva atunci din header-ul HTTP `Host` si ar putea nimeri
+    alt website decat magazinul (sau, pe staging, unul in care randarea unui
+    template de website cade cu 500).
+
+    `website_id` in context e chiar cheia pe care `get_current_website()` o citeste
+    prima, dupa `force_website_id` din sesiune - de aceea legarea se face asa si nu
+    prin altceva."""
+    if website and request.env.context.get('website_id') != website.id:
+        request.update_context(website_id=website.id)
+    return website
+
+
 def _current_website():
     """Website-ul al carui continut il serveste API-ul aplicatiei.
 
@@ -22,7 +43,11 @@ def _current_website():
     care intra aplicatia sa nu fie domeniul lui: atunci `_search_active_now` si
     `_search_app_home` nu ar returna nimic, iar userul ar vedea "Nu exista continut
     inca." - un bug care arata ca o problema de continut. De aceea fallback-ul
-    logheaza un warning, ca esecul sa fie vizibil in loguri."""
+    logheaza un warning, ca esecul sa fie vizibil in loguri.
+
+    Website-ul rezolvat se leaga si de contextul cererii - vezi
+    `_bind_website_context`; e singurul loc din modul in care se rezolva un website,
+    deci legarea aici acopera toate rutele deodata."""
     Website = request.env['website'].sudo()
     raw = request.env['ir.config_parameter'].sudo().get_param(WEBSITE_PARAM)
     if raw:
@@ -31,7 +56,7 @@ def _current_website():
         except (TypeError, ValueError):
             website = Website.browse()
         if website:
-            return website
+            return _bind_website_context(website)
         _logger.warning(
             'Parametrul de sistem %s = %r nu indica un website existent; '
             'cad pe get_current_website().', WEBSITE_PARAM, raw)
@@ -40,7 +65,7 @@ def _current_website():
             'Parametrul de sistem %s nu e setat; cad pe get_current_website(), '
             'care rezolva din header-ul Host si poate alege alt website decat magazinul. '
             'Seteaza-l la id-ul website-ului magazinului.', WEBSITE_PARAM)
-    return request.env['website'].get_current_website()
+    return _bind_website_context(request.env['website'].get_current_website())
 
 
 def image_unique(record):

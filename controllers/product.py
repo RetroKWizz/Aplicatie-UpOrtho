@@ -1,3 +1,5 @@
+import logging
+
 from odoo import http
 from odoo.http import request
 
@@ -15,6 +17,8 @@ from .catalog import (
     serialize_product,
 )
 from .home import _current_website, _image_response, image_unique
+
+_logger = logging.getLogger(__name__)
 
 MAX_SIMILAR = 10
 MAX_REVIEWS = 20
@@ -87,6 +91,24 @@ def _parse_values(template, raw):
     return Ptav.browse(values.ids)
 
 
+def _fallback_combination(template, variant, combination):
+    """Combinatia si varianta calculate fara `_get_combination_info`, cand acela cade.
+
+    Foloseste doar API-ul de baza al Odoo (`product`), nu si pe cel din `website_sale`
+    prin care intra tema: `_get_closest_possible_combination` (deja calculat de
+    apelant, cand aplicatia a trimis `values`), `_get_first_possible_combination` si
+    `_get_variant_for_combination` - exact aceleasi metode pe care le foloseste si
+    `_uportho_variants`. Restul raspunsului (pret, praguri, galerie, similare) se
+    calculeaza oricum din varianta, pe caile proprii modulului, deci pagina ramane
+    intreaga."""
+    if combination is None:
+        combination = (variant.product_template_attribute_value_ids if variant
+                       else template._get_first_possible_combination())
+    if not variant:
+        variant = template._get_variant_for_combination(combination) or template.product_variant_id
+    return combination, variant
+
+
 def _resolve_combination(template, variant, values=None):
     """Combinatia curenta si varianta ei, cerute de la Odoo prin `_get_combination_info`
     - acelasi API pe care il foloseste pagina de produs de pe site. Fara `variant_id`
@@ -101,13 +123,32 @@ def _resolve_combination(template, variant, values=None):
 
     Din raspunsul lui folosim doar combinatia si varianta: preturile lui vin de pe
     `website.pricelist_id` (lista rezolvata din sesiune/geoip), nu de pe lista
-    clientului si a Ortho Club, care sunt cele doua de care are nevoie aplicatia."""
-    if values is not None:
-        combination_info = template._get_combination_info(
-            combination=template._get_closest_possible_combination(values))
-    else:
-        combination_info = template._get_combination_info(
-            product_id=variant.id if variant else False)
+    clientului si a Ortho Club, care sunt cele doua de care are nevoie aplicatia.
+
+    `_get_combination_info` e insa punctul in care intra cod strain: pe instanta
+    reala, tema magazinului il suprascrie si randeaza in interiorul lui un template
+    QWeb de website. Randarea aceea a cazut pe staging (`TypeError: 'NoneType'
+    object is not callable`) si a facut din fiecare pagina de produs un 500. O tema
+    nu are voie sa doboare API-ul, deci esecul lui se prinde si se cade pe combinatia
+    calculata local - vezi `_fallback_combination`."""
+    combination = template._get_closest_possible_combination(values) if values is not None else None
+    try:
+        if combination is not None:
+            combination_info = template._get_combination_info(combination=combination)
+        else:
+            combination_info = template._get_combination_info(
+                product_id=variant.id if variant else False)
+    except Exception:
+        # Deliberat larg: nu stim ce arunca un override de tema (pe staging a fost un
+        # TypeError dintr-un template QWeb). Nu se inghite nimic tacut - `exception`
+        # scrie si traceback-ul complet in loguri, cu id-ul produsului, ca sa se vada
+        # ce tema si ce template au picat.
+        _logger.exception(
+            'product_detail: _get_combination_info a esuat pentru produsul %s '
+            '(probabil un override dintr-un modul de tema). Raspund cu datele pe care '
+            'le calculeaza modulul singur (varianta, pret, nume, cod); pot lipsi doar '
+            'adaugirile temei.', template.id)
+        return _fallback_combination(template, variant, combination)
     resolved_id = combination_info.get('product_id')
     if resolved_id:
         variant = request.env['product.product'].browse(resolved_id)
