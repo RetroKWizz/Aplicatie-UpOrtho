@@ -235,6 +235,34 @@ class TestProductPriceTiers(TransactionCase):
         self.assertEqual(len(tiers), 1)
         self.assertEqual(tiers[0]['label'], '1+')
 
+    def test_zero_threshold_does_not_add_a_second_one_plus_row(self):
+        # Regresie vazuta pe staging: tabelul arata doua randuri "1+", primul cu
+        # pretul intreg (22.430,00) langa cel al clientului (15.701,00).
+        #
+        # Cauza: pragurile candidate includeau 0 (o regula cu min_quantity 0), iar
+        # pretul cerut chiar la cantitatea 0 NU trece prin regula cu min_quantity 1
+        # (0 < 1), deci intoarce pretul nereduse. Ambele praguri se eticheteaza "1+".
+        # Fixtura are nevoie de doua reguli ca sa reproduca: una la 0 si una la 1.
+        product = self.Template.create({
+            'name': 'Produs prag zero si unu test praguri', 'list_price': 100.0})
+        for min_qty, pret in ((0, 100.0), (1, 70.0), (2, 50.0)):
+            self.Item.create({
+                'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': product.id, 'min_quantity': min_qty,
+                'compute_price': 'fixed', 'fixed_price': pret})
+
+        tiers = product._uportho_price_tiers(self.pricelist, self.partner)
+
+        self.assertEqual([t['label'] for t in tiers], ['1+', '2+'])
+        self.assertEqual([t['min_qty'] for t in tiers], [1, 2])
+        # Randul "1+" arata pretul de la cantitatea 1, nu pe cel de la 0.
+        la_unu, _ = product._uportho_price_amounts_for(self.pricelist, self.partner, quantity=1.0)
+        la_zero, _ = product._uportho_price_amounts_for(self.pricelist, self.partner, quantity=0.0)
+        self.assertAlmostEqual(tiers[0]['price']['amount'], la_unu, places=2)
+        self.assertNotAlmostEqual(
+            la_zero, la_unu, places=2,
+            msg='fixtura degenerata: pretul la 0 si la 1 coincid, testul nu ar prinde regresia')
+
     def test_label_for_higher_threshold_is_n_plus(self):
         product = self.Template.create({'name': 'Produs eticheta prag test praguri', 'list_price': 100.0})
         self.Item.create({

@@ -263,7 +263,13 @@ class ProductTemplate(models.Model):
         # aici si din controllere - nu se duplica.
         date = fields.Datetime.now()
         rules = pricelist._get_applicable_rules(variant or self, date)
-        thresholds = sorted({1.0} | set(rules.mapped('min_quantity')))
+        # `min_quantity = 0` e valoarea implicita Odoo pentru "fara minim", nu un prag
+        # real de cantitate. Pretuit chiar la cantitatea 0, Odoo nu aplica regula si
+        # intoarce pretul nereduse: pe staging asta a produs doua randuri "1+" in
+        # tabel, primul cu pretul public (22.430,00) langa cel al clientului
+        # (15.701,00). Pragul 0 se normalizeaza la 1 inainte de pretuire, nu doar la
+        # etichetare.
+        thresholds = sorted({max(q, 1.0) for q in rules.mapped('min_quantity')} | {1.0})
 
         tiers = []
         for qty in thresholds:
