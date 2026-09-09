@@ -108,9 +108,9 @@ class _ProductBody extends ConsumerWidget {
         ImageGallery(items: galleryItems, httpHeaders: galleryHeaders),
       _Heading(detail: detail),
       _PriceBlock(price: detail.price),
-      if (detail.tiers.isNotEmpty)
+      if (_worthShowing(detail.tiers, detail.price))
         PriceTierTable(title: 'Pret pe cantitate', entries: _tiers(detail.tiers)),
-      if (detail.clubTiers.isNotEmpty)
+      if (_worthShowing(detail.clubTiers, detail.price))
         PriceTierTable(title: 'Pret Ortho Club', entries: _tiers(detail.clubTiers)),
       if (variantGroups.isNotEmpty)
         _VariantSection(productId: productId, groups: variantGroups, state: state),
@@ -137,6 +137,13 @@ class _ProductBody extends ConsumerWidget {
       itemBuilder: (_, index) => sections[index],
     );
   }
+
+  /// Un tabel de praguri merita desenat doar daca spune ceva nou. Serverul intoarce
+  /// mereu cel putin randul "1+", asa ca un produs fara reduceri de cantitate primea
+  /// un tabel de un rand care repeta pretul de deasupra lui. Comparatia se face pe
+  /// sirul formatat de server — aplicatia nu compara si nu calculeaza sume.
+  bool _worthShowing(List<PriceTier> tiers, Price main) =>
+      tiers.length > 1 || (tiers.length == 1 && tiers.single.price.formatted != main.formatted);
 
   /// Praguri -> intrari de tabel. Sumele raman sirurile formatate de server;
   /// aplicatia nu compune si nu calculeaza niciodata un pret.

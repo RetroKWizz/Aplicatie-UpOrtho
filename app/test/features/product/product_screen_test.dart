@@ -61,12 +61,21 @@ Map<String, dynamic> bareProductJson() => {
     };
 
 /// Produsul "bogat": fixture-ul de contract, cu recenzii numarate (in fixture
-/// `rating.count` e 0, iar randul de stele nu se deseneaza fara recenzii).
-Map<String, dynamic> fullProductJson() => {
-      ...jsonDecode(File('test/contract/product_detail.json').readAsStringSync())
-          as Map<String, dynamic>,
-      'rating': {'average': 4.5, 'count': 22},
-    };
+/// `rating.count` e 0, iar randul de stele nu se deseneaza fara recenzii) si cu un
+/// al doilea prag de club (in contract clubul are un singur prag, egal cu pretul de
+/// club de deasupra lui, iar ecranul ascunde acum un asemenea tabel redundant).
+Map<String, dynamic> fullProductJson() {
+  final contract = jsonDecode(File('test/contract/product_detail.json').readAsStringSync())
+      as Map<String, dynamic>;
+  return {
+    ...contract,
+    'rating': {'average': 4.5, 'count': 22},
+    'club_tiers': [
+      ...(contract['club_tiers'] as List),
+      {'min_qty': 5, 'label': '5+', 'price': priceJson(amount: 990.0, formatted: '990,00 lei')},
+    ],
+  };
+}
 
 void main() {
   Future<ProviderContainer> pumpProduct(
@@ -126,6 +135,108 @@ void main() {
       expect(find.text(title), findsNothing, reason: 'sectiunea "$title" nu are date');
     }
     expect(find.textContaining('Cod:'), findsNothing);
+  });
+
+  testWidgets('un singur prag egal cu pretul de deasupra nu deseneaza tabelul', (tester) async {
+    // Serverul intoarce mereu cel putin randul "1+"; pentru produsele fara reduceri
+    // de cantitate acel rand repeta pretul deja afisat. Un tabel cu un singur rand
+    // care spune acelasi lucru nu are ce cauta pe ecran.
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...bareProductJson(),
+        'tiers': [
+          {'min_qty': 1, 'label': '1+', 'price': priceJson()},
+        ],
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport);
+
+    expect(find.byType(PriceTierTable), findsNothing);
+    expect(find.text('Pret pe cantitate'), findsNothing);
+    expect(find.text('25,00 lei'), findsOneWidget, reason: 'pretul de sus ramane');
+  });
+
+  testWidgets('un singur prag cu alt pret decat cel de deasupra ramane vizibil', (tester) async {
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...bareProductJson(),
+        'tiers': [
+          {'min_qty': 3, 'label': '3+', 'price': priceJson(amount: 20.0, formatted: '20,00 lei')},
+        ],
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport);
+
+    expect(find.text('Pret pe cantitate'), findsOneWidget);
+    expect(find.text('20,00 lei'), findsOneWidget);
+  });
+
+  testWidgets('doua praguri se deseneaza mereu, chiar daca primul e pretul de sus',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...bareProductJson(),
+        'tiers': [
+          {'min_qty': 1, 'label': '1+', 'price': priceJson()},
+          {'min_qty': 5, 'label': '5+', 'price': priceJson(amount: 20.0, formatted: '20,00 lei')},
+        ],
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport);
+
+    expect(find.text('Pret pe cantitate'), findsOneWidget);
+    expect(find.text('5+'), findsOneWidget);
+  });
+
+  testWidgets('aceeasi regula se aplica si tabelului de club', (tester) async {
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...bareProductJson(),
+        'club_price': priceJson(),
+        'club_tiers': [
+          {'min_qty': 1, 'label': '1+', 'price': priceJson()},
+        ],
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport);
+
+    expect(find.text('Pret Ortho Club'), findsNothing);
+  });
+
+  testWidgets('tabelul de club cu un pret diferit de cel afisat sus ramane', (tester) async {
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...bareProductJson(),
+        'club_price': priceJson(amount: 20.0, formatted: '20,00 lei'),
+        'club_tiers': [
+          {'min_qty': 1, 'label': '1+', 'price': priceJson(amount: 20.0, formatted: '20,00 lei')},
+        ],
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport);
+
+    expect(find.text('Pret Ortho Club'), findsOneWidget);
+    expect(find.text('20,00 lei'), findsOneWidget);
   });
 
   testWidgets('produsul complet deseneaza sectiunile in ordinea de pe site', (tester) async {
@@ -219,7 +330,7 @@ void main() {
         ApiResponse(status: 200, json: fullProductJson()));
     transport.when(
       'GET',
-      '/api/app/v1/products/101?variant_id=1358',
+      '/api/app/v1/products/101?values=1358',
       ApiResponse(
         status: 200,
         json: {
@@ -239,7 +350,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
     }
 
-    expect(transport.calls.last.path, '/api/app/v1/products/101?variant_id=1358');
+    // Ecranul trimite combinatia primita de la server pentru valoarea apasata.
+    expect(transport.calls.last.path, '/api/app/v1/products/101?values=1358');
     expect(find.text('990,00 lei'), findsWidgets);
     expect(find.text('Cod: IX955'), findsOneWidget);
     // Ecranul nu s-a demontat cat timp se schimba varianta.
