@@ -142,17 +142,35 @@ de pe site.
    sau unui container reconstruit. (Doctrina anterioara — "lasa bannerul strain in baza,
    e dovada ca testele sunt robuste" — era gresita: dovada era locala unei masini si
    facea baza nereproductibila.)
-7. **Pe instanta reala, `product.template._get_combination_info` arunca la fiecare apel
-   din afara unei pagini web.** Tema magazinului (`droggol_theme_common`) randeaza in
-   interiorul ei sablonul `theme_prime.product_extra_fields`, iar randarea aia pica cu
+7. **Pe instanta reala, `product.template._get_combination_info` arunca la fiecare apel,
+   pentru orice produs.** Tema magazinului (`droggol_theme_common`) randeaza in
+   interiorul ei sablonul `theme_prime.product_extra_fields`, iar acolo sta
+   `t-value="product_variant.all_product_tag_ids.filtered(lambda x: x.visible_on_ecommerce)"`
+   — QWeb nu poate evalua `lambda`, deci randarea pica cu
    `TypeError: 'NoneType' object is not callable`. **Nu e o problema de context**:
-   verificat pe staging cu website-ul real dat explicit in `values` si cu `website_id`
-   in context — pica identic; expresiile din sablon luate separat merg. Ruta de produs
-   prinde exceptia, logheaza o data si merge mai departe cu date proprii. Consecinta de
-   arhitectura: regulile lor de pret (selectia listelor publica/comparatie, pragurile
-   `max(1, min_quantity)`, cumularea cantitatilor pe tot tabelul de variante) sunt
-   **reproduse** in modul, nu apelate. Cand Terrabit repara sablonul, se comuta pe apel
-   direct si se sterge copia.
+   verificat pe staging cu website-ul real dat explicit in `values`, cu `website_id`
+   in context si pe produse cu si fara etichete de ecommerce — pica identic.
+
+   **Ce face ruta de produs azi:** prinde exceptia si cheama direct implementarea
+   standard din Odoo, `website_sale.models.product_template.ProductTemplate.
+   _get_combination_info(template, ...)`, adica acelasi cod, doar fara veriga de tema.
+   Verificat pe staging (produsul 14219): apelul normal arunca, apelul direct intoarce
+   `price: 264.0`, `list_price: 330.0`, `product_id: 41868`. **Deci aplicatia primeste
+   datele Odoo, nu o reconstructie locala.** Reconstructia din API-ul de baza
+   (`_fallback_combination`) a ramas doar ca ultima plasa, daca ar cadea si standardul.
+
+   Dupa prima cadere, produsul intra in `_COMBINATION_INFO_BROKEN` (set la nivel de
+   proces, in `controllers/product.py`) si apelul care oricum arunca nu se mai face.
+   Memoria moare odata cu procesul: un deploy sau o repornire de worker reincearca
+   apelul normal, deci **cand Terrabit repara sablonul, adaugirile temei se intorc
+   singure in raspuns, fara schimbare de cod si fara release de aplicatie.** Logarea a
+   ramas cum era: traceback intreg prima data pentru fiecare produs, apoi o linie
+   scurta.
+
+   Ce ramane **reprodus** in modul, nu apelat: tabelele de pret si regulile din jurul
+   lor (selectia listelor publica/comparatie, pragurile `max(1, min_quantity)`,
+   cumularea cantitatilor pe tot tabelul de variante) — acelea vin din modulele
+   clientului, nu din `website_sale`, deci apelul standard nu le contine.
 8. **Pragurile de cantitate se aplica pe cantitatea CUMULATA a tabelului de variante**,
    nu pe fiecare rand. Sursa: `website_variant_cart` (`total_qty += item['add_qty']`,
    apoi `_get_combination_info_variant(add_qty=total_qty)`). 4 bucati pe o varianta plus

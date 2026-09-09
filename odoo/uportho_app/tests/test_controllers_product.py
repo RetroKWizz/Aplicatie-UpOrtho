@@ -2,6 +2,9 @@ import base64
 from unittest.mock import patch
 
 from odoo.addons.uportho_app.controllers import product as product_controller
+from odoo.addons.website_sale.models.product_template import (
+    ProductTemplate as WebsiteSaleProductTemplate,
+)
 from odoo.tests.common import tagged
 
 from .common import AppHttpCase
@@ -112,12 +115,14 @@ class TestControllersProductDetail(AppHttpCase):
         # ir.config_parameter e citit prin ormcache; rollback-ul tranzactiei de test
         # nu curata cache-ul (acelasi fix ca in TestControllersProductPricing).
         self.addCleanup(self.registry.clear_cache)
-        # Memoria "am scris deja traceback-ul pentru produsul asta" traieste la nivel
-        # de proces, nu de tranzactie: fara golire, al doilea test care face
-        # `_get_combination_info` sa cada ar vedea doar avertizarea scurta si ar depinde
-        # de ordinea testelor.
-        product_controller._COMBINATION_INFO_LOGGED.clear()
-        self.addCleanup(product_controller._COMBINATION_INFO_LOGGED.clear)
+        # Memoria "override-ul a cazut deja o data pentru produsul asta" traieste la
+        # nivel de proces, nu de tranzactie: fara golire, al doilea test care face
+        # `_get_combination_info` sa cada ar vedea doar avertizarea scurta, ar sari
+        # direct pe implementarea din `website_sale` si ar depinde de ordinea testelor.
+        product_controller._COMBINATION_INFO_BROKEN.clear()
+        self.addCleanup(product_controller._COMBINATION_INFO_BROKEN.clear)
+        product_controller._CORE_COMBINATION_INFO_LOGGED.clear()
+        self.addCleanup(product_controller._CORE_COMBINATION_INFO_LOGGED.clear)
 
     def _detail(self, product=None, **params):
         product = product or self.product
@@ -953,6 +958,138 @@ class TestControllersProductDetail(AppHttpCase):
 
         with_traceback = [record for record in captured.records if record.exc_info]
         self.assertEqual(len(with_traceback), 2)
+
+    def _spy_on_the_resolved_combination_info(self, seen, **core_kwargs):
+        """Prinde `combination_info`-ul cu care ruta a plecat mai departe si, in
+        ACELASI request (acelasi mediu, aceeasi lista de pret a website-ului, acelasi
+        utilizator), cere si ce intoarce implementarea din `website_sale` chemata
+        direct. Altfel comparatia ar fi intre un request de portal si mediul de test,
+        care nu au aceeasi lista de pret - cifrele n-ar fi comparabile.
+
+        Punctul de prindere e `_uportho_price_tables_from_theme`, singurul loc prin
+        care `combination_info` iese din controller."""
+        Template = type(self.env['product.template'])
+        original = Template._uportho_price_tables_from_theme
+
+        def spy(inner_self, combination_info, fallback_currency):
+            seen['used'] = combination_info
+            seen['core'] = WebsiteSaleProductTemplate._get_combination_info(
+                inner_self, **core_kwargs)
+            return original(inner_self, combination_info, fallback_currency)
+
+        return patch.object(Template, '_uportho_price_tables_from_theme', spy)
+
+    def test_failing_override_answers_with_odoos_own_combination_info(self):
+        # Cand override-ul temei cade, raspunsul nu mai e reconstruit de noi: se cheama
+        # direct `website_sale.ProductTemplate._get_combination_info`, adica exact codul
+        # standard al Odoo, doar fara stratul de tema care arunca. Verificat pe staging:
+        # apelul direct intoarce pret si varianta acolo unde apelul normal arunca.
+        self.api_login()
+        seen = {}
+        with self._combination_info_raising(), \
+                self._spy_on_the_resolved_combination_info(seen, product_id=False), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
+            response = self._detail()
+
+        self.assertEqual(response.status_code, 200)
+        core, used = seen['core'], seen['used']
+        # Nu cifre scrise de mana: se compara cu ce intoarce chiar implementarea Odoo,
+        # ceruta in acelasi request.
+        self.assertEqual(used['product_id'], core['product_id'])
+        self.assertAlmostEqual(used['price'], core['price'], places=2)
+        self.assertAlmostEqual(used['list_price'], core['list_price'], places=2)
+        self.assertTrue(core['product_id'])
+        self.assertEqual(response.json()['variant_id'], core['product_id'])
+
+    def test_failing_override_answers_with_odoos_own_data_for_a_requested_variant(self):
+        # Aceeasi verificare cu `variant_id` in cerere: atunci ruta cere combinatia
+        # variantei, deci si apelul de rezerva trebuie sa o ceara pe a ei.
+        self.api_login()
+        expensive = self._variant('Mare detaliu', 'Argintiu detaliu')
+        seen = {}
+        with self._combination_info_raising(), \
+                self._spy_on_the_resolved_combination_info(seen, product_id=expensive.id), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
+            response = self._detail(variant_id=expensive.id)
+
+        self.assertEqual(response.status_code, 200)
+        core, used = seen['core'], seen['used']
+        self.assertEqual(used['product_id'], expensive.id)
+        self.assertEqual(used['product_id'], core['product_id'])
+        self.assertAlmostEqual(used['price'], core['price'], places=2)
+        self.assertAlmostEqual(used['list_price'], core['list_price'], places=2)
+        self.assertEqual(response.json()['variant_id'], expensive.id)
+
+    def test_broken_override_is_not_called_a_second_time(self):
+        # Pe serverul clientului override-ul cade la fiecare cerere. Dupa prima cadere
+        # nu se mai plateste apelul care oricum arunca: se merge direct pe implementarea
+        # standard. Memoria e per proces, deci un deploy sau o repornire de worker
+        # reincearca - daca tema e reparata, adaugirile ei se intorc singure.
+        self.api_login()
+        calls = []
+        Template = type(self.env['product.template'])
+
+        def raising(inner_self, *args, **kwargs):
+            calls.append(inner_self.id)
+            raise TypeError("'NoneType' object is not callable")
+
+        with patch.object(Template, '_get_combination_info', raising), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product',
+                                level='WARNING'):
+            self.assertEqual(self._detail().status_code, 200)
+            self.assertEqual(self._detail().status_code, 200)
+            self.assertEqual(self._detail().status_code, 200)
+
+        self.assertEqual(calls, [self.product.id])
+
+    def test_a_working_override_is_still_the_one_used(self):
+        # Ziua in care tema isi repara sablonul: apelul normal nu e ocolit, deci ce
+        # adauga magazinul in `combination_info` ajunge inapoi in raspuns fara sa mai
+        # schimbam nimic aici. Si nu se scrie nimic in loguri.
+        self.api_login()
+        Template = type(self.env['product.template'])
+        original = Template._get_combination_info
+
+        def with_extra(inner_self, *args, **kwargs):
+            return dict(original(inner_self, *args, **kwargs), tp_extra_fields='<b>tema</b>')
+
+        seen = {}
+        with patch.object(Template, '_get_combination_info', with_extra), \
+                self._spy_on_the_resolved_combination_info(seen, product_id=False), \
+                self.assertNoLogs('odoo.addons.uportho_app.controllers.product',
+                                  level='WARNING'):
+            response = self._detail()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(seen['used'].get('tp_extra_fields'), '<b>tema</b>')
+
+    def _core_combination_info_raising(self):
+        """Si implementarea standard din `website_sale` cade. Nu s-a intamplat pe
+        serverul clientului (acolo cade doar override-ul de tema), dar plasa de
+        siguranta de sub ea trebuie sa ramana exersata: o cerere de produs nu are voie
+        sa devina 500 orice s-ar strica deasupra."""
+        def raising(_self, *args, **kwargs):
+            raise TypeError('si standardul e stricat')
+        return patch.object(WebsiteSaleProductTemplate, '_get_combination_info', raising)
+
+    def test_everything_failing_still_renders_the_product(self):
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        normal = self._detail().json()
+        with self._combination_info_raising(), self._core_combination_info_raising(), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product',
+                                level='ERROR') as captured:
+            response = self._detail()
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        for key in ('id', 'name', 'variant_id', 'default_code', 'price', 'variants'):
+            self.assertEqual(body[key], normal[key], key)
+        logged = '\n'.join(captured.output)
+        self.assertIn(str(self.product.id), logged)
+        # Fraza e a mesajului scris DOAR cand cade si implementarea standard: altfel
+        # testul ar trece si daca ruta n-ar fi incercat-o niciodata.
+        self.assertIn('si implementarea standard website_sale', logged)
 
     def test_html_message_is_cleaned_to_plain_text(self):
         # Calea "exista mesaj" nu poate fi exersata local (vezi testul de mai sus),
