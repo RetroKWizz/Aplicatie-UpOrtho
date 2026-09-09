@@ -271,6 +271,8 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertIsNone(body['badge'])
         self.assertIsNone(body['club_price'])
         self.assertIsNone(body['availability'])
+        # Fara campurile magazinului nu exista chenar de brand.
+        self.assertIsNone(body['brand'])
         # Fara randuri de varianta nu exista nici total de pornire.
         self.assertIsNone(body['variant_total'])
         # Fara reduceri de cantitate, singurul rand ar fi "1+" cu pretul deja afisat
@@ -1246,6 +1248,135 @@ class TestControllersProductDocuments(AppHttpCase):
     def test_product_without_documents_has_an_empty_list(self):
         self.api_login()
         self.assertEqual(self._documents(self.other_product), [])
+
+
+@tagged('post_install', '-at_install')
+class TestControllersProductBrand(AppHttpCase):
+    """Chenarul de brand din `GET /products/<id>`: logo, nume, descriere - plus ruta
+    autentificata de logo.
+
+    Campurile din care se citeste sunt ale modulelor magazinului si nu exista pe baza
+    locala, deci prezenta lor se simuleaza (`_uportho_brand_value` + campurile de text
+    puse pe clase), pe o valoare de atribut adevarata. Lipsa lor se verifica pe baza
+    reala, ca ramura de rezerva sa nu fie una nemasurata."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.pricelist = cls.env['product.pricelist'].create({
+            'name': 'Lista client test brand', 'currency_id': cls.env.company.currency_id.id})
+        cls.portal_user.partner_id.property_product_pricelist = cls.pricelist.id
+
+        cls.attribute = cls.env['product.attribute'].create(
+            {'name': 'Brand ruta test', 'create_variant': 'no_variant'})
+        cls.value = cls.env['product.attribute.value'].create(
+            {'name': 'DB Orthodontics', 'attribute_id': cls.attribute.id})
+        cls.product = cls.env['product.template'].create({
+            'name': 'Produs Brand Test', 'is_published': True, 'list_price': 10.0,
+            'attribute_line_ids': [(0, 0, {
+                'attribute_id': cls.attribute.id, 'value_ids': [(6, 0, [cls.value.id])]})],
+        })
+        cls.unpublished = cls.env['product.template'].create({
+            'name': 'Produs Brand Nepublicat Test', 'is_published': False, 'list_price': 10.0})
+
+    def _with_brand(self, value=None, description=None):
+        """Prezenta campurilor magazinului, simulata pentru toata durata cererii HTTP:
+        serverul de test ruleaza in acelasi proces, deci petice pe clasele din registru
+        se vad si in controller."""
+        brand_value = self.value if value is None else value
+        entered = patch.object(
+            type(self.product), '_uportho_brand_value', lambda inner_self: brand_value)
+        entered.start()
+        self.addCleanup(entered.stop)
+        if description is not None:
+            text = patch.object(
+                type(self.value), 'dr_brand_description', description, create=True)
+            text.start()
+            self.addCleanup(text.stop)
+
+    def _logo_attachment(self):
+        """Logoul, pus direct ca `ir.attachment` pe campul temei: exact ce ar exista pe
+        instanta lor, si singurul lucru pe care il cauta detectia de imagine a
+        modulului (`_ids_with_image`, o interogare pe `ir.attachment`, nu o citire de
+        camp binar)."""
+        return self.env['ir.attachment'].sudo().create({
+            'name': 'logo brand test.png',
+            'res_model': 'product.attribute.value',
+            'res_field': 'dr_image',
+            'res_id': self.value.id,
+            'datas': base64.b64encode(PNG_1PX),
+        })
+
+    def _detail(self, product=None):
+        return self.api_get(f'/products/{(product or self.product).id}').json()
+
+    # --- ramura reala a bazei locale ------------------------------------------
+
+    def test_brand_is_null_without_the_shop_fields(self):
+        self.api_login()
+        self.assertNotIn('dr_brand_value_id', self.env['product.template']._fields)
+        self.assertIsNone(self._detail()['brand'])
+
+    def test_brand_logo_route_is_404_without_a_brand(self):
+        self.api_login()
+        response = self.api_get(f'/products/{self.product.id}/brand/logo')
+        self.assertEqual(response.status_code, 404)
+
+    # --- ramura in care campurile exista --------------------------------------
+
+    def test_brand_shape_matches_contract(self):
+        self._with_brand(description='<p>Producator britanic.</p>')
+        self.api_login()
+        contract = load_contract('product_detail.json')
+        brand = self._detail()['brand']
+        self.assertEqual(set(brand.keys()), set(contract['brand'].keys()))
+        self.assertEqual(set(brand['description'][0].keys()),
+                         set(contract['brand']['description'][0].keys()))
+
+    def test_brand_carries_name_and_description_as_blocks(self):
+        self._with_brand(description='<p>Producator <strong>britanic</strong>.</p>')
+        self.api_login()
+        brand = self._detail()['brand']
+        self.assertEqual(brand['name'], 'DB Orthodontics')
+        self.assertEqual([block['type'] for block in brand['description']], ['paragraph'])
+        self.assertNotIn('<strong>', str(brand['description']))
+
+    def test_brand_without_a_logo_has_a_null_url(self):
+        self._with_brand()
+        self.api_login()
+        self.assertIsNone(self._detail()['brand']['logo_url'])
+
+    def test_brand_logo_url_is_an_authenticated_app_route(self):
+        # Logoul CHIAR se deseneaza in aplicatie (spre deosebire de documente, care se
+        # deschid in exterior), deci merge pe aceeasi cale ca pozele de produs.
+        self._logo_attachment()
+        self._with_brand()
+        self.api_login()
+        logo_url = self._detail()['brand']['logo_url']
+        self.assertTrue(logo_url.startswith(
+            f'/api/app/v1/products/{self.product.id}/brand/logo?unique='))
+
+    def test_brand_logo_requires_login(self):
+        self._logo_attachment()
+        self._with_brand()
+        self.assertEqual(
+            self.api_get(f'/products/{self.product.id}/brand/logo').status_code, 401)
+
+    def test_brand_logo_of_unpublished_product_is_404(self):
+        self._logo_attachment()
+        self._with_brand()
+        self.api_login()
+        self.assertEqual(
+            self.api_get(f'/products/{self.unpublished.id}/brand/logo').status_code, 404)
+
+    # --- brandul ramane si in specificatii ------------------------------------
+
+    def test_brand_appears_both_in_its_own_block_and_in_the_specifications(self):
+        self._with_brand()
+        self.api_login()
+        body = self._detail()
+        self.assertEqual(body['brand']['name'], 'DB Orthodontics')
+        self.assertIn({'name': 'Brand ruta test', 'value': 'DB Orthodontics'}, body['specs'])
 
 
 @tagged('post_install', '-at_install')
