@@ -8,6 +8,7 @@ import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/typography.dart';
 import '../../design_system/widgets/description_view.dart';
+import '../../design_system/widgets/document_list.dart';
 import '../../design_system/widgets/image_gallery.dart';
 import '../../design_system/widgets/price_tier_table.dart';
 import '../../design_system/widgets/product_card.dart';
@@ -101,6 +102,15 @@ class _ProductBody extends ConsumerWidget {
         ),
     ];
 
+    final documentItems = [
+      for (final document in detail.documents)
+        DocumentItem(
+          name: document.name,
+          fileName: document.fileName,
+          url: api.absoluteUrl(document.url),
+        ),
+    ];
+
     final descriptionBlocks = [for (final block in detail.description) _describe(block)];
     final availabilityMessage = detail.availability?.message;
 
@@ -138,6 +148,11 @@ class _ProductBody extends ConsumerWidget {
         _Section(title: 'Descriere', child: DescriptionView(blocks: descriptionBlocks)),
       if (detail.specs.isNotEmpty)
         _Section(title: 'Specificatii', child: _SpecTable(specs: detail.specs)),
+      // Documentele stau langa celelalte sectiuni cu file de pe site (Descriere /
+      // Specificatii / Documente / Recenzii). URL-ul e absolut: se deschide in
+      // afara aplicatiei, unde o cale relativa n-ar insemna nimic.
+      if (documentItems.isNotEmpty)
+        _Section(title: 'Documente', child: DocumentList(items: documentItems)),
       if (detail.reviews.isNotEmpty)
         _Section(title: 'Recenzii', child: _Reviews(reviews: detail.reviews)),
       if (detail.similar.isNotEmpty)

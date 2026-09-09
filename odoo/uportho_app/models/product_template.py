@@ -20,6 +20,24 @@ _BOLD_TAGS = {'b', 'strong'}
 _ITALIC_TAGS = {'i', 'em'}
 _COLLAPSE_WHITESPACE = re.compile(r'\s+')
 
+# Campurile de pe `product.template` din care se citesc documentele produsului, in
+# ordinea in care ajung in raspuns.
+#
+# - `product_document_ids` e standardul Odoo 18 (`product.document`) si exista mereu:
+#   `product` e dependinta declarata a modulului.
+# - `dr_document_ids` e al temei magazinului si NU exista pe o baza fara modulele lor
+#   (dezvoltare locala, teste); prezenta lui se verifica, nu se presupune.
+UPORTHO_DOCUMENT_FIELDS = ('product_document_ids', 'dr_document_ids')
+
+# URL-ul de descarcare al unui document: ruta standard a Odoo pentru un atasament.
+#
+# Deliberat NU o ruta a acestui modul, spre deosebire de imagini. Un document nu se
+# deseneaza in aplicatie, se deschide in exterior (browser/vizualizator de sistem), iar
+# acolo aplicatia nu poate atasa cookie-ul de sesiune. Deci il servim exact cum il
+# serveste Odoo si lasam regulile LUI de acces sa decida daca fisierul se descarca -
+# decizie explicita a userului, nu o scapare.
+UPORTHO_DOCUMENT_URL = '/web/content/%s?download=true'
+
 
 def _uportho_filter_romanian_sections(root):
     """Elimina din `root` orice element cu atributul `data-visibility-value-lang`
@@ -136,6 +154,32 @@ def _uportho_html_blocks(html_value):
     return blocks
 
 
+def _uportho_document_attachment(document):
+    """`ir.attachment`-ul din spatele unui document de produs, sau un recordset gol.
+
+    `product.document` (standardul Odoo 18) e un `_inherits` peste `ir.attachment` si
+    isi poarta atasamentul in `ir_attachment_id`; asa il citeste si pagina de produs de
+    pe site, si ruta de documente din `website_sale`. Modelul temei magazinului nu e
+    cunoscut aici, deci se accepta si un document care E el insusi un atasament. Orice
+    alta forma intoarce gol - documentul dispare din lista, nu devine o eroare.
+
+    Atasamentul e si numele fisierului, si tinta URL-ului de descarcare
+    (`/web/content/<id>`). Continutul lui nu se citeste niciodata aici: daca fisierul
+    exista si daca utilizatorul are voie sa-l ia decide Odoo, la deschidere.
+
+    `sudo`: documentele nu sunt citibile de un utilizator portal - nici sablonul
+    magazinului nu le citeste altfel (`product.sudo().product_document_ids`). Sudo-ul
+    e doar pentru a putea LISTA documentele; descarcarea trece prin `/web/content`,
+    adica prin drepturile obisnuite ale userului."""
+    record = document.sudo()
+    if record._name == 'ir.attachment':
+        return record
+    attachment = getattr(record, 'ir_attachment_id', None)
+    if getattr(attachment, '_name', None) == 'ir.attachment':
+        return attachment
+    return record.env['ir.attachment'].browse()
+
+
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
@@ -181,6 +225,68 @@ class ProductTemplate(models.Model):
             {'name': line.attribute_id.name, 'value': ', '.join(line.value_ids.mapped('name'))}
             for line in self.attribute_line_ids
         ]
+
+    def _uportho_document_records(self, field_name):
+        """Documentele produsului dintr-un camp de documente, in sudo, sau un recordset
+        gol cand campul nu exista pe baza asta.
+
+        Prezenta campului se VERIFICA, nu se presupune: `dr_document_ids` e al temei
+        magazinului si lipseste pe o baza fara modulele lor, iar citirea unui camp
+        inexistent ar fi o eroare (aceeasi regula ca la `_uportho_availability` si la
+        bifele de pricelist).
+
+        Recordset-ul gol de intoarcere e de `product.document` chiar si cand campul
+        lipsa era al temei - apelantul doar itereaza peste el.
+
+        Metoda exista separat si ca sa fie punctul unic in care se poate simula, in
+        teste, prezenta campului temei."""
+        self.ensure_one()
+        if field_name not in self._fields:
+            return self.env['product.document'].browse()
+        return self.sudo()[field_name]
+
+    def _uportho_documents(self):
+        """Documentele aratate in tabul "Documente" al paginii de produs, in ordinea de
+        acolo: intai cele standard, apoi cele ale temei (vezi `UPORTHO_DOCUMENT_FIELDS`).
+
+        Se trimite exact ce arata site-ul, nu mai mult: doar documentele publicate pe
+        pagina de produs (`shown_on_product_page`, campul adaugat de `website_sale`,
+        dupa care filtreaza si sablonul lui). Un document intern, nepublicat, nu are
+        voie sa apara in aplicatie doar pentru ca ea nu are ecran de administrare.
+
+        URL-ul e ruta standard a Odoo pentru atasamentul din spatele documentului
+        (`/web/content/<id>?download=true`), nu una a acestui modul: documentul se
+        deschide in exterior, unde aplicatia nu poate atasa cookie-ul de sesiune, deci
+        decizia daca fisierul se descarca ramane a Odoo si a regulilor lui de acces.
+        Nu se citeste nici continutul, nici marimea: existenta fisierului o stabileste
+        tot Odoo, la deschidere.
+
+        Un document care apare in ambele campuri (acelasi atasament) se trimite o
+        singura data. Unul fara atasament de care sa se agate URL-ul e sarit - n-ar
+        avea ce deschide.
+
+        `id` e id-ul atasamentului, adica exact cel din URL: doua surse de documente
+        pot avea acelasi id de inregistrare, dar fisierul din spate e unul singur."""
+        self.ensure_one()
+        documents = []
+        seen_attachments = set()
+        for field_name in UPORTHO_DOCUMENT_FIELDS:
+            for record in self._uportho_document_records(field_name):
+                if 'shown_on_product_page' in record._fields and not record.shown_on_product_page:
+                    continue
+                attachment = _uportho_document_attachment(record)
+                if not attachment or attachment.id in seen_attachments:
+                    continue
+                seen_attachments.add(attachment.id)
+                name = (getattr(record, 'name', None) or attachment.name or '').strip()
+                file_name = (attachment.name or name or '').strip()
+                documents.append({
+                    'id': attachment.id,
+                    'name': name or file_name,
+                    'file_name': file_name or name,
+                    'url': UPORTHO_DOCUMENT_URL % attachment.id,
+                })
+        return documents
 
     def _uportho_variants(self, variant=None, combination=None):
         """Selectorul de variante: cate un grup de valori per atribut cu mai multe

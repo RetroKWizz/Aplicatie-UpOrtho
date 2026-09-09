@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'benefit.dart';
 import 'price_table.dart';
 import 'product.dart';
+import 'product_document.dart';
 import 'product_review.dart';
 import 'spec.dart';
 import 'variant.dart';
@@ -14,6 +15,7 @@ export 'price_table.dart';
 export 'price_tier.dart';
 export 'product.dart';
 export 'product_badge.dart';
+export 'product_document.dart';
 export 'product_review.dart';
 export 'spec.dart';
 export 'variant.dart';
@@ -135,6 +137,11 @@ abstract class ProductDetail with _$ProductDetail {
     /// primul raspuns de preturi.
     @JsonKey(name: 'variant_total') Price? variantTotal,
     @Default([]) List<ProductSpec> specs,
+
+    /// Documentele produsului (tabul "Documente" de pe site). Lista goala cand
+    /// produsul n-are documente — sau cand serverul e mai vechi si nu trimite
+    /// campul; atunci sectiunea lipseste complet de pe ecran.
+    @Default([]) List<ProductDocument> documents,
     @Default([]) List<DescriptionBlock> description,
     ProductAvailability? availability,
     @Default(ProductRating()) ProductRating rating,

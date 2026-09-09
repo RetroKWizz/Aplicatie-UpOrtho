@@ -67,6 +67,10 @@
   "variant_total": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
                      "list_amount": null, "list_formatted": null, "discount_pct": null },
   "specs": [ { "name": "Brand", "value": "DB Orthodontics" } ],
+  "documents": [
+    { "id": 4821, "name": "Fisa tehnica.pdf", "file_name": "Fisa tehnica.pdf",
+      "url": "/web/content/4821?download=true" }
+  ],
   "description": [
     { "type": "heading", "spans": [ { "text": "Cleste Tie Back pentru arcuri groase", "bold": true, "italic": false } ] },
     { "type": "paragraph", "spans": [ { "text": "Clestele este conceput pentru...", "bold": false, "italic": false } ] },

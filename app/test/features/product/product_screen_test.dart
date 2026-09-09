@@ -9,6 +9,7 @@ import 'package:uportho_app/api/api_client.dart';
 import 'package:uportho_app/api/api_transport.dart';
 import 'package:uportho_app/api/session_store.dart';
 import 'package:uportho_app/design_system/widgets/description_view.dart';
+import 'package:uportho_app/design_system/widgets/document_list.dart';
 import 'package:uportho_app/design_system/widgets/image_gallery.dart';
 import 'package:uportho_app/design_system/widgets/price_tier_table.dart';
 import 'package:uportho_app/design_system/widgets/product_card.dart';
@@ -149,6 +150,7 @@ void main() {
       'Pret Ortho Club',
       'Descriere',
       'Specificatii',
+      'Documente',
       'Recenzii',
       'Produse similare',
     ]) {
@@ -562,5 +564,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('2.240,00 lei'), findsNWidgets(2), reason: 'subtotalul randului si totalul');
     expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
+  testWidgets('documentele produsului apar sub titlul Documente, cu URL absolut',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.text('Documente'), findsOneWidget);
+    expect(find.text('Fisa tehnica.pdf'), findsOneWidget);
+
+    // URL-ul e absolut: documentul se deschide in afara aplicatiei, unde o cale
+    // relativa n-ar insemna nimic. E ruta standard a Odoo pentru fisier.
+    final list = tester.widget<DocumentList>(find.byType(DocumentList));
+    expect(list.items.single.url, 'http://x/web/content/4821?download=true');
+  });
+
+  testWidgets('documentele stau intre specificatii si recenzii, ca pe site',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: {...fullProductJson(), 'rating': {'average': 5.0, 'count': 1}}));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    final specs = tester.getTopLeft(find.text('Specificatii')).dy;
+    final documents = tester.getTopLeft(find.text('Documente')).dy;
+    final reviews = tester.getTopLeft(find.text('Recenzii')).dy;
+    expect(documents, greaterThan(specs));
+    expect(reviews, greaterThan(documents));
   });
 }

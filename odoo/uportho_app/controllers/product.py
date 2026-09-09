@@ -552,6 +552,12 @@ class AppProduct(http.Controller):
             'variant_total': (template._uportho_zero_amount(pricelist.currency_id)
                               if variant_rows else None),
             'specs': template._uportho_specs(),
+            # Tabul "Documente" al site-ului: fise tehnice, certificate, cataloage.
+            # URL-urile sunt cele standard ale Odoo (`/web/content/...`), pentru ca
+            # documentul se deschide in afara aplicatiei - vezi `_uportho_documents`.
+            # Lista goala pentru produsele fara documente: atunci sectiunea lipseste
+            # complet din ecran, ca toate celelalte.
+            'documents': template._uportho_documents(),
             'description': template._uportho_description_blocks(),
             'availability': template._uportho_availability(variant=variant),
             'rating': rating,

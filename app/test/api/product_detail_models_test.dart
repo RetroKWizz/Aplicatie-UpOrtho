@@ -181,6 +181,22 @@ void main() {
     expect(blocks[0].type, DescriptionBlockType.paragraph);
   });
 
+  test('documentele: nume, nume de fisier si URL-ul standard Odoo al fisierului', () {
+    final document = ProductDetail.fromJson(detailFixture()).documents.single;
+    expect(document.id, 4821);
+    expect(document.name, 'Fisa tehnica.pdf');
+    expect(document.fileName, 'Fisa tehnica.pdf');
+    // Ruta Odoo, nu una a modulului: documentul se deschide in afara aplicatiei.
+    expect(document.url, '/web/content/4821?download=true');
+  });
+
+  test('un raspuns fara `documents` decodeaza cu lista goala', () {
+    // Camp adaugat dupa prima versiune a paginii de produs: un server mai vechi nu-l
+    // trimite, iar ecranul nu are voie sa crape pe el.
+    final json = detailFixture()..remove('documents');
+    expect(ProductDetail.fromJson(json).documents, isEmpty);
+  });
+
   test('specificatiile sunt perechi nume/valoare', () {
     final specs = ProductDetail.fromJson(detailFixture()).specs;
     expect(specs.single.name, 'Brand');
