@@ -23,12 +23,18 @@ MAX_LIMIT = 100
 SHOP_SORT_FIELD = 'shop_default_sort'
 # Ordinea de rezerva cand setarea lipseste sau nu e valida: aceeasi intentie
 # (ordonarea manuala a magazinului), doar fara sa depinda de configurare.
-PRODUCTS_ORDER_FALLBACK = 'website_sequence, id'
+PRODUCTS_ORDER_FALLBACK = 'website_sequence, id desc'
 # Criteriul stabil de la finalul oricarei ordini. Fara el, doua produse cu acelasi
 # `website_sequence` pot veni in ordine diferita de la doua interogari succesive, iar
 # paginarea aplicatiei ar arata unul de doua ori si l-ar sari complet pe celalalt -
 # tacut, fara nicio eroare.
-PRODUCTS_ORDER_TIEBREAKER = 'id'
+#
+# `id desc`, nu `id asc`: magazinul insusi departajeaza descrescator
+# (`website_sale.WebsiteSale._get_search_order` construieste
+# `'is_published desc, %s, id desc'`). La produsele cu acelasi `website_sequence` -
+# 16 din 619 pe instanta reala - o departajare crescatoare le-ar aseza exact invers
+# fata de site, adica exact ce trebuia sa reparam.
+PRODUCTS_ORDER_TIEBREAKER = 'id desc'
 ORDER_DIRECTIONS = ('asc', 'desc')
 
 
@@ -234,7 +240,9 @@ def _sanitized_order(raw, Template):
             return None
         last_field = tokens[0]
         terms.append(' '.join(tokens))
-    if last_field != PRODUCTS_ORDER_TIEBREAKER:
+    # Comparam pe nume de camp, nu pe termenul intreg: o ordine care se termina deja
+    # in `id` (indiferent de directie) e stabila, nu mai are nevoie de departajare.
+    if last_field != PRODUCTS_ORDER_TIEBREAKER.split()[0]:
         terms.append(PRODUCTS_ORDER_TIEBREAKER)
     return ', '.join(terms)
 
