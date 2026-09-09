@@ -17,6 +17,12 @@ class AppBenefit(models.Model):
     name = fields.Char(string='Titlu', required=True)
     text = fields.Char(string='Subtitlu')
     icon = fields.Selection(ICONS, string='Iconita', required=True, default='info')
+    # Blocurile echivalente de pe site nu arata iconite desenate, ci logouri
+    # adevarate (curierul, siglele de card). Cu o imagine incarcata aici, ele se pot
+    # schimba din Odoo - un curier nou, alt procesator de plati - fara un release in
+    # magazinele de aplicatii. Ramane optionala: fara ea se deseneaza `icon`, deci
+    # beneficiile existente nu se schimba cu nimic.
+    image = fields.Image(string='Imagine', max_width=512, max_height=512)
     sequence = fields.Integer(string='Ordine', default=10)
     active = fields.Boolean(default=True)
 

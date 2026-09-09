@@ -27,6 +27,10 @@
                         <group string="Continut">
                             <field name="text"/>
                             <field name="icon"/>
+                            <!-- Optionala: cand exista, aplicatia arata imaginea in
+                                 locul iconitei (logo de curier, sigla de card). -->
+                            <field name="image" widget="image" class="oe_avatar"
+                                   options="{'size': [96, 96]}"/>
                         </group>
                         <group string="Afisare">
                             <field name="sequence"/>

@@ -500,8 +500,26 @@ def _serialize_reviews(template):
     return {'average': round(average or 0.0, 1), 'count': count}, reviews
 
 
-def serialize_benefit(benefit):
-    return {'icon': benefit.icon, 'title': benefit.name, 'text': benefit.text or None}
+def serialize_benefit(benefit, has_image):
+    """Un beneficiu de magazin. `image_url` e logoul incarcat in Odoo (curier, sigla de
+    card - ce arata site-ul in blocurile echivalente); `icon` ramane si el in raspuns,
+    pentru ca aplicatia deseneaza iconita cand nu exista imagine.
+
+    Prezenta imaginii se afla din `ir.attachment` (`_ids_with_image`), nu citind campul
+    binar: altfel fiecare cerere de produs ar incarca degeaba toate logourile."""
+    return {
+        'icon': benefit.icon,
+        'title': benefit.name,
+        'text': benefit.text or None,
+        'image_url': (f'{API_PREFIX}/benefits/{benefit.id}/image?unique={image_unique(benefit)}'
+                      if has_image else None),
+    }
+
+
+def _serialize_benefits():
+    benefits = request.env['uportho.app.benefit']._search_active()
+    ids_with_image = _ids_with_image(benefits, field_name='image')
+    return [serialize_benefit(benefit, benefit.id in ids_with_image) for benefit in benefits]
 
 
 class AppProduct(http.Controller):
@@ -590,7 +608,7 @@ class AppProduct(http.Controller):
             'reviews': reviews,
             'similar': _serialize_similar(
                 template, website, pricelist, club_pricelist, partner, fiscal_position),
-            'benefits': [serialize_benefit(b) for b in request.env['uportho.app.benefit']._search_active()],
+            'benefits': _serialize_benefits(),
         })
 
     @app_route('/products/<int:product_id>/prices', methods=['POST'])
@@ -675,6 +693,13 @@ class AppProduct(http.Controller):
         if not image or (image.product_tmpl_id | image.product_variant_id.product_tmpl_id) != template.sudo():
             raise ApiError(404, 'not_found', 'Imaginea nu exista.')
         return _image_response(request.env['product.image'].browse(image.id), 'image_1920')
+
+    @app_route('/benefits/<int:benefit_id>/image', methods=['GET'])
+    def benefit_image(self, benefit_id, **kw):
+        """Logoul unui beneficiu, autentificat ca si celelalte rute de imagine ale
+        modulului (bannere, iconite de categorie). Beneficiile sunt citibile de portal,
+        deci nu e nevoie de sudo; fara imagine incarcata, 404."""
+        return _image_response(request.env['uportho.app.benefit'].browse(benefit_id), 'image')
 
     @app_route('/products/<int:product_id>/brand/logo', methods=['GET'])
     def product_brand_logo(self, product_id, **kw):
