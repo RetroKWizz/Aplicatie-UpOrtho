@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,11 +12,28 @@ import 'package:uportho_app/design_system/widgets/description_view.dart';
 import 'package:uportho_app/design_system/widgets/image_gallery.dart';
 import 'package:uportho_app/design_system/widgets/price_tier_table.dart';
 import 'package:uportho_app/design_system/widgets/product_card.dart';
+import 'package:uportho_app/design_system/widgets/variant_order_table.dart';
 import 'package:uportho_app/design_system/widgets/variant_picker.dart';
+import 'package:uportho_app/features/product/product_controller.dart';
 import 'package:uportho_app/features/product/product_screen.dart';
 import 'package:uportho_app/providers.dart';
 
 import '../../api/fake_transport.dart';
+
+/// Transport care tine raspunsul in loc (un `Completer` per apel), ca testul sa
+/// poata inspecta ecranul EXACT in timp ce cererea e in aer.
+class HeldTransport implements ApiTransport {
+  final List<RecordedCall> calls = [];
+  final List<Completer<ApiResponse>> pending = [];
+
+  @override
+  Future<ApiResponse> send(String method, String path, {Map<String, dynamic>? body}) {
+    calls.add(RecordedCall(method, path, body));
+    final completer = Completer<ApiResponse>();
+    pending.add(completer);
+    return completer.future;
+  }
+}
 
 /// Un pret in forma de contract. Toate sirurile vin de la server - ecranul nu
 /// formateaza si nu calculeaza nimic pe bani.
@@ -242,7 +260,7 @@ void main() {
       'pret': top(find.text('1.120,00 lei').first),
       'primul tabel de pret': top(find.text('Pret pe cantitate')),
       'al doilea tabel de pret': top(find.text('Campanie Toamna 2026')),
-      'variante': top(find.byType(VariantPicker)),
+      'variante': top(find.byType(VariantOrderTable)),
       'disponibilitate': top(find.text('Precomanda. Livrare incepand cu 1 August')),
       'buton cos': top(find.widgetWithText(FilledButton, 'Adauga in cos')),
       'beneficii': top(find.text('Livrare gratuita')),
@@ -311,9 +329,12 @@ void main() {
 
   testWidgets('alegerea unei variante recere produsul si actualizeaza pretul si codul',
       (tester) async {
+    // Selectorul se deseneaza doar cand serverul NU trimite randuri de varianta
+    // (produs cu o singura varianta activa, dar cu linii de atribut): cand exista
+    // randuri, tabelul le inlocuieste.
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/products/101',
-        ApiResponse(status: 200, json: fullProductJson()));
+        ApiResponse(status: 200, json: {...fullProductJson(), 'variant_rows': <dynamic>[]}));
     transport.when(
       'GET',
       '/api/app/v1/products/101?values=1358',
@@ -321,6 +342,7 @@ void main() {
         status: 200,
         json: {
           ...fullProductJson(),
+          'variant_rows': <dynamic>[],
           'variant_id': 502,
           'default_code': 'IX955',
           'price': priceJson(amount: 990.0, formatted: '990,00 lei'),
@@ -392,5 +414,130 @@ void main() {
 
     expect(find.text('Produsul nu exista.'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Reincearca'), findsOneWidget);
+  });
+
+  // --- tabelul de comanda pe variante ----------------------------------------
+
+  testWidgets('produsul cu mai multe variante arata tabelul, nu selectorul de atribute',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.byType(VariantOrderTable), findsOneWidget);
+    expect(find.byType(VariantPicker), findsNothing,
+        reason: 'randul fiecarei variante face selectorul redundant');
+    // Cate un rand per varianta, cu atributele, codul si pretul din contract.
+    expect(find.text('Marime: Mare'), findsOneWidget);
+    expect(find.text('Marime: Mic'), findsOneWidget);
+    expect(find.text('Cod: IX954-M'), findsOneWidget);
+    expect(find.text('990,00 lei'), findsOneWidget);
+    // Inainte de prima cantitate aleasa nu exista niciun subtotal de la server -
+    // ecranul nu inventeaza "0,00 lei".
+    expect(find.text('Total'), findsOneWidget);
+    expect(find.text(VariantOrderTable.missingAmount), findsWidgets);
+  });
+
+  testWidgets('o cantitate schimbata cere preturile de la server si actualizeaza totalul',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+    transport.when(
+      'POST',
+      '/api/app/v1/products/101/prices',
+      ApiResponse(status: 200, json: {
+        'lines': [
+          {
+            'variant_id': 501,
+            'qty': 5,
+            // Pretul unitar de la 5 bucati: pragul listei de pret a coborat pretul.
+            'price': priceJson(amount: 1000.0, formatted: '1.000,00 lei'),
+            'subtotal': priceJson(amount: 5000.0, formatted: '5.000,00 lei'),
+          },
+          {
+            'variant_id': 502,
+            'qty': 0,
+            'price': priceJson(amount: 990.0, formatted: '990,00 lei'),
+            'subtotal': priceJson(amount: 0.0, formatted: '0,00 lei'),
+          },
+        ],
+        'total': priceJson(amount: 5000.0, formatted: '5.000,00 lei'),
+      }),
+    );
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    for (var tap = 0; tap < 5; tap++) {
+      await tester.tap(find.byIcon(Icons.add).first);
+      await tester.pump();
+    }
+    // O singura cerere pentru cele cinci apasari (debounce).
+    await tester.pump(quantityDebounce + const Duration(milliseconds: 50));
+    await tester.pump();
+
+    final posts = transport.calls.where((call) => call.method == 'POST').toList();
+    expect(posts.length, 1);
+    expect((posts.single.body!['lines'] as List).first, {'variant_id': 501, 'qty': 5});
+
+    // Toate cifrele de pe ecran sunt cele intoarse de server.
+    expect(find.text('1.000,00 lei'), findsOneWidget);
+    expect(find.text('5.000,00 lei'), findsNWidgets(2), reason: 'subtotalul randului si totalul');
+    expect(find.text('0,00 lei'), findsOneWidget);
+  });
+
+  testWidgets('cat timp preturile se recalculeaza, cifrele dinainte raman pe ecran',
+      (tester) async {
+    // Transport tinut in loc: cu raspunsuri imediate, momentul "cererea e in aer"
+    // trece intre doua cadre si nu se poate observa.
+    final transport = HeldTransport();
+    tester.view.physicalSize = const Size(500, 4000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final container = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(
+          ApiClient(transport, InMemorySessionStore(), baseUrl: 'http://x')),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: ProductScreen(productId: 101)),
+    ));
+    transport.pending.last.complete(ApiResponse(status: 200, json: fullProductJson()));
+    await tester.pumpAndSettle();
+
+    Map<String, dynamic> pricesJson(int qty, String subtotal) => {
+          'lines': [
+            {
+              'variant_id': 501,
+              'qty': qty,
+              'price': priceJson(amount: 1120.0, formatted: '1.120,00 lei'),
+              'subtotal': priceJson(amount: 1120.0, formatted: subtotal),
+            },
+          ],
+          'total': priceJson(amount: 1120.0, formatted: subtotal),
+        };
+
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pump(quantityDebounce + const Duration(milliseconds: 50));
+    transport.pending.last.complete(ApiResponse(status: 200, json: pricesJson(1, '1.120,00 lei')));
+    await tester.pumpAndSettle();
+    expect(find.text('1.120,00 lei'), findsWidgets);
+
+    // A doua apasare: cererea e in aer si nu a raspuns inca.
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pump(quantityDebounce + const Duration(milliseconds: 50));
+
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.text('1.120,00 lei'), findsWidgets,
+        reason: 'tabelul nu are voie sa se goleasca in timpul cererii');
+    expect(find.text('2'), findsOneWidget, reason: 'steperul raspunde pe loc');
+
+    transport.pending.last.complete(ApiResponse(status: 200, json: pricesJson(2, '2.240,00 lei')));
+    await tester.pumpAndSettle();
+    expect(find.text('2.240,00 lei'), findsNWidgets(2), reason: 'subtotalul randului si totalul');
+    expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 }

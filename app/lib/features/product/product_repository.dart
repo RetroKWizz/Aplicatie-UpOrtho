@@ -23,4 +23,23 @@ class ProductRepository {
     };
     return ProductDetail.fromJson(await _api.get('/products/$id$query'));
   }
+
+  /// Preturile tabelului de variante pentru cantitatile alese:
+  /// `POST /products/<id>/prices` cu `{variant_id, qty}` pe fiecare rand.
+  ///
+  /// Serverul intoarce pretul unitar **la cantitatea ceruta**, subtotalul fiecarei
+  /// linii si totalul, toate gata formatate. Aplicatia nu inmulteste nimic: o
+  /// cantitate mai mare poate trece un prag al listei de pret, deci subtotalul nu e
+  /// pretul afisat inmultit cu cantitatea (vezi CLAUDE.md).
+  ///
+  /// `quantities` pastreaza ordinea randurilor (`Map` in Dart e ordonat dupa
+  /// inserare), deci raspunsul vine in aceeasi ordine ca tabelul.
+  Future<VariantPrices> priceVariants(int id, Map<int, int> quantities) async {
+    final body = {
+      'lines': [
+        for (final entry in quantities.entries) {'variant_id': entry.key, 'qty': entry.value},
+      ],
+    };
+    return VariantPrices.fromJson(await _api.post('/products/$id/prices', body: body));
+  }
 }

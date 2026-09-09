@@ -11,6 +11,7 @@ import '../../design_system/widgets/description_view.dart';
 import '../../design_system/widgets/image_gallery.dart';
 import '../../design_system/widgets/price_tier_table.dart';
 import '../../design_system/widgets/product_card.dart';
+import '../../design_system/widgets/variant_order_table.dart';
 import '../../design_system/widgets/variant_picker.dart';
 import '../../providers.dart';
 import '../product_badge_palette.dart';
@@ -119,7 +120,13 @@ class _ProductBody extends ConsumerWidget {
           note: [for (final block in table.note) _describe(block)],
           entries: _tiers(table.entries),
         ),
-      if (variantGroups.isNotEmpty)
+      // Tabelul de comanda pe variante inlocuieste selectorul: cand fiecare varianta
+      // are randul ei, cu pretul si cantitatea ei, selectorul de atribute n-ar mai
+      // spune nimic in plus. Selectorul ramane pentru cazul in care serverul trimite
+      // atribute fara randuri (produs cu o singura varianta activa).
+      if (detail.variantRows.isNotEmpty)
+        _VariantOrderSection(productId: productId, state: state)
+      else if (variantGroups.isNotEmpty)
         _VariantSection(productId: productId, groups: variantGroups, state: state),
       if (availabilityMessage != null && availabilityMessage.isNotEmpty)
         _Availability(message: availabilityMessage, inStock: detail.availability!.inStock),
@@ -293,6 +300,75 @@ class _PriceBlock extends StatelessWidget {
         ],
       ],
     );
+  }
+}
+
+/// Tabelul de comanda pe variante: Atribute | Pret | Cantitate | Subtotal, plus
+/// totalul de sub el.
+///
+/// Toate sumele vin de la server. Pretul unitar al unui rand e cel din ultimul
+/// raspuns de preturi (acolo se vede pragul de cantitate atins), si abia daca acela
+/// lipseste se cade pe pretul de la o bucata din detaliul produsului. Subtotalul si
+/// totalul lipsesc pana la primul raspuns — ecranul nu are cum sa scrie "0,00 lei"
+/// fara sa faca aritmetica pe bani, ceea ce ii e interzis (CLAUDE.md).
+///
+/// Cat timp o cerere de preturi e in aer, cifrele ramase pe ecran sunt cele
+/// dinainte: tabelul nu clipeste la fiecare apasare pe plus.
+class _VariantOrderSection extends ConsumerWidget {
+  const _VariantOrderSection({required this.productId, required this.state});
+
+  final int productId;
+  final ProductState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lines = {
+      for (final line in state.prices?.lines ?? const <VariantPriceLine>[]) line.variantId: line,
+    };
+
+    final rows = [
+      for (final row in state.detail.variantRows)
+        VariantOrderRow(
+          id: row.variantId,
+          attributes: [for (final attribute in row.attributes) '${attribute.name}: ${attribute.value}'],
+          code: row.defaultCode,
+          stockLabel: _stockLabel(row.availability),
+          inStock: row.availability?.inStock ?? true,
+          priceFormatted: (lines[row.variantId]?.price ?? row.price).formatted,
+          subtotalFormatted: lines[row.variantId]?.subtotal.formatted,
+          qty: state.quantities[row.variantId] ?? 0,
+        ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        VariantOrderTable(
+          rows: rows,
+          totalFormatted: state.prices?.total.formatted,
+          // Steperul ramane activ si cat timp se recalculeaza: asta e tot rostul
+          // debounce-ului din controller.
+          onQuantityChanged: (variantId, quantity) =>
+              ref.read(productControllerProvider(productId).notifier).setQuantity(variantId, quantity),
+          footnote: state.pricesError,
+        ),
+        if (state.isPricing) ...[
+          const SizedBox(height: 8),
+          const LinearProgressIndicator(minHeight: 2),
+        ],
+      ],
+    );
+  }
+
+  /// Linia de stoc a randului. `availability` null inseamna ca magazinul nu arata
+  /// disponibilitate pentru produsul asta — atunci randul n-are linie de stoc deloc.
+  /// Cand exista mesaj, se arata mesajul serverului; altfel doar starea.
+  static String? _stockLabel(ProductAvailability? availability) {
+    if (availability == null) return null;
+    final message = availability.message;
+    if (message != null && message.isNotEmpty) return message;
+    return availability.inStock ? 'In stoc' : 'Stoc epuizat';
   }
 }
 

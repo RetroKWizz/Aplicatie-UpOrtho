@@ -46,6 +46,31 @@ Map<String, dynamic> _$ProductAvailabilityToJson(
   'in_stock': instance.inStock,
 };
 
+_VariantRow _$VariantRowFromJson(Map<String, dynamic> json) => _VariantRow(
+  variantId: (json['variant_id'] as num).toInt(),
+  attributes:
+      (json['attributes'] as List<dynamic>?)
+          ?.map((e) => ProductSpec.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  defaultCode: json['default_code'] as String?,
+  availability: json['availability'] == null
+      ? null
+      : ProductAvailability.fromJson(
+          json['availability'] as Map<String, dynamic>,
+        ),
+  price: Price.fromJson(json['price'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$VariantRowToJson(_VariantRow instance) =>
+    <String, dynamic>{
+      'variant_id': instance.variantId,
+      'attributes': instance.attributes,
+      'default_code': instance.defaultCode,
+      'availability': instance.availability,
+      'price': instance.price,
+    };
+
 _ProductDetail _$ProductDetailFromJson(Map<String, dynamic> json) =>
     _ProductDetail(
       id: (json['id'] as num).toInt(),
@@ -72,6 +97,11 @@ _ProductDetail _$ProductDetailFromJson(Map<String, dynamic> json) =>
       variants: json['variants'] == null
           ? null
           : VariantOptions.fromJson(json['variants'] as Map<String, dynamic>),
+      variantRows:
+          (json['variant_rows'] as List<dynamic>?)
+              ?.map((e) => VariantRow.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       specs:
           (json['specs'] as List<dynamic>?)
               ?.map((e) => ProductSpec.fromJson(e as Map<String, dynamic>))
@@ -119,6 +149,7 @@ Map<String, dynamic> _$ProductDetailToJson(_ProductDetail instance) =>
       'club_price': instance.clubPrice,
       'price_tables': instance.priceTables,
       'variants': instance.variants,
+      'variant_rows': instance.variantRows,
       'specs': instance.specs,
       'description': instance.description,
       'availability': instance.availability,

@@ -17,6 +17,7 @@ export 'product_badge.dart';
 export 'product_review.dart';
 export 'spec.dart';
 export 'variant.dart';
+export 'variant_prices.dart';
 
 part 'product_detail.freezed.dart';
 part 'product_detail.g.dart';
@@ -67,6 +68,28 @@ abstract class ProductAvailability with _$ProductAvailability {
       _$ProductAvailabilityFromJson(json);
 }
 
+/// Un rand din tabelul de comanda pe variante — ce arata site-ul pe pagina unui
+/// produs cu mai multe variante: valorile de atribut ale variantei, codul ei,
+/// disponibilitatea si pretul unitar.
+///
+/// Lista de randuri e goala pentru un produs cu o singura varianta; atunci ecranul
+/// pastreaza forma dinainte (selectorul `variants`, cand exista). Subtotalul si
+/// totalul **nu** sunt aici: ele depind de cantitatile alese si se cer separat,
+/// prin `POST /products/<id>/prices`, pentru ca o cantitate mai mare poate trece un
+/// prag de pret.
+@freezed
+abstract class VariantRow with _$VariantRow {
+  const factory VariantRow({
+    @JsonKey(name: 'variant_id') required int variantId,
+    @Default([]) List<ProductSpec> attributes,
+    @JsonKey(name: 'default_code') String? defaultCode,
+    ProductAvailability? availability,
+    required Price price,
+  }) = _VariantRow;
+
+  factory VariantRow.fromJson(Map<String, dynamic> json) => _$VariantRowFromJson(json);
+}
+
 /// Raspunsul complet al lui `GET /products/<id>`.
 ///
 /// Reguli de forma, garantate de contract si reflectate aici:
@@ -95,6 +118,11 @@ abstract class ProductDetail with _$ProductDetail {
     @JsonKey(name: 'club_price') Price? clubPrice,
     @JsonKey(name: 'price_tables') @Default([]) List<PriceTable> priceTables,
     VariantOptions? variants,
+
+    /// Tabelul de comanda pe variante. Cand are randuri, ele inlocuiesc selectorul
+    /// `variants` pe ecran: fiecare varianta isi are deja randul ei, cu pretul si
+    /// cantitatea ei.
+    @JsonKey(name: 'variant_rows') @Default([]) List<VariantRow> variantRows,
     @Default([]) List<ProductSpec> specs,
     @Default([]) List<DescriptionBlock> description,
     ProductAvailability? availability,

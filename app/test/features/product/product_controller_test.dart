@@ -13,6 +13,31 @@ import 'package:uportho_app/providers.dart';
 
 import '../../api/fake_transport.dart';
 
+Map<String, dynamic> pricesFixture() =>
+    jsonDecode(File('test/contract/product_prices.json').readAsStringSync()) as Map<String, dynamic>;
+
+/// Raspunsul rutei de preturi cu alt total, ca testele sa poata deosebi doua
+/// raspunsuri fara sa compuna ele vreo suma.
+Map<String, dynamic> pricesWithTotal(String formatted) => {
+      ...pricesFixture(),
+      'total': {
+        ...(pricesFixture()['total'] as Map).cast<String, dynamic>(),
+        'formatted': formatted,
+      },
+    };
+
+/// Tine providerul (autoDispose) in viata cat dureaza asteptarile din test:
+/// altfel, in pauza de dupa `read`, Riverpod il arunca si orice `state` de dupa ar
+/// exploda cu "Cannot use the Ref ... after it has been disposed" - un artefact de
+/// test, nu comportamentul din aplicatie (unde ecranul asculta providerul).
+void keepAlive(ProviderContainer container, int productId) {
+  container.listen(productControllerProvider(productId), (_, _) {});
+}
+
+/// Mai mult decat debounce-ul: dupa asta cererea amanata a plecat deja.
+Future<void> afterDebounce() =>
+    Future<void>.delayed(quantityDebounce + const Duration(milliseconds: 80));
+
 Map<String, dynamic> detailFixture() =>
     jsonDecode(File('test/contract/product_detail.json').readAsStringSync()) as Map<String, dynamic>;
 
@@ -212,5 +237,141 @@ void main() {
 
     expect(first.detail.name, 'Cleste Tie Back mare (.016 - .021x.025) Ixion');
     expect(second.detail.name, 'Alt produs');
+  });
+
+  // --- tabelul de variante: cantitati, debounce, preturi de la server ---------
+
+  test('cantitatile pornesc de la zero, cate una per rand de varianta', () async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
+    final container = containerWith(transport);
+    keepAlive(container, 101);
+
+    final state = await container.read(productControllerProvider(101).future);
+
+    expect(state.quantities, {501: 0, 502: 0});
+    // Nicio cerere de preturi la incarcare: un tabel gol n-are ce total sa arate,
+    // iar aplicatia nu are voie sa scrie ea "0,00 lei".
+    expect(transport.calls.length, 1);
+    expect(state.prices, isNull);
+  });
+
+  test('o cantitate schimbata apare imediat, dar cererea pleaca abia dupa debounce', () async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
+    transport.when('POST', '/api/app/v1/products/101/prices',
+        ApiResponse(status: 200, json: pricesFixture()));
+    final container = containerWith(transport);
+    keepAlive(container, 101);
+    await container.read(productControllerProvider(101).future);
+
+    container.read(productControllerProvider(101).notifier).setQuantity(501, 3);
+
+    // Steperul raspunde pe loc; reteaua asteapta.
+    expect(container.read(productControllerProvider(101)).value!.quantities[501], 3);
+    expect(transport.calls.length, 1);
+
+    await afterDebounce();
+
+    expect(transport.calls.last.method, 'POST');
+    expect(transport.calls.last.body, {
+      'lines': [
+        {'variant_id': 501, 'qty': 3},
+        {'variant_id': 502, 'qty': 0},
+      ],
+    });
+    expect(container.read(productControllerProvider(101)).value!.prices!.total.formatted,
+        '5.600,00 lei');
+  });
+
+  test('tinut apasat pe plus, se trimite o singura cerere, cu ultima cantitate', () async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
+    transport.when('POST', '/api/app/v1/products/101/prices',
+        ApiResponse(status: 200, json: pricesFixture()));
+    final container = containerWith(transport);
+    keepAlive(container, 101);
+    await container.read(productControllerProvider(101).future);
+    final notifier = container.read(productControllerProvider(101).notifier);
+
+    for (var qty = 1; qty <= 6; qty++) {
+      notifier.setQuantity(501, qty);
+    }
+    await afterDebounce();
+
+    final posts = transport.calls.where((call) => call.method == 'POST').toList();
+    expect(posts.length, 1, reason: 'sase apasari, o singura cerere');
+    expect((posts.single.body!['lines'] as List).first, {'variant_id': 501, 'qty': 6});
+  });
+
+  test('cat timp preturile se recalculeaza, cele vechi raman pe ecran', () async {
+    final transport = PendingTransport();
+    final container = containerWith(transport);
+    keepAlive(container, 101);
+
+    final loading = container.read(productControllerProvider(101).future);
+    transport.pending.first.complete(ApiResponse(status: 200, json: detailFixture()));
+    await loading;
+    final notifier = container.read(productControllerProvider(101).notifier);
+
+    notifier.setQuantity(501, 5);
+    await afterDebounce();
+    transport.pending.last.complete(ApiResponse(status: 200, json: pricesWithTotal('5.600,00 lei')));
+    await Future<void>.delayed(Duration.zero);
+
+    notifier.setQuantity(501, 6);
+    await afterDebounce();
+
+    // Momentul critic: a doua cerere e in aer. Ecranul NU are voie sa ramana fara
+    // cifre - ar clipi la fiecare apasare pe plus.
+    final during = container.read(productControllerProvider(101)).value!;
+    expect(during.isPricing, isTrue);
+    expect(during.prices!.total.formatted, '5.600,00 lei');
+
+    transport.pending.last.complete(ApiResponse(status: 200, json: pricesWithTotal('6.720,00 lei')));
+    await Future<void>.delayed(Duration.zero);
+    final after = container.read(productControllerProvider(101)).value!;
+    expect(after.isPricing, isFalse);
+    expect(after.prices!.total.formatted, '6.720,00 lei');
+  });
+
+  test('o cerere de preturi esuata pastreaza preturile vechi si arata mesajul', () async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
+    transport.when('POST', '/api/app/v1/products/101/prices',
+        ApiResponse(status: 200, json: pricesWithTotal('5.600,00 lei')));
+    final container = containerWith(transport);
+    keepAlive(container, 101);
+    await container.read(productControllerProvider(101).future);
+    final notifier = container.read(productControllerProvider(101).notifier);
+
+    notifier.setQuantity(501, 5);
+    await afterDebounce();
+
+    transport.when('POST', '/api/app/v1/products/101/prices', const ApiResponse(status: 500, json: {
+      'error': {'code': 'internal_error', 'message': 'Serverul nu raspunde.', 'details': {}}
+    }));
+    notifier.setQuantity(501, 6);
+    await afterDebounce();
+
+    final state = container.read(productControllerProvider(101));
+    expect(state.hasError, isFalse, reason: 'un esec pe preturi nu arunca tot ecranul pe eroare');
+    expect(state.value!.prices!.total.formatted, '5.600,00 lei');
+    expect(state.value!.pricesError, 'Serverul nu raspunde.');
+    expect(state.value!.isPricing, isFalse);
+  });
+
+  test('o cantitate negativa nu ajunge niciodata la server', () async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
+    final container = containerWith(transport);
+    keepAlive(container, 101);
+    await container.read(productControllerProvider(101).future);
+
+    container.read(productControllerProvider(101).notifier).setQuantity(501, -1);
+    await afterDebounce();
+
+    expect(container.read(productControllerProvider(101)).value!.quantities[501], 0);
+    expect(transport.calls.where((call) => call.method == 'POST'), isEmpty);
   });
 }
