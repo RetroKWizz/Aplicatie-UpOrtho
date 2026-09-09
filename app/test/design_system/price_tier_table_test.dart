@@ -7,6 +7,18 @@ void main() {
   Widget sized(Widget child, {double width = 360}) =>
       MaterialApp(home: Scaffold(body: Center(child: SizedBox(width: width, child: child))));
 
+  /// Ca pe ecranul real de produs: latime data, inaltime derulabila. Pe un ecran
+  /// foarte ingust pragurile trec pe multe randuri si depasesc inaltimea ferestrei
+  /// de test - pe telefon pagina se deruleaza pe verticala, deci testul trebuie sa
+  /// masoare latimea, nu inaltimea ferestrei.
+  Widget scrollable(Widget child, {double width = 360}) => MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(width: width, child: SingleChildScrollView(child: child)),
+          ),
+        ),
+      );
+
   const tiers = [
     PriceTierEntry(label: '1+', priceFormatted: '1.399,99 lei'),
     PriceTierEntry(label: '3+', priceFormatted: '1.120,00 lei'),
@@ -79,9 +91,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('multe praguri cu sume lungi, intr-un container ingust: se deruleaza, nu da overflow',
+  testWidgets('multe praguri cu sume lungi, intr-un container ingust: toate vizibile, fara overflow',
       (tester) async {
-    await tester.pumpWidget(sized(
+    await tester.pumpWidget(scrollable(
       const PriceTierTable(
         title: 'Pret Ortho Club pentru comenzi de volum la produsul acesta',
         entries: [
@@ -98,14 +110,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(PriceTierCell), findsWidgets);
-
-    // Derularea orizontala e cea care salveaza latimea: primul prag e vizibil,
-    // ultimul devine vizibil dupa derulare.
-    expect(find.text('11.399,99 lei'), findsOneWidget);
-    await tester.drag(find.byType(PriceTierTable), const Offset(-600, 0));
-    await tester.pumpAndSettle();
-    expect(find.text('9.499,00 lei'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    // Pragurile trec pe randurile urmatoare, deci se vad TOATE fara nicio
+    // derulare. Inainte se derulau lateral si ultimele ramaneau ascunse - exact
+    // ce s-a vazut pe telefon, unde al patrulea prag era taiat de marginea
+    // ecranului.
+    for (final suma in [
+      '11.399,99 lei', '11.120,00 lei', '10.999,00 lei',
+      '10.499,00 lei', '9.999,00 lei', '9.499,00 lei',
+    ]) {
+      expect(find.text(suma), findsOneWidget, reason: 'lipseste $suma');
+    }
+    expect(find.byType(PriceTierCell), findsNWidgets(6));
   });
 }

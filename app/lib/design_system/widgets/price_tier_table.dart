@@ -23,9 +23,11 @@ class PriceTierEntry {
   int get hashCode => Object.hash(label, priceFormatted);
 }
 
-/// Un tabel de preturi: cate o coloana per prag, derulabile orizontal cand nu incap
-/// — de aceea nu poate da overflow nici la sase praguri cu sume de cinci cifre pe un
-/// ecran ingust.
+/// Un tabel de preturi: cate o celula per prag, asezate cu `Wrap` — trec pe randul
+/// urmator cand nu mai incap, deci toate pragurile se vad deodata, fara derulare
+/// laterala. Derularea orizontala de dinainte ascundea al patrulea prag exact pe
+/// produsele cu reduceri de volum, adica acolo unde tabelul conteaza cel mai mult.
+/// `Wrap` nu poate da overflow nici la sase praguri cu sume de cinci cifre.
 ///
 /// Titlul si nota vin de la apelant (adica, prin ecran, de la server): magazinul
 /// arata unul, doua sau niciun tabel, iar titlurile sunt nume de liste de pret sau
@@ -70,14 +72,17 @@ class PriceTierTable extends StatelessWidget {
           DescriptionView(blocks: note),
           const SizedBox(height: 8),
         ],
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        // LayoutBuilder + ConstrainedBox: o celula nu poate fi mai lata decat
+        // spatiul disponibil. Fara asta, `Wrap` nu decupeaza si nu micsoreaza —
+        // o suma foarte lunga pe un ecran foarte ingust ar iesi din ecran.
+        LayoutBuilder(
+          builder: (context, constraints) => Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               for (var index = 0; index < entries.length; index++)
-                Padding(
-                  padding: EdgeInsets.only(right: index == entries.length - 1 ? 0 : 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: constraints.maxWidth),
                   child: PriceTierCell(
                     entry: entries[index],
                     highlighted: index == highlightedIndex,
@@ -122,14 +127,20 @@ class PriceTierCell extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           // Fara maxLines/ellipsis: suma e exact informatia pentru care exista
-          // celula, iar latimea e rezolvata de derularea orizontala, nu prin
+          // celula. Latimea o rezolva `Wrap`, mutand celula pe randul urmator, nu
           // retezarea textului (greseala facuta o data pe pretul de club din card).
-          Text(
-            entry.priceFormatted,
-            softWrap: false,
-            style: AppTypography.body.copyWith(
-              fontWeight: FontWeight.w800,
-              color: highlighted ? Colors.white : AppColors.primary,
+          // Suma nu se rupe pe doua randuri si nu se reteaza; daca celula a fost
+          // ingustata pana sub latimea ei, textul se micsoreaza uniform.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              entry.priceFormatted,
+              softWrap: false,
+              style: AppTypography.body.copyWith(
+                fontWeight: FontWeight.w800,
+                color: highlighted ? Colors.white : AppColors.primary,
+              ),
             ),
           ),
         ],
