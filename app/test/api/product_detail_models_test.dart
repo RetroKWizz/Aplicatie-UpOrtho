@@ -1,0 +1,232 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:uportho_app/api/models/product_detail.dart';
+
+Map<String, dynamic> detailFixture() =>
+    jsonDecode(File('test/contract/product_detail.json').readAsStringSync()) as Map<String, dynamic>;
+
+List<dynamic> benefitsFixture() =>
+    jsonDecode(File('test/contract/benefits.json').readAsStringSync()) as List<dynamic>;
+
+/// Produsul "sarac": 354 din 619 produse reale n-au variante, 214 n-au praguri,
+/// 14 n-au descriere. Decodarea nu are voie sa arunce pentru niciunul dintre ele.
+Map<String, dynamic> bareDetailJson() => {
+      'id': 7,
+      'variant_id': null,
+      'name': 'Arc NiTi termic .014',
+      'default_code': null,
+      'badge': null,
+      'images': <dynamic>[],
+      'price': {
+        'amount': 25.0,
+        'currency': 'RON',
+        'formatted': '25,00 lei',
+        'with_vat': true,
+        'list_amount': null,
+        'list_formatted': null,
+        'discount_pct': null,
+      },
+      'club_price': null,
+      'tiers': <dynamic>[],
+      'club_tiers': <dynamic>[],
+      'variants': null,
+      'specs': <dynamic>[],
+      'description': <dynamic>[],
+      'availability': null,
+      'rating': {'average': 0.0, 'count': 0},
+      'reviews': <dynamic>[],
+      'similar': <dynamic>[],
+      'benefits': <dynamic>[],
+    };
+
+void main() {
+  test('ProductDetail decodeaza product_detail.json in intregime', () {
+    final detail = ProductDetail.fromJson(detailFixture());
+
+    expect(detail.id, 101);
+    expect(detail.variantId, 501);
+    expect(detail.name, 'Cleste Tie Back mare (.016 - .021x.025) Ixion');
+    expect(detail.defaultCode, 'IX954');
+    expect(detail.badge?.text, 'Nou');
+    expect(detail.badge?.color, ProductBadgeColor.blue);
+
+    expect(detail.price.formatted, '1.120,00 lei');
+    expect(detail.price.listFormatted, '1.399,99 lei');
+    expect(detail.price.discountPct, 20);
+    expect(detail.clubPrice?.formatted, '1.120,00 lei');
+
+    expect(detail.rating.average, 0.0);
+    expect(detail.rating.count, 0);
+    expect(detail.availability?.message, 'Precomanda. Livrare incepand cu 1 August');
+    expect(detail.availability?.inStock, isTrue);
+  });
+
+  test('imaginile: intrarea principala are id 0, cea de tip video poarta video_url', () {
+    final images = ProductDetail.fromJson(detailFixture()).images;
+    expect(images, hasLength(2));
+
+    expect(images[0].id, 0);
+    expect(images[0].url, '/api/app/v1/products/101/gallery/0?unique=3a1f9c2');
+    expect(images[0].kind, ProductImageKind.image);
+    expect(images[0].videoUrl, isNull);
+
+    expect(images[1].kind, ProductImageKind.video);
+    expect(images[1].videoUrl, 'https://www.youtube.com/watch?v=xxxx');
+  });
+
+  test('o intrare de galerie fara poza (doar video) are url null, nu arunca', () {
+    final json = detailFixture();
+    (json['images'] as List)[1]['url'] = null;
+    final images = ProductDetail.fromJson(json).images;
+    expect(images[1].url, isNull);
+    expect(images[1].videoUrl, 'https://www.youtube.com/watch?v=xxxx');
+  });
+
+  test('pragurile de cantitate: eticheta, cantitatea minima si pretul deja formatat', () {
+    final detail = ProductDetail.fromJson(detailFixture());
+    expect(detail.tiers, hasLength(2));
+    expect(detail.tiers[0].minQty, 1);
+    expect(detail.tiers[0].label, '1+');
+    expect(detail.tiers[0].price.formatted, '1.399,99 lei');
+    expect(detail.tiers[1].minQty, 3);
+    expect(detail.tiers[1].label, '3+');
+    expect(detail.tiers[1].price.formatted, '1.120,00 lei');
+
+    expect(detail.clubTiers, hasLength(1));
+    expect(detail.clubTiers[0].price.formatted, '1.120,00 lei');
+  });
+
+  test('variantele: un atribut cu doua valori, una selectata, ambele disponibile', () {
+    final variants = ProductDetail.fromJson(detailFixture()).variants;
+    expect(variants, isNotNull);
+    expect(variants!.attributes, hasLength(1));
+
+    final attribute = variants.attributes.single;
+    expect(attribute.id, 7);
+    expect(attribute.name, 'Marime');
+    expect(attribute.values, hasLength(2));
+    expect(attribute.values[0].id, 1357);
+    expect(attribute.values[0].name, 'Mare');
+    expect(attribute.values[0].selected, isTrue);
+    expect(attribute.values[0].available, isTrue);
+    expect(attribute.values[1].selected, isFalse);
+  });
+
+  test('descrierea: heading/paragraph/bullets, cu bold si italic pe span', () {
+    final blocks = ProductDetail.fromJson(detailFixture()).description;
+    expect(blocks, hasLength(3));
+
+    expect(blocks[0].type, DescriptionBlockType.heading);
+    expect(blocks[0].spans.single.text, 'Cleste Tie Back pentru arcuri groase');
+    expect(blocks[0].spans.single.bold, isTrue);
+    expect(blocks[0].spans.single.italic, isFalse);
+
+    expect(blocks[1].type, DescriptionBlockType.paragraph);
+    expect(blocks[1].spans.single.bold, isFalse);
+
+    expect(blocks[2].type, DescriptionBlockType.bullets);
+    expect(blocks[2].spans, isEmpty);
+    expect(blocks[2].items, hasLength(1));
+    expect(blocks[2].items.single.spans.single.text, 'Falci zimtate care asigura o prindere ferma.');
+  });
+
+  test('un tip de bloc necunoscut cade pe paragraph, nu arunca', () {
+    final json = detailFixture();
+    (json['description'] as List)[0]['type'] = 'table';
+    final blocks = ProductDetail.fromJson(json).description;
+    expect(blocks[0].type, DescriptionBlockType.paragraph);
+  });
+
+  test('specificatiile sunt perechi nume/valoare', () {
+    final specs = ProductDetail.fromJson(detailFixture()).specs;
+    expect(specs.single.name, 'Brand');
+    expect(specs.single.value, 'DB Orthodontics');
+  });
+
+  test('recenziile decodeaza, iar autorul poate lipsi', () {
+    final json = detailFixture();
+    final review = ProductDetail.fromJson(json).reviews.single;
+    expect(review.author, 'Ana P.');
+    expect(review.rating, 5);
+    expect(review.date, '2026-02-14');
+    expect(review.text, 'Foarte bun.');
+
+    (json['reviews'] as List)[0]['author'] = null;
+    (json['reviews'] as List)[0]['date'] = null;
+    final anonymous = ProductDetail.fromJson(json).reviews.single;
+    expect(anonymous.author, isNull);
+    expect(anonymous.date, isNull);
+  });
+
+  test('produsele similare au exact forma unui produs din /products', () {
+    final similar = ProductDetail.fromJson(detailFixture()).similar.single;
+    expect(similar.id, 102);
+    expect(similar.name, 'Cleste Tie Back mic Ixion');
+    expect(similar.defaultCode, isNull);
+    expect(similar.imageUrl, isNull);
+    expect(similar.price.formatted, '25,00 lei');
+    expect(similar.clubPrice, isNull);
+    expect(similar.badge, isNull);
+  });
+
+  test('beneficiile decodeaza, inclusiv iconita "return" (cuvant rezervat in Dart)', () {
+    final benefits = ProductDetail.fromJson(detailFixture()).benefits;
+    expect(benefits, hasLength(4));
+    expect(benefits[0].icon, BenefitIcon.club);
+    expect(benefits[0].title, 'Alatura-te Ortho Club');
+    expect(benefits[0].text, 'pentru extra beneficii');
+    expect(benefits[1].icon, BenefitIcon.delivery);
+    expect(benefits[2].icon, BenefitIcon.returns);
+    expect(benefits[3].icon, BenefitIcon.payment);
+  });
+
+  test('Benefit decodeaza si benefits.json (array la nivelul radacinii)', () {
+    final benefits = benefitsFixture().map((e) => Benefit.fromJson(e as Map<String, dynamic>)).toList();
+    expect(benefits, hasLength(4));
+    expect(benefits.last.title, 'Plata online sigura');
+  });
+
+  test('iconita de beneficiu necunoscuta cade pe info, iar textul poate lipsi', () {
+    final benefit = Benefit.fromJson({'icon': 'unicorn', 'title': 'Ceva nou', 'text': null});
+    expect(benefit.icon, BenefitIcon.info);
+    expect(benefit.text, isNull);
+  });
+
+  test('produs fara variante, praguri, descriere sau disponibilitate decodeaza fara eroare', () {
+    final detail = ProductDetail.fromJson(bareDetailJson());
+    expect(detail.variantId, isNull);
+    expect(detail.defaultCode, isNull);
+    expect(detail.badge, isNull);
+    expect(detail.images, isEmpty);
+    expect(detail.clubPrice, isNull);
+    expect(detail.tiers, isEmpty);
+    expect(detail.clubTiers, isEmpty);
+    expect(detail.variants, isNull);
+    expect(detail.specs, isEmpty);
+    expect(detail.description, isEmpty);
+    expect(detail.availability, isNull);
+    expect(detail.reviews, isEmpty);
+    expect(detail.similar, isEmpty);
+    expect(detail.benefits, isEmpty);
+  });
+
+  test('availability poate avea mesaj null, dar sa fie prezenta', () {
+    final json = detailFixture();
+    json['availability'] = {'message': null, 'in_stock': false};
+    final availability = ProductDetail.fromJson(json).availability;
+    expect(availability, isNotNull);
+    expect(availability!.message, isNull);
+    expect(availability.inStock, isFalse);
+  });
+
+  test('club_price null vine mereu cu club_tiers gol', () {
+    final json = detailFixture();
+    json['club_price'] = null;
+    json['club_tiers'] = <dynamic>[];
+    final detail = ProductDetail.fromJson(json);
+    expect(detail.clubPrice, isNull);
+    expect(detail.clubTiers, isEmpty);
+  });
+}
