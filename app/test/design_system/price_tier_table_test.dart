@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uportho_app/design_system/widgets/description_view.dart';
 import 'package:uportho_app/design_system/widgets/price_tier_table.dart';
 
 void main() {
@@ -27,6 +28,31 @@ void main() {
       expect(find.text(tier.label), findsOneWidget);
       expect(find.text(tier.priceFormatted), findsOneWidget);
     }
+  });
+
+  testWidgets('nota vine sub titlu si deasupra randurilor', (tester) async {
+    // Nota e textul de pe lista de pret (`bulk_info` pe site), trimis de server ca
+    // blocuri — widgetul primeste tipuri locale de design system, nu modele API.
+    await tester.pumpWidget(sized(const PriceTierTable(
+      title: 'Pret public',
+      note: [
+        DescriptionBlockData(
+          style: DescriptionBlockStyle.paragraph,
+          spans: [DescriptionSpanData(text: 'Reducerea se aplica de la 5 bucati.')],
+        ),
+      ],
+      entries: tiers,
+    )));
+
+    expect(find.text('Reducerea se aplica de la 5 bucati.'), findsOneWidget);
+    final noteTop = tester.getTopLeft(find.text('Reducerea se aplica de la 5 bucati.')).dy;
+    expect(noteTop, greaterThan(tester.getTopLeft(find.text('Pret public')).dy));
+    expect(noteTop, lessThan(tester.getTopLeft(find.text('1.399,99 lei')).dy));
+  });
+
+  testWidgets('fara nota nu se deseneaza nimic in locul ei', (tester) async {
+    await tester.pumpWidget(sized(const PriceTierTable(title: 'Pret public', entries: tiers)));
+    expect(find.byType(DescriptionView), findsNothing);
   });
 
   testWidgets('randul curent (cantitatea 1) e evidentiat, celelalte nu', (tester) async {

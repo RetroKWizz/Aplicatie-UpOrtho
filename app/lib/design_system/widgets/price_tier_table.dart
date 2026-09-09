@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../colors.dart';
 import '../typography.dart';
+import 'description_view.dart';
 
 /// Un prag de cantitate, gata de afisat: eticheta ("1+", "3+") si suma, ambele
 /// siruri venite formatate de la server. Widgetul nu primeste niciodata numere de
@@ -22,9 +23,13 @@ class PriceTierEntry {
   int get hashCode => Object.hash(label, priceFormatted);
 }
 
-/// Tabelul de praguri de cantitate (si cel de Ortho Club, care are aceeasi forma).
-/// Cate o coloana per prag, derulabile orizontal cand nu incap — de aceea nu poate
-/// da overflow nici la sase praguri cu sume de cinci cifre pe un ecran ingust.
+/// Un tabel de preturi: cate o coloana per prag, derulabile orizontal cand nu incap
+/// — de aceea nu poate da overflow nici la sase praguri cu sume de cinci cifre pe un
+/// ecran ingust.
+///
+/// Titlul si nota vin de la apelant (adica, prin ecran, de la server): magazinul
+/// arata unul, doua sau niciun tabel, iar titlurile sunt nume de liste de pret sau
+/// de campanii — widgetul nu cunoaste niciunul.
 ///
 /// Lista goala = niciun pixel desenat, nici macar titlul: 214 din 619 produse
 /// reale n-au praguri.
@@ -33,11 +38,17 @@ class PriceTierTable extends StatelessWidget {
     super.key,
     required this.entries,
     this.title,
+    this.note = const [],
     this.highlightedIndex = 0,
   });
 
   final List<PriceTierEntry> entries;
   final String? title;
+
+  /// Textul de pe lista de pret ("de la 5 bucati", conditii de campanie), sub titlu.
+  /// Aceleasi blocuri ca descrierea produsului — tip local de design system, nu
+  /// modelul API.
+  final List<DescriptionBlockData> note;
 
   /// Pragul evidentiat — implicit primul, adica pretul la cantitatea 1, cel care
   /// se aplica in mod obisnuit. Un index in afara listei nu evidentiaza nimic.
@@ -51,8 +62,12 @@ class PriceTierTable extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (title != null) ...[
+        if (title != null && title!.isNotEmpty) ...[
           Text(title!, style: AppTypography.sectionTitle),
+          const SizedBox(height: 8),
+        ],
+        if (note.isNotEmpty) ...[
+          DescriptionView(blocks: note),
           const SizedBox(height: 8),
         ],
         SingleChildScrollView(

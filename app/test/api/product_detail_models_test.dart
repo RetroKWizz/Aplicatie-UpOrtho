@@ -29,8 +29,7 @@ Map<String, dynamic> bareDetailJson() => {
         'discount_pct': null,
       },
       'club_price': null,
-      'tiers': <dynamic>[],
-      'club_tiers': <dynamic>[],
+      'price_tables': <dynamic>[],
       'variants': null,
       'specs': <dynamic>[],
       'description': <dynamic>[],
@@ -84,18 +83,48 @@ void main() {
     expect(images[1].videoUrl, 'https://www.youtube.com/watch?v=xxxx');
   });
 
-  test('pragurile de cantitate: eticheta, cantitatea minima si pretul deja formatat', () {
+  test('tabelele de pret: titlul, nota si pragurile vin toate de la server', () {
     final detail = ProductDetail.fromJson(detailFixture());
-    expect(detail.tiers, hasLength(2));
-    expect(detail.tiers[0].minQty, 1);
-    expect(detail.tiers[0].label, '1+');
-    expect(detail.tiers[0].price.formatted, '1.399,99 lei');
-    expect(detail.tiers[1].minQty, 3);
-    expect(detail.tiers[1].label, '3+');
-    expect(detail.tiers[1].price.formatted, '1.120,00 lei');
+    expect(detail.priceTables, hasLength(2));
 
-    expect(detail.clubTiers, hasLength(1));
-    expect(detail.clubTiers[0].price.formatted, '1.120,00 lei');
+    final first = detail.priceTables[0];
+    expect(first.title, 'Pret pe cantitate');
+    expect(first.note, isEmpty);
+    expect(first.entries, hasLength(2));
+    expect(first.entries[0].minQty, 1);
+    expect(first.entries[0].label, '1+');
+    expect(first.entries[0].price.formatted, '1.399,99 lei');
+    expect(first.entries[1].minQty, 3);
+    expect(first.entries[1].label, '3+');
+    expect(first.entries[1].price.formatted, '1.120,00 lei');
+
+    // Al doilea titlu e un nume de campanie: aplicatia nu are cum sa-l stie, il
+    // trimite serverul. De aceea tabelele sunt o lista, nu doua campuri fixe.
+    final second = detail.priceTables[1];
+    expect(second.title, 'Campanie Toamna 2026');
+    expect(second.note.single.type, DescriptionBlockType.paragraph);
+    expect(second.note.single.spans.single.text, 'Pret valabil pentru membrii Ortho Club.');
+    expect(second.entries.single.price.formatted, '1.050,00 lei');
+  });
+
+  test('un tabel fara titlu si fara nota decodeaza fara eroare', () {
+    final json = detailFixture();
+    json['price_tables'] = [
+      {
+        'title': null,
+        'entries': [
+          {
+            'min_qty': 1,
+            'label': '1+',
+            'price': (bareDetailJson()['price'] as Map<String, dynamic>),
+          },
+        ],
+      },
+    ];
+    final table = ProductDetail.fromJson(json).priceTables.single;
+    expect(table.title, isNull);
+    expect(table.note, isEmpty);
+    expect(table.entries.single.label, '1+');
   });
 
   test('variantele: un atribut cu doua valori, una selectata, ambele disponibile', () {
@@ -214,8 +243,7 @@ void main() {
     expect(detail.badge, isNull);
     expect(detail.images, isEmpty);
     expect(detail.clubPrice, isNull);
-    expect(detail.tiers, isEmpty);
-    expect(detail.clubTiers, isEmpty);
+    expect(detail.priceTables, isEmpty);
     expect(detail.variants, isNull);
     expect(detail.specs, isEmpty);
     expect(detail.description, isEmpty);
@@ -234,12 +262,12 @@ void main() {
     expect(availability.inStock, isFalse);
   });
 
-  test('club_price null vine mereu cu club_tiers gol', () {
+  test('fara tabele de pret, lista e goala, niciodata null', () {
     final json = detailFixture();
     json['club_price'] = null;
-    json['club_tiers'] = <dynamic>[];
+    json['price_tables'] = <dynamic>[];
     final detail = ProductDetail.fromJson(json);
     expect(detail.clubPrice, isNull);
-    expect(detail.clubTiers, isEmpty);
+    expect(detail.priceTables, isEmpty);
   });
 }

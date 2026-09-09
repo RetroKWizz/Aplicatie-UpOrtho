@@ -83,6 +83,59 @@ def _uportho_html_to_text(value):
     return _COLLAPSE_WHITESPACE.sub(' ', text).strip() or None
 
 
+def _uportho_html_blocks(html_value):
+    """Un camp HTML al Odoo transformat in blocurile block/span din contract -
+    NICIODATA HTML, aplicatia nu are motor HTML.
+
+    Folosit si pentru `website_description` (vezi `_uportho_description_blocks`) si
+    pentru `bulk_info`-ul listelor de pret aratate pe pagina de produs de pe site
+    (vezi `_uportho_price_tables_from_theme`): o singura cale de HTML, nu doua.
+
+    Sectiunile in alte limbi decat romana se elimina (`data-visibility-value-lang`,
+    vezi `_uportho_filter_romanian_sections`). Etichete acceptate: h1-h4 -> heading,
+    p -> paragraph, ul/ol -> bullets. strong/b si em/i devin bold/italic pe span;
+    orice alt tag inline (span, a, br...) se aplatizeaza la text simplu. HTML gol ->
+    lista goala."""
+    if not html_value:
+        return []
+
+    root = lxml.html.fromstring(f'<div>{html_value}</div>')
+    _uportho_filter_romanian_sections(root)
+
+    blocks = []
+    consumed = set()
+
+    def is_inside_consumed(el):
+        node = el.getparent()
+        while node is not None:
+            if id(node) in consumed:
+                return True
+            node = node.getparent()
+        return False
+
+    for el in root.iter():
+        if el is root or not isinstance(el.tag, str) or is_inside_consumed(el):
+            continue
+        if el.tag in _HEADING_TAGS:
+            spans = _uportho_spans(el)
+            if spans:
+                blocks.append({'type': 'heading', 'spans': spans})
+            consumed.add(id(el))
+        elif el.tag == 'p':
+            spans = _uportho_spans(el)
+            if spans:
+                blocks.append({'type': 'paragraph', 'spans': spans})
+            consumed.add(id(el))
+        elif el.tag in _LIST_TAGS:
+            items = [{'spans': item_spans}
+                     for li in el.findall('li')
+                     for item_spans in [_uportho_spans(li)] if item_spans]
+            if items:
+                blocks.append({'type': 'bullets', 'items': items})
+            consumed.add(id(el))
+    return blocks
+
+
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
@@ -112,47 +165,12 @@ class ProductTemplate(models.Model):
 
         Etichete acceptate: h1-h4 -> heading, p -> paragraph, ul/ol -> bullets.
         strong/b si em/i devin bold/italic pe span; orice alt tag inline (span, a,
-        br...) se aplatizeaza la text simplu. HTML gol -> lista goala."""
+        br...) se aplatizeaza la text simplu. HTML gol -> lista goala.
+
+        Conversia propriu-zisa sta in `_uportho_html_blocks`, ca sa fie o singura cale
+        de HTML in modul (o foloseste si nota tabelelor de pret)."""
         self.ensure_one()
-        html_value = self.website_description
-        if not html_value:
-            return []
-
-        root = lxml.html.fromstring(f'<div>{html_value}</div>')
-        _uportho_filter_romanian_sections(root)
-
-        blocks = []
-        consumed = set()
-
-        def is_inside_consumed(el):
-            node = el.getparent()
-            while node is not None:
-                if id(node) in consumed:
-                    return True
-                node = node.getparent()
-            return False
-
-        for el in root.iter():
-            if el is root or not isinstance(el.tag, str) or is_inside_consumed(el):
-                continue
-            if el.tag in _HEADING_TAGS:
-                spans = _uportho_spans(el)
-                if spans:
-                    blocks.append({'type': 'heading', 'spans': spans})
-                consumed.add(id(el))
-            elif el.tag == 'p':
-                spans = _uportho_spans(el)
-                if spans:
-                    blocks.append({'type': 'paragraph', 'spans': spans})
-                consumed.add(id(el))
-            elif el.tag in _LIST_TAGS:
-                items = [{'spans': item_spans}
-                         for li in el.findall('li')
-                         for item_spans in [_uportho_spans(li)] if item_spans]
-                if items:
-                    blocks.append({'type': 'bullets', 'items': items})
-                consumed.add(id(el))
-        return blocks
+        return _uportho_html_blocks(self.website_description)
 
     def _uportho_specs(self):
         """Perechi nume/valoare din `attribute_line_ids`, in ordinea lor. Brandul
@@ -236,6 +254,70 @@ class ProductTemplate(models.Model):
         if record and hasattr(record, '_is_sold_out'):
             in_stock = not record.sudo()._is_sold_out()
         return {'message': message, 'in_stock': in_stock}
+
+    def _uportho_price_tables_from_theme(self, combination_info, fallback_currency):
+        """Tabelele de pret ale paginii de produs, CITITE din ce a calculat deja
+        magazinul - nu recalculate de noi.
+
+        Modulul clientului (`terrabit_prime_extension`) suprascrie
+        `_get_combination_info` si pune in dictionarul intors `other_bulk_prices`:
+        cate o intrare per lista de pret aratata pe pagina de produs
+        (`is_public_pricelist` si `is_compare_pricelist`, doua campuri adaugate de ei
+        pe `product.pricelist`), fiecare cu:
+        - `name`: titlul aratat pe site (pe productie, al doilea e un nume de
+          campanie pe care aplicatia nu are cum sa-l ghiceasca - de aceea titlurile
+          vin de la server, nu sunt scrise in app);
+        - `bulk_info`: HTML de pe lista de pret;
+        - `prices`: `qty` + `price` (cu taxe, in valuta afisata) + `formatted_price`
+          (HTML).
+        Ruta noastra cheama oricum `_get_combination_info`, deci pe serverul real
+        datele astea sunt deja in mana: le citim, ca pagina din app sa arate exact
+        tabelele de pe site.
+
+        Doua lucruri NU se preiau ca atare:
+        - `formatted_price` e Markup (HTML). Aplicatia n-are motor HTML, deci suma se
+          formateaza cu `serialize_price`, formatorul modulului - o singura forma de
+          pret in tot API-ul.
+        - `bulk_info` trece prin `_uportho_html_blocks`, aceeasi conversie ca
+          descrierea produsului, tot ca sa nu plece HTML catre aplicatie.
+
+        Valuta: cea afisata de magazin (`combination_info['currency']`, in care tema
+        si-a convertit deja sumele); `fallback_currency` doar cand lipseste.
+
+        Cod strain: un `other_bulk_prices` absent, gol sau stricat nu are voie sa
+        transforme pagina de produs in 500 - se intoarce ce se poate citi, eventual
+        lista goala, iar apelantul cade pe `_uportho_price_tiers`."""
+        self.ensure_one()
+        entries = (combination_info or {}).get('other_bulk_prices') or []
+        currency = (combination_info or {}).get('currency') or fallback_currency
+        tables = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            rows = []
+            for row in entry.get('prices') or []:
+                if not isinstance(row, dict):
+                    continue
+                try:
+                    # `qty = 0` e implicitul Odoo pentru "fara minim", nu un prag
+                    # real - aceeasi normalizare ca in `_uportho_price_tiers`.
+                    min_qty = max(int(row.get('qty') or 1), 1)
+                    amount = float(row['price'])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                rows.append({
+                    'min_qty': min_qty,
+                    'label': '1+' if min_qty == 1 else f'{min_qty}+',
+                    'price': serialize_price(amount, None, currency),
+                })
+            if not rows:
+                continue
+            tables.append({
+                'title': (entry.get('name') or '').strip() or None,
+                'note': _uportho_html_blocks(entry.get('bulk_info')),
+                'entries': rows,
+            })
+        return tables
 
     def _uportho_price_tiers(self, pricelist, partner, fiscal_position=None, variant=None):
         """Pragurile de cantitate pentru acest produs pe `pricelist`. Pretul de la

@@ -64,14 +64,9 @@ _ProductDetail _$ProductDetailFromJson(Map<String, dynamic> json) =>
       clubPrice: json['club_price'] == null
           ? null
           : Price.fromJson(json['club_price'] as Map<String, dynamic>),
-      tiers:
-          (json['tiers'] as List<dynamic>?)
-              ?.map((e) => PriceTier.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      clubTiers:
-          (json['club_tiers'] as List<dynamic>?)
-              ?.map((e) => PriceTier.fromJson(e as Map<String, dynamic>))
+      priceTables:
+          (json['price_tables'] as List<dynamic>?)
+              ?.map((e) => PriceTable.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       variants: json['variants'] == null
@@ -122,8 +117,7 @@ Map<String, dynamic> _$ProductDetailToJson(_ProductDetail instance) =>
       'images': instance.images,
       'price': instance.price,
       'club_price': instance.clubPrice,
-      'tiers': instance.tiers,
-      'club_tiers': instance.clubTiers,
+      'price_tables': instance.priceTables,
       'variants': instance.variants,
       'specs': instance.specs,
       'description': instance.description,

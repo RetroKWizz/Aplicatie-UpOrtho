@@ -1,8 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'benefit.dart';
-import 'description_block.dart';
-import 'price_tier.dart';
+import 'price_table.dart';
 import 'product.dart';
 import 'product_review.dart';
 import 'spec.dart';
@@ -11,6 +10,7 @@ import 'variant.dart';
 export 'benefit.dart';
 export 'description_block.dart';
 export 'price.dart';
+export 'price_table.dart';
 export 'price_tier.dart';
 export 'product.dart';
 export 'product_badge.dart';
@@ -72,11 +72,13 @@ abstract class ProductAvailability with _$ProductAvailability {
 /// Reguli de forma, garantate de contract si reflectate aici:
 /// - `clubPrice`, `variants`, `availability`, `badge`, `variantId` sunt `null` cand
 ///   nu se aplica; **fiecare sectiune fara date dispare complet** de pe ecran;
-/// - `tiers`, `clubTiers`, `specs`, `description`, `reviews`, `similar`, `benefits`,
+/// - `priceTables`, `specs`, `description`, `reviews`, `similar`, `benefits`,
 ///   `images` sunt liste goale, niciodata null;
 /// - `similar` are exact forma unui produs din `/products`, deci se reia acelasi
 ///   model `Product` si acelasi `ProductCard`, fara conversii;
-/// - `clubTiers` e mereu gol cand `clubPrice` e null.
+/// - `priceTables` e o lista tocmai pentru ca site-ul arata unul, doua sau niciun
+///   tabel, cu titluri pe care le stie doar serverul (vezi `PriceTable`); ecranul le
+///   deseneaza in ordinea primita si nu presupune niciodata cate sunt.
 ///
 /// Toate sumele sunt siruri gata formatate de server (`formatted`,
 /// `listFormatted`) — aplicatia nu face niciodata aritmetica pe bani.
@@ -91,8 +93,7 @@ abstract class ProductDetail with _$ProductDetail {
     @Default([]) List<ProductImage> images,
     required Price price,
     @JsonKey(name: 'club_price') Price? clubPrice,
-    @Default([]) List<PriceTier> tiers,
-    @JsonKey(name: 'club_tiers') @Default([]) List<PriceTier> clubTiers,
+    @JsonKey(name: 'price_tables') @Default([]) List<PriceTable> priceTables,
     VariantOptions? variants,
     @Default([]) List<ProductSpec> specs,
     @Default([]) List<DescriptionBlock> description,

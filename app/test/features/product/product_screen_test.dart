@@ -48,8 +48,7 @@ Map<String, dynamic> bareProductJson() => {
       'images': <Map<String, dynamic>>[],
       'price': priceJson(),
       'club_price': null,
-      'tiers': <Map<String, dynamic>>[],
-      'club_tiers': <Map<String, dynamic>>[],
+      'price_tables': <Map<String, dynamic>>[],
       'variants': null,
       'specs': <Map<String, dynamic>>[],
       'description': <Map<String, dynamic>>[],
@@ -61,21 +60,24 @@ Map<String, dynamic> bareProductJson() => {
     };
 
 /// Produsul "bogat": fixture-ul de contract, cu recenzii numarate (in fixture
-/// `rating.count` e 0, iar randul de stele nu se deseneaza fara recenzii) si cu un
-/// al doilea prag de club (in contract clubul are un singur prag, egal cu pretul de
-/// club de deasupra lui, iar ecranul ascunde acum un asemenea tabel redundant).
+/// `rating.count` e 0, iar randul de stele nu se deseneaza fara recenzii).
 Map<String, dynamic> fullProductJson() {
   final contract = jsonDecode(File('test/contract/product_detail.json').readAsStringSync())
       as Map<String, dynamic>;
-  return {
-    ...contract,
-    'rating': {'average': 4.5, 'count': 22},
-    'club_tiers': [
-      ...(contract['club_tiers'] as List),
-      {'min_qty': 5, 'label': '5+', 'price': priceJson(amount: 990.0, formatted: '990,00 lei')},
-    ],
-  };
+  return {...contract, 'rating': {'average': 4.5, 'count': 22}};
 }
+
+/// Un tabel de pret in forma de contract: titlul si nota vin de la server, ca si
+/// sumele.
+Map<String, dynamic> priceTableJson({
+  String? title,
+  List<Map<String, dynamic>> note = const [],
+  required List<Map<String, dynamic>> entries,
+}) =>
+    {'title': title, 'note': note, 'entries': entries};
+
+Map<String, dynamic> tierJson(int minQty, String label, Map<String, dynamic> price) =>
+    {'min_qty': minQty, 'label': label, 'price': price};
 
 void main() {
   Future<ProviderContainer> pumpProduct(
@@ -137,105 +139,89 @@ void main() {
     expect(find.textContaining('Cod:'), findsNothing);
   });
 
-  testWidgets('un singur prag egal cu pretul de deasupra nu deseneaza tabelul', (tester) async {
-    // Serverul intoarce mereu cel putin randul "1+"; pentru produsele fara reduceri
-    // de cantitate acel rand repeta pretul deja afisat. Un tabel cu un singur rand
-    // care spune acelasi lucru nu are ce cauta pe ecran.
-    final transport = FakeTransport();
-    transport.when(
-      'GET',
-      '/api/app/v1/products/101',
-      ApiResponse(status: 200, json: {
-        ...bareProductJson(),
-        'tiers': [
-          {'min_qty': 1, 'label': '1+', 'price': priceJson()},
-        ],
-      }),
-    );
-
-    await pumpProduct(tester, transport: transport);
-
-    expect(find.byType(PriceTierTable), findsNothing);
-    expect(find.text('Pret pe cantitate'), findsNothing);
-    expect(find.text('25,00 lei'), findsOneWidget, reason: 'pretul de sus ramane');
-  });
-
-  testWidgets('un singur prag cu alt pret decat cel de deasupra ramane vizibil', (tester) async {
-    final transport = FakeTransport();
-    transport.when(
-      'GET',
-      '/api/app/v1/products/101',
-      ApiResponse(status: 200, json: {
-        ...bareProductJson(),
-        'tiers': [
-          {'min_qty': 3, 'label': '3+', 'price': priceJson(amount: 20.0, formatted: '20,00 lei')},
-        ],
-      }),
-    );
-
-    await pumpProduct(tester, transport: transport);
-
-    expect(find.text('Pret pe cantitate'), findsOneWidget);
-    expect(find.text('20,00 lei'), findsOneWidget);
-  });
-
-  testWidgets('doua praguri se deseneaza mereu, chiar daca primul e pretul de sus',
+  testWidgets('tabelele de pret se deseneaza in ordinea si cu titlurile primite de la server',
       (tester) async {
+    // Site-ul poate arata unul, doua sau niciun tabel, iar al doilea titlu e un nume
+    // de campanie. Ecranul nu stie niciun titlu si nu presupune cate tabele sunt: le
+    // deseneaza pe cele primite, in ordinea primita.
     final transport = FakeTransport();
     transport.when(
       'GET',
       '/api/app/v1/products/101',
       ApiResponse(status: 200, json: {
         ...bareProductJson(),
-        'tiers': [
-          {'min_qty': 1, 'label': '1+', 'price': priceJson()},
-          {'min_qty': 5, 'label': '5+', 'price': priceJson(amount: 20.0, formatted: '20,00 lei')},
+        'price_tables': [
+          priceTableJson(title: 'Pret public', entries: [
+            tierJson(1, '1+', priceJson()),
+            tierJson(5, '5+', priceJson(amount: 20.0, formatted: '20,00 lei')),
+          ]),
+          priceTableJson(title: 'Campanie Toamna 2026', entries: [
+            tierJson(1, '1+', priceJson(amount: 18.0, formatted: '18,00 lei')),
+          ]),
         ],
       }),
     );
 
-    await pumpProduct(tester, transport: transport);
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
 
-    expect(find.text('Pret pe cantitate'), findsOneWidget);
+    expect(find.byType(PriceTierTable), findsNWidgets(2));
+    expect(find.text('Pret public'), findsOneWidget);
+    expect(find.text('Campanie Toamna 2026'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Campanie Toamna 2026')).dy,
+        greaterThan(tester.getTopLeft(find.text('Pret public')).dy));
     expect(find.text('5+'), findsOneWidget);
+    expect(find.text('20,00 lei'), findsOneWidget);
+    expect(find.text('18,00 lei'), findsOneWidget);
   });
 
-  testWidgets('aceeasi regula se aplica si tabelului de club', (tester) async {
+  testWidgets('nota unui tabel se afiseaza sub titlul lui', (tester) async {
     final transport = FakeTransport();
     transport.when(
       'GET',
       '/api/app/v1/products/101',
       ApiResponse(status: 200, json: {
         ...bareProductJson(),
-        'club_price': priceJson(),
-        'club_tiers': [
-          {'min_qty': 1, 'label': '1+', 'price': priceJson()},
+        'price_tables': [
+          priceTableJson(
+            title: 'Pret Ortho Club',
+            note: [
+              {
+                'type': 'paragraph',
+                'spans': [
+                  {'text': 'Reducerea se aplica de la 5 bucati.', 'bold': false, 'italic': false},
+                ],
+              },
+            ],
+            entries: [tierJson(5, '5+', priceJson(amount: 20.0, formatted: '20,00 lei'))],
+          ),
         ],
       }),
     );
 
-    await pumpProduct(tester, transport: transport);
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
 
-    expect(find.text('Pret Ortho Club'), findsNothing);
+    expect(find.text('Reducerea se aplica de la 5 bucati.'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Reducerea se aplica de la 5 bucati.')).dy,
+        greaterThan(tester.getTopLeft(find.text('Pret Ortho Club')).dy));
   });
 
-  testWidgets('tabelul de club cu un pret diferit de cel afisat sus ramane', (tester) async {
+  testWidgets('un tabel fara titlu se deseneaza doar cu randurile lui', (tester) async {
     final transport = FakeTransport();
     transport.when(
       'GET',
       '/api/app/v1/products/101',
       ApiResponse(status: 200, json: {
         ...bareProductJson(),
-        'club_price': priceJson(amount: 20.0, formatted: '20,00 lei'),
-        'club_tiers': [
-          {'min_qty': 1, 'label': '1+', 'price': priceJson(amount: 20.0, formatted: '20,00 lei')},
+        'price_tables': [
+          priceTableJson(entries: [tierJson(3, '3+', priceJson(amount: 20.0, formatted: '20,00 lei'))]),
         ],
       }),
     );
 
     await pumpProduct(tester, transport: transport);
 
-    expect(find.text('Pret Ortho Club'), findsOneWidget);
+    expect(find.byType(PriceTierTable), findsOneWidget);
+    expect(find.text('3+'), findsOneWidget);
     expect(find.text('20,00 lei'), findsOneWidget);
   });
 
@@ -254,8 +240,8 @@ void main() {
       'titlu': top(find.text('Cleste Tie Back mare (.016 - .021x.025) Ixion')),
       'recenzii (stele)': top(find.text('22 recenzii')),
       'pret': top(find.text('1.120,00 lei').first),
-      'praguri': top(find.text('Pret pe cantitate')),
-      'praguri club': top(find.text('Pret Ortho Club')),
+      'primul tabel de pret': top(find.text('Pret pe cantitate')),
+      'al doilea tabel de pret': top(find.text('Campanie Toamna 2026')),
       'variante': top(find.byType(VariantPicker)),
       'disponibilitate': top(find.text('Precomanda. Livrare incepand cu 1 August')),
       'buton cos': top(find.widgetWithText(FilledButton, 'Adauga in cos')),

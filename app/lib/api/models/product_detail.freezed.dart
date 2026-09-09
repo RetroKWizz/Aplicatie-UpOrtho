@@ -568,7 +568,7 @@ as bool,
 /// @nodoc
 mixin _$ProductDetail {
 
- int get id;@JsonKey(name: 'variant_id') int? get variantId; String get name;@JsonKey(name: 'default_code') String? get defaultCode; ProductBadge? get badge; List<ProductImage> get images; Price get price;@JsonKey(name: 'club_price') Price? get clubPrice; List<PriceTier> get tiers;@JsonKey(name: 'club_tiers') List<PriceTier> get clubTiers; VariantOptions? get variants; List<ProductSpec> get specs; List<DescriptionBlock> get description; ProductAvailability? get availability; ProductRating get rating; List<ProductReview> get reviews; List<Product> get similar; List<Benefit> get benefits;
+ int get id;@JsonKey(name: 'variant_id') int? get variantId; String get name;@JsonKey(name: 'default_code') String? get defaultCode; ProductBadge? get badge; List<ProductImage> get images; Price get price;@JsonKey(name: 'club_price') Price? get clubPrice;@JsonKey(name: 'price_tables') List<PriceTable> get priceTables; VariantOptions? get variants; List<ProductSpec> get specs; List<DescriptionBlock> get description; ProductAvailability? get availability; ProductRating get rating; List<ProductReview> get reviews; List<Product> get similar; List<Benefit> get benefits;
 /// Create a copy of ProductDetail
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -582,20 +582,20 @@ $ProductDetailCopyWith<ProductDetail> get copyWith => _$ProductDetailCopyWithImp
 @override
 bool operator ==(Object other) {
   final _this = this as ProductDetail;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductDetail&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.variantId, _this.variantId) || other.variantId == _this.variantId)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.defaultCode, _this.defaultCode) || other.defaultCode == _this.defaultCode)&&(identical(other.badge, _this.badge) || other.badge == _this.badge)&&const DeepCollectionEquality().equals(other.images, _this.images)&&(identical(other.price, _this.price) || other.price == _this.price)&&(identical(other.clubPrice, _this.clubPrice) || other.clubPrice == _this.clubPrice)&&const DeepCollectionEquality().equals(other.tiers, _this.tiers)&&const DeepCollectionEquality().equals(other.clubTiers, _this.clubTiers)&&(identical(other.variants, _this.variants) || other.variants == _this.variants)&&const DeepCollectionEquality().equals(other.specs, _this.specs)&&const DeepCollectionEquality().equals(other.description, _this.description)&&(identical(other.availability, _this.availability) || other.availability == _this.availability)&&(identical(other.rating, _this.rating) || other.rating == _this.rating)&&const DeepCollectionEquality().equals(other.reviews, _this.reviews)&&const DeepCollectionEquality().equals(other.similar, _this.similar)&&const DeepCollectionEquality().equals(other.benefits, _this.benefits));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductDetail&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.variantId, _this.variantId) || other.variantId == _this.variantId)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.defaultCode, _this.defaultCode) || other.defaultCode == _this.defaultCode)&&(identical(other.badge, _this.badge) || other.badge == _this.badge)&&const DeepCollectionEquality().equals(other.images, _this.images)&&(identical(other.price, _this.price) || other.price == _this.price)&&(identical(other.clubPrice, _this.clubPrice) || other.clubPrice == _this.clubPrice)&&const DeepCollectionEquality().equals(other.priceTables, _this.priceTables)&&(identical(other.variants, _this.variants) || other.variants == _this.variants)&&const DeepCollectionEquality().equals(other.specs, _this.specs)&&const DeepCollectionEquality().equals(other.description, _this.description)&&(identical(other.availability, _this.availability) || other.availability == _this.availability)&&(identical(other.rating, _this.rating) || other.rating == _this.rating)&&const DeepCollectionEquality().equals(other.reviews, _this.reviews)&&const DeepCollectionEquality().equals(other.similar, _this.similar)&&const DeepCollectionEquality().equals(other.benefits, _this.benefits));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ProductDetail;
-  return Object.hash(runtimeType,_this.id,_this.variantId,_this.name,_this.defaultCode,_this.badge,const DeepCollectionEquality().hash(_this.images),_this.price,_this.clubPrice,const DeepCollectionEquality().hash(_this.tiers),const DeepCollectionEquality().hash(_this.clubTiers),_this.variants,const DeepCollectionEquality().hash(_this.specs),const DeepCollectionEquality().hash(_this.description),_this.availability,_this.rating,const DeepCollectionEquality().hash(_this.reviews),const DeepCollectionEquality().hash(_this.similar),const DeepCollectionEquality().hash(_this.benefits));
+  return Object.hash(runtimeType,_this.id,_this.variantId,_this.name,_this.defaultCode,_this.badge,const DeepCollectionEquality().hash(_this.images),_this.price,_this.clubPrice,const DeepCollectionEquality().hash(_this.priceTables),_this.variants,const DeepCollectionEquality().hash(_this.specs),const DeepCollectionEquality().hash(_this.description),_this.availability,_this.rating,const DeepCollectionEquality().hash(_this.reviews),const DeepCollectionEquality().hash(_this.similar),const DeepCollectionEquality().hash(_this.benefits));
 }
 
 @override
 String toString() {
   final _this = this as ProductDetail;
-  return 'ProductDetail(id: ${_this.id}, variantId: ${_this.variantId}, name: ${_this.name}, defaultCode: ${_this.defaultCode}, badge: ${_this.badge}, images: ${_this.images}, price: ${_this.price}, clubPrice: ${_this.clubPrice}, tiers: ${_this.tiers}, clubTiers: ${_this.clubTiers}, variants: ${_this.variants}, specs: ${_this.specs}, description: ${_this.description}, availability: ${_this.availability}, rating: ${_this.rating}, reviews: ${_this.reviews}, similar: ${_this.similar}, benefits: ${_this.benefits})';
+  return 'ProductDetail(id: ${_this.id}, variantId: ${_this.variantId}, name: ${_this.name}, defaultCode: ${_this.defaultCode}, badge: ${_this.badge}, images: ${_this.images}, price: ${_this.price}, clubPrice: ${_this.clubPrice}, priceTables: ${_this.priceTables}, variants: ${_this.variants}, specs: ${_this.specs}, description: ${_this.description}, availability: ${_this.availability}, rating: ${_this.rating}, reviews: ${_this.reviews}, similar: ${_this.similar}, benefits: ${_this.benefits})';
 }
 
 
@@ -606,7 +606,7 @@ abstract mixin class $ProductDetailCopyWith<$Res>  {
   factory $ProductDetailCopyWith(ProductDetail value, $Res Function(ProductDetail) _then) = _$ProductDetailCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'variant_id') int? variantId, String name,@JsonKey(name: 'default_code') String? defaultCode, ProductBadge? badge, List<ProductImage> images, Price price,@JsonKey(name: 'club_price') Price? clubPrice, List<PriceTier> tiers,@JsonKey(name: 'club_tiers') List<PriceTier> clubTiers, VariantOptions? variants, List<ProductSpec> specs, List<DescriptionBlock> description, ProductAvailability? availability, ProductRating rating, List<ProductReview> reviews, List<Product> similar, List<Benefit> benefits
+ int id,@JsonKey(name: 'variant_id') int? variantId, String name,@JsonKey(name: 'default_code') String? defaultCode, ProductBadge? badge, List<ProductImage> images, Price price,@JsonKey(name: 'club_price') Price? clubPrice,@JsonKey(name: 'price_tables') List<PriceTable> priceTables, VariantOptions? variants, List<ProductSpec> specs, List<DescriptionBlock> description, ProductAvailability? availability, ProductRating rating, List<ProductReview> reviews, List<Product> similar, List<Benefit> benefits
 });
 
 
@@ -623,7 +623,7 @@ class _$ProductDetailCopyWithImpl<$Res>
 
 /// Create a copy of ProductDetail
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? variantId = freezed,Object? name = null,Object? defaultCode = freezed,Object? badge = freezed,Object? images = null,Object? price = null,Object? clubPrice = freezed,Object? tiers = null,Object? clubTiers = null,Object? variants = freezed,Object? specs = null,Object? description = null,Object? availability = freezed,Object? rating = null,Object? reviews = null,Object? similar = null,Object? benefits = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? variantId = freezed,Object? name = null,Object? defaultCode = freezed,Object? badge = freezed,Object? images = null,Object? price = null,Object? clubPrice = freezed,Object? priceTables = null,Object? variants = freezed,Object? specs = null,Object? description = null,Object? availability = freezed,Object? rating = null,Object? reviews = null,Object? similar = null,Object? benefits = null,}) {
   return _then(ProductDetail(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,variantId: freezed == variantId ? _self.variantId : variantId // ignore: cast_nullable_to_non_nullable
@@ -633,9 +633,8 @@ as String?,badge: freezed == badge ? _self.badge : badge // ignore: cast_nullabl
 as ProductBadge?,images: null == images ? _self.images : images // ignore: cast_nullable_to_non_nullable
 as List<ProductImage>,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as Price,clubPrice: freezed == clubPrice ? _self.clubPrice : clubPrice // ignore: cast_nullable_to_non_nullable
-as Price?,tiers: null == tiers ? _self.tiers : tiers // ignore: cast_nullable_to_non_nullable
-as List<PriceTier>,clubTiers: null == clubTiers ? _self.clubTiers : clubTiers // ignore: cast_nullable_to_non_nullable
-as List<PriceTier>,variants: freezed == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
+as Price?,priceTables: null == priceTables ? _self.priceTables : priceTables // ignore: cast_nullable_to_non_nullable
+as List<PriceTable>,variants: freezed == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
 as VariantOptions?,specs: null == specs ? _self.specs : specs // ignore: cast_nullable_to_non_nullable
 as List<ProductSpec>,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as List<DescriptionBlock>,availability: freezed == availability ? _self.availability : availability // ignore: cast_nullable_to_non_nullable
@@ -794,10 +793,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'variant_id')  int? variantId,  String name, @JsonKey(name: 'default_code')  String? defaultCode,  ProductBadge? badge,  List<ProductImage> images,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice,  List<PriceTier> tiers, @JsonKey(name: 'club_tiers')  List<PriceTier> clubTiers,  VariantOptions? variants,  List<ProductSpec> specs,  List<DescriptionBlock> description,  ProductAvailability? availability,  ProductRating rating,  List<ProductReview> reviews,  List<Product> similar,  List<Benefit> benefits)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'variant_id')  int? variantId,  String name, @JsonKey(name: 'default_code')  String? defaultCode,  ProductBadge? badge,  List<ProductImage> images,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice, @JsonKey(name: 'price_tables')  List<PriceTable> priceTables,  VariantOptions? variants,  List<ProductSpec> specs,  List<DescriptionBlock> description,  ProductAvailability? availability,  ProductRating rating,  List<ProductReview> reviews,  List<Product> similar,  List<Benefit> benefits)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProductDetail() when $default != null:
-return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badge,_that.images,_that.price,_that.clubPrice,_that.tiers,_that.clubTiers,_that.variants,_that.specs,_that.description,_that.availability,_that.rating,_that.reviews,_that.similar,_that.benefits);case _:
+return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badge,_that.images,_that.price,_that.clubPrice,_that.priceTables,_that.variants,_that.specs,_that.description,_that.availability,_that.rating,_that.reviews,_that.similar,_that.benefits);case _:
   return orElse();
 
 }
@@ -815,10 +814,10 @@ return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badg
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'variant_id')  int? variantId,  String name, @JsonKey(name: 'default_code')  String? defaultCode,  ProductBadge? badge,  List<ProductImage> images,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice,  List<PriceTier> tiers, @JsonKey(name: 'club_tiers')  List<PriceTier> clubTiers,  VariantOptions? variants,  List<ProductSpec> specs,  List<DescriptionBlock> description,  ProductAvailability? availability,  ProductRating rating,  List<ProductReview> reviews,  List<Product> similar,  List<Benefit> benefits)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'variant_id')  int? variantId,  String name, @JsonKey(name: 'default_code')  String? defaultCode,  ProductBadge? badge,  List<ProductImage> images,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice, @JsonKey(name: 'price_tables')  List<PriceTable> priceTables,  VariantOptions? variants,  List<ProductSpec> specs,  List<DescriptionBlock> description,  ProductAvailability? availability,  ProductRating rating,  List<ProductReview> reviews,  List<Product> similar,  List<Benefit> benefits)  $default,) {final _that = this;
 switch (_that) {
 case _ProductDetail():
-return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badge,_that.images,_that.price,_that.clubPrice,_that.tiers,_that.clubTiers,_that.variants,_that.specs,_that.description,_that.availability,_that.rating,_that.reviews,_that.similar,_that.benefits);case _:
+return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badge,_that.images,_that.price,_that.clubPrice,_that.priceTables,_that.variants,_that.specs,_that.description,_that.availability,_that.rating,_that.reviews,_that.similar,_that.benefits);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -835,10 +834,10 @@ return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badg
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'variant_id')  int? variantId,  String name, @JsonKey(name: 'default_code')  String? defaultCode,  ProductBadge? badge,  List<ProductImage> images,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice,  List<PriceTier> tiers, @JsonKey(name: 'club_tiers')  List<PriceTier> clubTiers,  VariantOptions? variants,  List<ProductSpec> specs,  List<DescriptionBlock> description,  ProductAvailability? availability,  ProductRating rating,  List<ProductReview> reviews,  List<Product> similar,  List<Benefit> benefits)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'variant_id')  int? variantId,  String name, @JsonKey(name: 'default_code')  String? defaultCode,  ProductBadge? badge,  List<ProductImage> images,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice, @JsonKey(name: 'price_tables')  List<PriceTable> priceTables,  VariantOptions? variants,  List<ProductSpec> specs,  List<DescriptionBlock> description,  ProductAvailability? availability,  ProductRating rating,  List<ProductReview> reviews,  List<Product> similar,  List<Benefit> benefits)?  $default,) {final _that = this;
 switch (_that) {
 case _ProductDetail() when $default != null:
-return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badge,_that.images,_that.price,_that.clubPrice,_that.tiers,_that.clubTiers,_that.variants,_that.specs,_that.description,_that.availability,_that.rating,_that.reviews,_that.similar,_that.benefits);case _:
+return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badge,_that.images,_that.price,_that.clubPrice,_that.priceTables,_that.variants,_that.specs,_that.description,_that.availability,_that.rating,_that.reviews,_that.similar,_that.benefits);case _:
   return null;
 
 }
@@ -850,7 +849,7 @@ return $default(_that.id,_that.variantId,_that.name,_that.defaultCode,_that.badg
 @JsonSerializable()
 
 class _ProductDetail implements ProductDetail {
-  const _ProductDetail({required this.id, @JsonKey(name: 'variant_id') this.variantId, required this.name, @JsonKey(name: 'default_code') this.defaultCode, this.badge,  List<ProductImage> images = const [], required this.price, @JsonKey(name: 'club_price') this.clubPrice,  List<PriceTier> tiers = const [], @JsonKey(name: 'club_tiers')  List<PriceTier> clubTiers = const [], this.variants,  List<ProductSpec> specs = const [],  List<DescriptionBlock> description = const [], this.availability, this.rating = const ProductRating(),  List<ProductReview> reviews = const [],  List<Product> similar = const [],  List<Benefit> benefits = const []}): _images = images,_tiers = tiers,_clubTiers = clubTiers,_specs = specs,_description = description,_reviews = reviews,_similar = similar,_benefits = benefits;
+  const _ProductDetail({required this.id, @JsonKey(name: 'variant_id') this.variantId, required this.name, @JsonKey(name: 'default_code') this.defaultCode, this.badge,  List<ProductImage> images = const [], required this.price, @JsonKey(name: 'club_price') this.clubPrice, @JsonKey(name: 'price_tables')  List<PriceTable> priceTables = const [], this.variants,  List<ProductSpec> specs = const [],  List<DescriptionBlock> description = const [], this.availability, this.rating = const ProductRating(),  List<ProductReview> reviews = const [],  List<Product> similar = const [],  List<Benefit> benefits = const []}): _images = images,_priceTables = priceTables,_specs = specs,_description = description,_reviews = reviews,_similar = similar,_benefits = benefits;
   factory _ProductDetail.fromJson(Map<String, dynamic> json) => _$ProductDetailFromJson(json);
 
 @override final  int id;
@@ -867,18 +866,11 @@ class _ProductDetail implements ProductDetail {
 
 @override final  Price price;
 @override@JsonKey(name: 'club_price') final  Price? clubPrice;
- final  List<PriceTier> _tiers;
-@override@JsonKey() List<PriceTier> get tiers {
-  if (_tiers is EqualUnmodifiableListView) return _tiers;
+ final  List<PriceTable> _priceTables;
+@override@JsonKey(name: 'price_tables') List<PriceTable> get priceTables {
+  if (_priceTables is EqualUnmodifiableListView) return _priceTables;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_tiers);
-}
-
- final  List<PriceTier> _clubTiers;
-@override@JsonKey(name: 'club_tiers') List<PriceTier> get clubTiers {
-  if (_clubTiers is EqualUnmodifiableListView) return _clubTiers;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_clubTiers);
+  return EqualUnmodifiableListView(_priceTables);
 }
 
 @override final  VariantOptions? variants;
@@ -933,18 +925,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductDetail&&(identical(other.id, id) || other.id == id)&&(identical(other.variantId, variantId) || other.variantId == variantId)&&(identical(other.name, name) || other.name == name)&&(identical(other.defaultCode, defaultCode) || other.defaultCode == defaultCode)&&(identical(other.badge, badge) || other.badge == badge)&&const DeepCollectionEquality().equals(other.images, _images)&&(identical(other.price, price) || other.price == price)&&(identical(other.clubPrice, clubPrice) || other.clubPrice == clubPrice)&&const DeepCollectionEquality().equals(other.tiers, _tiers)&&const DeepCollectionEquality().equals(other.clubTiers, _clubTiers)&&(identical(other.variants, variants) || other.variants == variants)&&const DeepCollectionEquality().equals(other.specs, _specs)&&const DeepCollectionEquality().equals(other.description, _description)&&(identical(other.availability, availability) || other.availability == availability)&&(identical(other.rating, rating) || other.rating == rating)&&const DeepCollectionEquality().equals(other.reviews, _reviews)&&const DeepCollectionEquality().equals(other.similar, _similar)&&const DeepCollectionEquality().equals(other.benefits, _benefits));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductDetail&&(identical(other.id, id) || other.id == id)&&(identical(other.variantId, variantId) || other.variantId == variantId)&&(identical(other.name, name) || other.name == name)&&(identical(other.defaultCode, defaultCode) || other.defaultCode == defaultCode)&&(identical(other.badge, badge) || other.badge == badge)&&const DeepCollectionEquality().equals(other.images, _images)&&(identical(other.price, price) || other.price == price)&&(identical(other.clubPrice, clubPrice) || other.clubPrice == clubPrice)&&const DeepCollectionEquality().equals(other.priceTables, _priceTables)&&(identical(other.variants, variants) || other.variants == variants)&&const DeepCollectionEquality().equals(other.specs, _specs)&&const DeepCollectionEquality().equals(other.description, _description)&&(identical(other.availability, availability) || other.availability == availability)&&(identical(other.rating, rating) || other.rating == rating)&&const DeepCollectionEquality().equals(other.reviews, _reviews)&&const DeepCollectionEquality().equals(other.similar, _similar)&&const DeepCollectionEquality().equals(other.benefits, _benefits));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,variantId,name,defaultCode,badge,const DeepCollectionEquality().hash(_images),price,clubPrice,const DeepCollectionEquality().hash(_tiers),const DeepCollectionEquality().hash(_clubTiers),variants,const DeepCollectionEquality().hash(_specs),const DeepCollectionEquality().hash(_description),availability,rating,const DeepCollectionEquality().hash(_reviews),const DeepCollectionEquality().hash(_similar),const DeepCollectionEquality().hash(_benefits));
+    return Object.hash(runtimeType,id,variantId,name,defaultCode,badge,const DeepCollectionEquality().hash(_images),price,clubPrice,const DeepCollectionEquality().hash(_priceTables),variants,const DeepCollectionEquality().hash(_specs),const DeepCollectionEquality().hash(_description),availability,rating,const DeepCollectionEquality().hash(_reviews),const DeepCollectionEquality().hash(_similar),const DeepCollectionEquality().hash(_benefits));
 }
 
 @override
 String toString() {
-    return 'ProductDetail(id: $id, variantId: $variantId, name: $name, defaultCode: $defaultCode, badge: $badge, images: $images, price: $price, clubPrice: $clubPrice, tiers: $tiers, clubTiers: $clubTiers, variants: $variants, specs: $specs, description: $description, availability: $availability, rating: $rating, reviews: $reviews, similar: $similar, benefits: $benefits)';
+    return 'ProductDetail(id: $id, variantId: $variantId, name: $name, defaultCode: $defaultCode, badge: $badge, images: $images, price: $price, clubPrice: $clubPrice, priceTables: $priceTables, variants: $variants, specs: $specs, description: $description, availability: $availability, rating: $rating, reviews: $reviews, similar: $similar, benefits: $benefits)';
 }
 
 
@@ -955,7 +947,7 @@ abstract mixin class _$ProductDetailCopyWith<$Res> implements $ProductDetailCopy
   factory _$ProductDetailCopyWith(_ProductDetail value, $Res Function(_ProductDetail) _then) = __$ProductDetailCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'variant_id') int? variantId, String name,@JsonKey(name: 'default_code') String? defaultCode, ProductBadge? badge, List<ProductImage> images, Price price,@JsonKey(name: 'club_price') Price? clubPrice, List<PriceTier> tiers,@JsonKey(name: 'club_tiers') List<PriceTier> clubTiers, VariantOptions? variants, List<ProductSpec> specs, List<DescriptionBlock> description, ProductAvailability? availability, ProductRating rating, List<ProductReview> reviews, List<Product> similar, List<Benefit> benefits
+ int id,@JsonKey(name: 'variant_id') int? variantId, String name,@JsonKey(name: 'default_code') String? defaultCode, ProductBadge? badge, List<ProductImage> images, Price price,@JsonKey(name: 'club_price') Price? clubPrice,@JsonKey(name: 'price_tables') List<PriceTable> priceTables, VariantOptions? variants, List<ProductSpec> specs, List<DescriptionBlock> description, ProductAvailability? availability, ProductRating rating, List<ProductReview> reviews, List<Product> similar, List<Benefit> benefits
 });
 
 
@@ -972,7 +964,7 @@ class __$ProductDetailCopyWithImpl<$Res>
 
 /// Create a copy of ProductDetail
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? variantId = freezed,Object? name = null,Object? defaultCode = freezed,Object? badge = freezed,Object? images = null,Object? price = null,Object? clubPrice = freezed,Object? tiers = null,Object? clubTiers = null,Object? variants = freezed,Object? specs = null,Object? description = null,Object? availability = freezed,Object? rating = null,Object? reviews = null,Object? similar = null,Object? benefits = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? variantId = freezed,Object? name = null,Object? defaultCode = freezed,Object? badge = freezed,Object? images = null,Object? price = null,Object? clubPrice = freezed,Object? priceTables = null,Object? variants = freezed,Object? specs = null,Object? description = null,Object? availability = freezed,Object? rating = null,Object? reviews = null,Object? similar = null,Object? benefits = null,}) {
   return _then(_ProductDetail(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,variantId: freezed == variantId ? _self.variantId : variantId // ignore: cast_nullable_to_non_nullable
@@ -982,9 +974,8 @@ as String?,badge: freezed == badge ? _self.badge : badge // ignore: cast_nullabl
 as ProductBadge?,images: null == images ? _self._images : images // ignore: cast_nullable_to_non_nullable
 as List<ProductImage>,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as Price,clubPrice: freezed == clubPrice ? _self.clubPrice : clubPrice // ignore: cast_nullable_to_non_nullable
-as Price?,tiers: null == tiers ? _self._tiers : tiers // ignore: cast_nullable_to_non_nullable
-as List<PriceTier>,clubTiers: null == clubTiers ? _self._clubTiers : clubTiers // ignore: cast_nullable_to_non_nullable
-as List<PriceTier>,variants: freezed == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
+as Price?,priceTables: null == priceTables ? _self._priceTables : priceTables // ignore: cast_nullable_to_non_nullable
+as List<PriceTable>,variants: freezed == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
 as VariantOptions?,specs: null == specs ? _self._specs : specs // ignore: cast_nullable_to_non_nullable
 as List<ProductSpec>,description: null == description ? _self._description : description // ignore: cast_nullable_to_non_nullable
 as List<DescriptionBlock>,availability: freezed == availability ? _self.availability : availability // ignore: cast_nullable_to_non_nullable
