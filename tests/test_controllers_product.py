@@ -413,10 +413,14 @@ class TestControllersProductDetail(AppHttpCase):
         # Tabelul de praguri trebuie sa arate pretul variantei alese; altfel randul
         # "1+" ar contrazice pretul mare de deasupra lui pe aceeasi pagina.
         self.api_login()
-        self.env['product.pricelist.item'].create({
-            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
-            'product_tmpl_id': self.product.id, 'compute_price': 'percentage',
-            'percent_price': 20.0, 'min_quantity': 5})
+        # Doua reguli: una de la o bucata (fara reducere) si una de la 5. Pragul 1 nu
+        # se mai adauga de la sine cand lista n-are nicio regula sub el, iar testul
+        # vorbeste tocmai despre randul "1+".
+        for min_qty, percent in ((1, 0.0), (5, 20.0)):
+            self.env['product.pricelist.item'].create({
+                'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': self.product.id, 'compute_price': 'percentage',
+                'percent_price': percent, 'min_quantity': min_qty})
         expensive = self._variant('Mare detaliu', 'Argintiu detaliu')
         body = self._detail(variant_id=expensive.id).json()
         entries = body['price_tables'][0]['entries']
@@ -426,10 +430,11 @@ class TestControllersProductDetail(AppHttpCase):
 
     def test_price_tables_from_pricelist_rules(self):
         self.api_login()
-        self.env['product.pricelist.item'].create({
-            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
-            'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
-            'percent_price': 20.0, 'min_quantity': 5})
+        for min_qty, percent in ((1, 0.0), (5, 20.0)):
+            self.env['product.pricelist.item'].create({
+                'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
+                'percent_price': percent, 'min_quantity': min_qty})
         body = self._detail(self.product_bare).json()
         # Fara modulul de tema (nu e pe baza locala), titlul vine tot de la server -
         # aplicatia nu mai stie niciun titlu de tabel.
@@ -440,6 +445,19 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertEqual([tier['label'] for tier in entries], ['1+', '5+'])
         self.assertGreater(entries[0]['price']['amount'], entries[1]['price']['amount'])
         self.assertEqual(body['price_tables'][0]['note'], [])
+
+    def test_a_pricelist_starting_at_five_has_no_invented_one_plus_row(self):
+        # Site-ul deseneaza doar pragurile care exista ca reguli; noi adaugam un rand
+        # "1+" doar cand nu exista nicio regula. Cu cea mai mica regula la 5, tabelul
+        # din aplicatie trebuie sa arate exact ca al magazinului.
+        self.api_login()
+        for min_qty, percent in ((5, 20.0), (10, 30.0)):
+            self.env['product.pricelist.item'].create({
+                'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
+                'percent_price': percent, 'min_quantity': min_qty})
+        entries = self._detail(self.product_bare).json()['price_tables'][0]['entries']
+        self.assertEqual([tier['label'] for tier in entries], ['5+', '10+'])
 
     def test_club_price_and_club_table_when_parameter_set(self):
         club_pricelist = self.env['product.pricelist'].create({
@@ -563,15 +581,18 @@ class TestControllersProductDetail(AppHttpCase):
         # calculate de modul (aici, un prag de cantitate real).
         self.api_login()
         self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
-        self.env['product.pricelist.item'].create({
-            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
-            'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
-            'percent_price': 20.0, 'min_quantity': 5})
+        for min_qty, percent in ((1, 0.0), (5, 20.0)):
+            self.env['product.pricelist.item'].create({
+                'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
+                'percent_price': percent, 'min_quantity': min_qty})
         with self._combination_info_raising(), \
                 self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
             body = self._detail(self.product_bare).json()
 
         self.assertEqual([table['title'] for table in body['price_tables']], ['Pret pe cantitate'])
+        # Doua reguli, deci doua randuri. Pragul 1 e al unei reguli reale: modulul nu
+        # mai inventeaza un rand "1+" cand lista nu are nicio regula sub prag.
         self.assertEqual([entry['min_qty'] for entry in body['price_tables'][0]['entries']], [1, 5])
 
     # --- tabelele de pret calculate direct din listele magazinului -------------

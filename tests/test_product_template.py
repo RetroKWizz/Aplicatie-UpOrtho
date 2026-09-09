@@ -272,8 +272,27 @@ class TestProductPriceTiers(TransactionCase):
             'product_tmpl_id': product.id, 'min_quantity': 10,
             'compute_price': 'fixed', 'fixed_price': 80.0})
         tiers = product._uportho_price_tiers(self.pricelist, self.partner)
-        labels = [t['label'] for t in tiers]
-        self.assertIn('10+', labels)
+        # Un singur prag real, deci un singur rand: eticheta lui e '10+', nu se mai
+        # inventeaza un '1+' inaintea lui (vezi testul de mai jos).
+        self.assertEqual([t['label'] for t in tiers], ['10+'])
+
+    def test_lowest_rule_above_one_does_not_get_an_invented_one_plus_row(self):
+        # Codul clientului adauga pragul 1 doar cand nu exista nicio regula
+        # (`sorted({max(1, int(rule.min_quantity)) for rule in rules}) or [1]`). Pe o
+        # lista a carei cea mai mica regula porneste de la 5, noi aratam un rand "1+"
+        # pe care site-ul nu-l are - un pret in plus in tabel, langa cele reale.
+        product = self.Template.create({
+            'name': 'Produs praguri de la cinci test praguri', 'list_price': 100.0,
+            'taxes_id': [(6, 0, [])]})
+        for min_qty, pret in ((5, 80.0), (10, 70.0)):
+            self.Item.create({
+                'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': product.id, 'min_quantity': min_qty,
+                'compute_price': 'fixed', 'fixed_price': pret})
+
+        tiers = product._uportho_price_tiers(self.pricelist, self.partner)
+        self.assertEqual([t['label'] for t in tiers], ['5+', '10+'])
+        self.assertEqual([t['min_qty'] for t in tiers], [5, 10])
 
     def test_no_pricelist_returns_empty_list(self):
         product = self.Template.create({'name': 'Produs fara pricelist test praguri', 'list_price': 100.0})

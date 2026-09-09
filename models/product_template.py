@@ -472,7 +472,8 @@ class ProductTemplate(models.Model):
 
         Reguli (plan Faza 2, Task 2):
         1. praguri candidate = valorile distincte `min_quantity` din regulile listei
-           aplicabile produsului, plus 1;
+           aplicabile produsului, normalizate cu `max(1, ...)`; pragul 1 se adauga doar
+           cand nu exista nicio regula;
         2. pretul fiecarui prag se cere la Odoo cu acea cantitate;
         3. praguri consecutive cu pret identic se elimina, pastrandu-l pe cel mai mic;
         4. daca ramane un singur prag si acesta e 1, lista are un singur element (nu
@@ -496,7 +497,13 @@ class ProductTemplate(models.Model):
         # tabel, primul cu pretul public (22.430,00) langa cel al clientului
         # (15.701,00). Pragul 0 se normalizeaza la 1 inainte de pretuire, nu doar la
         # etichetare.
-        thresholds = sorted({max(q, 1.0) for q in rules.mapped('min_quantity')} | {1.0})
+        #
+        # Pragul 1 se adauga doar cand nu exista nicio regula - exact
+        # `sorted({max(1, int(rule.min_quantity)) for rule in rules}) or [1]` din codul
+        # clientului. Adaugat mereu (cum era inainte), pe o lista a carei cea mai mica
+        # regula porneste de la 5 aparea in aplicatie un rand "1+" pe care site-ul nu-l
+        # arata.
+        thresholds = sorted({max(q, 1.0) for q in rules.mapped('min_quantity')}) or [1.0]
 
         tiers = []
         for qty in thresholds:
