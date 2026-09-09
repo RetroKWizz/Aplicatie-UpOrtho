@@ -19,7 +19,6 @@ class ProductCard extends StatelessWidget {
     this.httpHeaders,
     this.listAmountFormatted,
     this.discountLabel,
-    this.clubPriceFormatted,
     this.badgeText,
     this.badgeColor,
     this.onTap,
@@ -33,15 +32,14 @@ class ProductCard extends StatelessWidget {
   final Map<String, String>? httpHeaders;
 
   /// Pretul curent, deja formatat de server (ex. "148,50 lei"). Singurul pret
-  /// obligatoriu - toate celelalte sunt optionale si apar doar cand exista reducere
-  /// sau pret Ortho Club.
+  /// obligatoriu; pretul taiat si eticheta de reducere apar doar cand exista reducere.
+  /// Pretul Ortho Club NU apare aici: pe site el se vede doar in pagina produsului,
+  /// nu in grila, si cardul urmeaza site-ul.
   final String priceFormatted;
   /// Pretul dinainte de reducere, deja formatat; afisat taiat, langa pretul curent.
   final String? listAmountFormatted;
   /// Eticheta de reducere deja formatata (ex. "-55%"); apare ca insigna mica.
   final String? discountLabel;
-  /// Pretul Ortho Club, deja formatat; afisat pe randul lui, cu eticheta dedicata.
-  final String? clubPriceFormatted;
 
   final String? badgeText;
   final Color? badgeColor;
@@ -93,8 +91,8 @@ class ProductCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(10),
                   // Titlurile din acest catalog sunt lungi ("Set bracketi metalici
-                  // Atlas Mini .022") si continutul e variabil (badge/reducere/pret
-                  // club optionale) - FittedBox(scaleDown) micsoreaza tot blocul
+                  // Atlas Mini .022") si continutul e variabil (badge/reducere
+                  // optionale) - FittedBox(scaleDown) micsoreaza tot blocul
                   // UNIFORM doar daca nu incape pe inaltimea data de acest Expanded,
                   // niciodata nu il mareste. Aceeasi tehnica ca in BannerCard, pentru
                   // aceeasi clasa de defect (overflow de text intr-un card de grila).
@@ -145,26 +143,6 @@ class ProductCard extends StatelessWidget {
                                     _Pill(text: discountLabel!, color: AppColors.danger, fontSize: 10),
                                 ],
                               ),
-                              if (clubPriceFormatted != null) ...[
-                                const SizedBox(height: 4),
-                                // Eticheta si suma stau pe randuri separate: pe un card
-                                // de grila cu doua coloane, "Pret Ortho Club: 11.211,50
-                                // lei" nu incape pe un rand, iar cu maxLines:1 tocmai
-                                // suma era retezata de ellipsis - exact informatia
-                                // pentru care exista randul.
-                                Text(
-                                  'Pret Ortho Club',
-                                  style: AppTypography.caption.copyWith(color: AppColors.primaryDark),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  clubPriceFormatted!,
-                                  style: AppTypography.caption.copyWith(color: AppColors.primaryDark, fontWeight: FontWeight.w700),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
                             ],
                           ),
                         ),

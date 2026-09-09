@@ -162,7 +162,6 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       priceFormatted: product.price.formatted,
                       listAmountFormatted: product.price.listFormatted,
                       discountLabel: product.price.discountPct == null ? null : '-${product.price.discountPct}%',
-                      clubPriceFormatted: product.clubPrice?.formatted,
                       badgeText: product.badge?.text,
                       badgeColor: product.badge == null ? null : productBadgeColor(product.badge!.color),
                       // Ruta copil a catalogului: pagina de produs ramane in

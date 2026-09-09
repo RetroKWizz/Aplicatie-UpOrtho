@@ -7,7 +7,7 @@ void main() {
   Widget sized(Widget child, {double width = 170, double height = 280}) =>
       MaterialApp(home: Scaffold(body: SizedBox(width: width, height: height, child: child)));
 
-  testWidgets('produs cu reducere: pret curent, pret taiat, eticheta de reducere, pret club si badge',
+  testWidgets('produs cu reducere: pret curent, pret taiat, eticheta de reducere si badge',
       (tester) async {
     await tester.pumpWidget(sized(const ProductCard(
       title: 'Bracket metalic Roth .022',
@@ -15,7 +15,6 @@ void main() {
       priceFormatted: '148,50 lei',
       listAmountFormatted: '330,00 lei',
       discountLabel: '-55%',
-      clubPriceFormatted: '133,65 lei',
       badgeText: 'Nou',
       badgeColor: Colors.green,
     )));
@@ -26,15 +25,14 @@ void main() {
     expect(find.text('148,50 lei'), findsOneWidget);
     expect(find.text('330,00 lei'), findsOneWidget);
     expect(find.text('-55%'), findsOneWidget);
-    // Eticheta si suma sunt doua randuri: pe cardul ingust de grila suma era
-    // altfel retezata de ellipsis.
-    expect(find.text('Pret Ortho Club'), findsOneWidget);
-    expect(find.text('133,65 lei'), findsOneWidget);
+    // Pretul Ortho Club nu apare in grila: pe site se vede doar in pagina
+    // produsului. Cardul il afisa si a trebuit scos.
+    expect(find.text('Pret Ortho Club'), findsNothing);
     expect(find.text('Nou'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('produs fara reducere: nu arata pret taiat, eticheta de reducere, pret club sau badge',
+  testWidgets('produs fara reducere: nu arata pret taiat, eticheta de reducere sau badge',
       (tester) async {
     await tester.pumpWidget(sized(const ProductCard(
       title: 'Arc NiTi termic .014',
@@ -115,7 +113,6 @@ void main() {
                 priceFormatted: '1.234,56 lei',
                 listAmountFormatted: '2.000,00 lei',
                 discountLabel: '-38%',
-                clubPriceFormatted: '1.100,00 lei',
                 badgeText: 'Promotie limitata',
               ),
             ],

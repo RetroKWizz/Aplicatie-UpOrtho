@@ -551,7 +551,6 @@ class _SimilarList extends ConsumerWidget {
               listAmountFormatted: product.price.listFormatted,
               discountLabel:
                   product.price.discountPct == null ? null : '-${product.price.discountPct}%',
-              clubPriceFormatted: product.clubPrice?.formatted,
               badgeText: product.badge?.text,
               badgeColor: product.badge == null ? null : productBadgeColor(product.badge!.color),
               onTap: () => context.push('/catalog/${product.id}'),
