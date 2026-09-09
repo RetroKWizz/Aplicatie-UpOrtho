@@ -125,7 +125,27 @@ de pe site.
    sau unui container reconstruit. (Doctrina anterioara — "lasa bannerul strain in baza,
    e dovada ca testele sunt robuste" — era gresita: dovada era locala unei masini si
    facea baza nereproductibila.)
-7. **Acest Flutter foloseste Swift Package Manager pe iOS, nu CocoaPods** — nu exista
+7. **Pe instanta reala, `product.template._get_combination_info` arunca la fiecare apel
+   din afara unei pagini web.** Tema magazinului (`droggol_theme_common`) randeaza in
+   interiorul ei sablonul `theme_prime.product_extra_fields`, iar randarea aia pica cu
+   `TypeError: 'NoneType' object is not callable`. **Nu e o problema de context**:
+   verificat pe staging cu website-ul real dat explicit in `values` si cu `website_id`
+   in context — pica identic; expresiile din sablon luate separat merg. Ruta de produs
+   prinde exceptia, logheaza o data si merge mai departe cu date proprii. Consecinta de
+   arhitectura: regulile lor de pret (selectia listelor publica/comparatie, pragurile
+   `max(1, min_quantity)`, cumularea cantitatilor pe tot tabelul de variante) sunt
+   **reproduse** in modul, nu apelate. Cand Terrabit repara sablonul, se comuta pe apel
+   direct si se sterge copia.
+8. **Pragurile de cantitate se aplica pe cantitatea CUMULATA a tabelului de variante**,
+   nu pe fiecare rand. Sursa: `website_variant_cart` (`total_qty += item['add_qty']`,
+   apoi `_get_combination_info_variant(add_qty=total_qty)`). 4 bucati pe o varianta plus
+   7 pe alta inseamna 11, deci pragul 10+ pentru ambele randuri. Calculul pe rand
+   separat afiseaza preturi mai mari decat comanda reala.
+9. **Terminalul din editorul odoo.sh moare cand sta neatins** si accepta text fara
+   sa-l execute — de doua ori a inghitit tacut un deploy intreg. Dupa orice comanda
+   de desfasurare se verifica **rezultatul pe disc** (`grep` intr-un fisier nou), nu
+   se presupune din ce s-a tastat.
+10. **Acest Flutter foloseste Swift Package Manager pe iOS, nu CocoaPods** — nu exista
    `ios/Podfile`; nu cauta/instala pods.
 
 ## Comenzi utile
