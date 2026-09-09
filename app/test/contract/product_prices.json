@@ -1,0 +1,22 @@
+{
+  "lines": [
+    {
+      "variant_id": 501,
+      "qty": 5,
+      "price": { "amount": 1120.0, "currency": "RON", "formatted": "1.120,00 lei", "with_vat": true,
+                 "list_amount": 1399.99, "list_formatted": "1.399,99 lei", "discount_pct": 20 },
+      "subtotal": { "amount": 5600.0, "currency": "RON", "formatted": "5.600,00 lei", "with_vat": true,
+                    "list_amount": 6999.95, "list_formatted": "6.999,95 lei", "discount_pct": 20 }
+    },
+    {
+      "variant_id": 502,
+      "qty": 0,
+      "price": { "amount": 990.0, "currency": "RON", "formatted": "990,00 lei", "with_vat": true,
+                 "list_amount": null, "list_formatted": null, "discount_pct": null },
+      "subtotal": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
+                    "list_amount": null, "list_formatted": null, "discount_pct": null }
+    }
+  ],
+  "total": { "amount": 5600.0, "currency": "RON", "formatted": "5.600,00 lei", "with_vat": true,
+             "list_amount": null, "list_formatted": null, "discount_pct": null }
+}

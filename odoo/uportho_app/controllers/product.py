@@ -4,7 +4,7 @@ from odoo import http
 from odoo.http import request
 
 from ..pricing import serialize_price
-from .base import API_PREFIX, ApiError, app_route, json_ok
+from .base import API_PREFIX, ApiError, app_route, json_ok, read_json_body
 from .catalog import (
     _club_prices_by_template,
     _current_club_pricelist,
@@ -22,6 +22,10 @@ _logger = logging.getLogger(__name__)
 
 MAX_SIMILAR = 10
 MAX_REVIEWS = 20
+# Cate linii accepta `POST /products/<id>/prices` intr-o cerere. Tabelul are cate un
+# rand per varianta si cel mai variat produs real are cateva zeci; plafonul e doar ca
+# o cerere absurda sa nu ceara mii de pretuiri.
+MAX_PRICE_LINES = 200
 # Id-ul de galerie al imaginii principale a produsului (`image_1920` de pe template
 # sau de pe varianta). Restul intrarilor din galerie sunt `product.image`, cu id-ul
 # lor real; 0 nu e niciodata un id valid in Odoo, deci nu se poate ciocni cu ele si
@@ -89,6 +93,36 @@ def _parse_values(template, raw):
     if len(values) != len(set(ids)) or any(v.product_tmpl_id != template.sudo() for v in values):
         raise ApiError(422, 'validation_error', 'values nu apartin acestui produs.')
     return Ptav.browse(values.ids)
+
+
+def _parse_price_lines(template, raw_lines):
+    """Liniile din corpul lui `POST /products/<id>/prices`: `[{variant_id, qty}, ...]`.
+
+    Tot ce e gresit in cerere e 422 in forma standard de eroare, niciodata 500: o
+    varianta a altui produs (verificata de `_parse_variant`, aceeasi regula ca pe
+    ruta de detaliu), o cantitate negativa sau care nu e numar intreg.
+
+    `qty = 0` e valid si inseamna "randul nu e comandat": tabelul din aplicatie
+    porneste cu toate cantitatile pe zero si tot are nevoie de un total formatat de
+    server. `True` e respins desi in Python e un `int`: un boolean nu e o cantitate."""
+    if not isinstance(raw_lines, list):
+        raise ApiError(422, 'validation_error', 'lines trebuie sa fie o lista de linii.')
+    if len(raw_lines) > MAX_PRICE_LINES:
+        raise ApiError(422, 'validation_error',
+                       f'Prea multe linii (maxim {MAX_PRICE_LINES}).')
+
+    lines = []
+    for raw in raw_lines:
+        if not isinstance(raw, dict):
+            raise ApiError(422, 'validation_error', 'Fiecare linie trebuie sa fie un obiect JSON.')
+        variant = _parse_variant(template, raw.get('variant_id'))
+        if not variant:
+            raise ApiError(422, 'validation_error', 'Fiecare linie are nevoie de variant_id.')
+        qty = raw.get('qty')
+        if isinstance(qty, bool) or not isinstance(qty, int) or qty < 0:
+            raise ApiError(422, 'validation_error', 'qty trebuie sa fie un numar intreg >= 0.')
+        lines.append((variant, qty))
+    return lines
 
 
 def _fallback_combination(template, variant, combination):
@@ -369,6 +403,12 @@ class AppProduct(http.Controller):
                 template, combination_info, price, pricelist, club_pricelist_for_tables,
                 partner, fiscal_position, variant),
             'variants': template._uportho_variants(variant=variant, combination=combination),
+            # Tabelul de comanda pe variante (Atribute | Pret | Cantitate | Subtotal),
+            # ca pe site. Gol pentru un produs cu o singura varianta - atunci ecranul
+            # ramane cum era. Cand exista randuri, ele inlocuiesc selectorul
+            # `variants`: fiecare varianta isi are deja randul ei.
+            'variant_rows': template._uportho_variant_rows(
+                pricelist, partner, fiscal_position=fiscal_position),
             'specs': template._uportho_specs(),
             'description': template._uportho_description_blocks(),
             'availability': template._uportho_availability(variant=variant),
@@ -377,6 +417,58 @@ class AppProduct(http.Controller):
             'similar': _serialize_similar(
                 template, website, pricelist, club_pricelist, partner, fiscal_position),
             'benefits': [serialize_benefit(b) for b in request.env['uportho.app.benefit']._search_active()],
+        })
+
+    @app_route('/products/<int:product_id>/prices', methods=['POST'])
+    def product_prices(self, product_id, **kw):
+        """Preturile tabelului de variante pentru cantitatile alese in aplicatie:
+        `{"lines": [{"variant_id": 1, "qty": 2}, ...]}` -> pret unitar, subtotal pe
+        linie si total.
+
+        De ce exista ruta: aplicatia nu are voie sa faca aritmetica pe bani
+        (CLAUDE.md), si nici n-ar putea. O cantitate mai mare poate trece un prag de
+        pret al listei clientului (pe baza de test: 5 bucati -> -20%), deci subtotalul
+        NU e pretul afisat inmultit cu cantitatea. Un total inmultit local ar arata
+        alta suma decat comanda reala, tacut.
+
+        Pretul unitar se cere de la Odoo la cantitatea liniei, pe aceeasi cale ca tot
+        restul modulului (`_uportho_price_amounts_for`, care duce la
+        `pricelist._compute_price_rule` + taxele). Cantitatea 0 se pretuieste la 1:
+        pretuit chiar la 0, Odoo nu aplica regulile listei si ar intoarce pretul
+        nereduse - aceeasi capcana ca `min_quantity = 0` din `_uportho_price_tiers`.
+        Singura inmultire e `pret unitar x cantitate`, aici pe server, cu rotunjirea
+        monetara a valutei; toate sumele ies prin `serialize_price`, deci formatarea e
+        identica cu a restului API-ului."""
+        _website, template = _visible_product(product_id)
+        lines = _parse_price_lines(template, read_json_body().get('lines'))
+
+        partner = request.env.user.partner_id
+        pricelist = _customer_pricelist(partner)
+        fiscal_position = request.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
+        currency = pricelist.currency_id
+
+        serialized = []
+        total = 0.0
+        for variant, qty in lines:
+            amount, list_amount = template._uportho_price_amounts_for(
+                pricelist, partner, fiscal_position=fiscal_position,
+                quantity=max(qty, 1), variant=variant)
+            subtotal = currency.round(amount * qty)
+            list_subtotal = currency.round(list_amount * qty) if list_amount and qty else None
+            serialized.append({
+                'variant_id': variant.id,
+                'qty': qty,
+                'price': serialize_price(amount, list_amount, currency),
+                'subtotal': serialize_price(subtotal, list_subtotal, currency),
+            })
+            total += subtotal
+
+        return json_ok({
+            'lines': serialized,
+            # Totalul nu poarta pret taiat: suma preturilor de lista ale unor linii
+            # care nu au toate reducere n-ar fi un pret pe care sa-l fi aratat vreodata
+            # magazinul.
+            'total': serialize_price(currency.round(total), None, currency),
         })
 
     @app_route('/products/<int:product_id>/gallery/<int:image_id>', methods=['GET'])

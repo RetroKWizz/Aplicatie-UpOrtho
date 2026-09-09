@@ -232,6 +232,45 @@ class ProductTemplate(models.Model):
         # selectie dupa o re-cerere fara sa o deduca din altceva.
         return {'selected': combination.ids, 'attributes': attributes}
 
+    def _uportho_variant_rows(self, pricelist, partner, fiscal_position=None):
+        """Randurile tabelului de comanda pe variante - ce arata site-ul pe pagina
+        unui produs cu mai multe variante: cate un rand per varianta, cu valorile ei
+        de atribut, codul, disponibilitatea si pretul unitar.
+
+        Lista goala pentru un produs cu o singura varianta: acolo tabelul nu are ce
+        arata (un singur rand ar repeta pretul deja afisat deasupra), iar ecranul
+        pastreaza forma dinainte.
+
+        Pretul fiecarui rand vine tot de la Odoo, pe calea proprie modulului
+        (`_uportho_price_amounts_for` cu `variant`), la cantitatea 1: asa intra in
+        pret si `price_extra`-ul valorilor de atribut ("Complet +20 lei"), pe care
+        magazinul il arata. Subtotalurile si totalul NU se calculeaza aici - ele
+        depind de cantitatile alese in aplicatie si se cer separat, prin
+        `POST /products/<id>/prices`, pentru ca o cantitate mai mare poate trece un
+        prag de pret."""
+        self.ensure_one()
+        variants = self.product_variant_ids
+        if len(variants) < 2:
+            return []
+        if fiscal_position is None:
+            fiscal_position = self.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
+
+        rows = []
+        for variant in variants:
+            amount, list_amount = self._uportho_price_amounts_for(
+                pricelist, partner, fiscal_position=fiscal_position, variant=variant)
+            rows.append({
+                'variant_id': variant.id,
+                'attributes': [
+                    {'name': ptav.attribute_id.name, 'value': ptav.name}
+                    for ptav in variant.product_template_attribute_value_ids
+                ],
+                'default_code': variant.default_code or None,
+                'availability': self._uportho_availability(variant=variant),
+                'price': serialize_price(amount, list_amount, pricelist.currency_id),
+            })
+        return rows
+
     def _uportho_availability(self, variant=None):
         """Mesajul de disponibilitate si starea de stoc, sau None cand produsul n-are
         mesaj si nici `show_availability`.
