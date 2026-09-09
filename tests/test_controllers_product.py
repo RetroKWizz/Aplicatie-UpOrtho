@@ -235,9 +235,11 @@ class TestControllersProductDetail(AppHttpCase):
         body = self._detail(self.product_bare).json()
         # Liste: goale, niciodata null.
         for key in ('price_tables', 'specs', 'description', 'reviews', 'similar',
-                    'benefits', 'images'):
+                    'benefits', 'images', 'variant_rows'):
             self.assertIsInstance(body[key], list, key)
         self.assertEqual(body['images'], [])
+        # Produs cu o singura varianta: tabelul de comanda pe variante nu are ce arata.
+        self.assertEqual(body['variant_rows'], [])
         self.assertEqual(body['specs'], [])
         self.assertEqual(body['description'], [])
         self.assertEqual(body['reviews'], [])
@@ -849,3 +851,280 @@ class TestControllersProductGallery(AppHttpCase):
         self.assertEqual(self.api_get(f'/products/{self.no_image.id}/gallery/0').status_code, 404)
         self.assertEqual(
             self.api_get(f'/products/{self.product.id}/gallery/{self.video.id}').status_code, 404)
+
+
+@tagged('post_install', '-at_install')
+class TestControllersProductVariantRows(AppHttpCase):
+    """Randurile de variante din `GET /products/<id>` - tabelul de comanda de pe
+    site (Atribute | Pret | Cantitate | Subtotal), cate un rand per varianta.
+
+    Fiecare test isi creeaza singur produsele si lista de pret; baza locala are date
+    ramase din verificari manuale si nu are voie sa influenteze rezultatul."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.currency = cls.env.company.currency_id
+        cls.pricelist = cls.env['product.pricelist'].create({
+            'name': 'Lista client test randuri', 'currency_id': cls.currency.id})
+        cls.portal_user.partner_id.property_product_pricelist = cls.pricelist.id
+
+        cls.attribute = cls.env['product.attribute'].create({
+            'name': 'Set randuri test',
+            'value_ids': [(0, 0, {'name': 'Simplu randuri'}), (0, 0, {'name': 'Complet randuri'})],
+        })
+        # Fara taxe: cifrele din teste vorbesc despre pricelist si cantitate, nu despre TVA.
+        cls.product = cls.env['product.template'].create({
+            'name': 'Produs Randuri Variante Test', 'default_code': 'RND-BASE',
+            'is_published': True, 'list_price': 100.0, 'taxes_id': [(6, 0, [])],
+            'attribute_line_ids': [(0, 0, {
+                'attribute_id': cls.attribute.id,
+                'value_ids': [(6, 0, cls.attribute.value_ids.ids)],
+            })],
+        })
+        cls.ptav = {
+            ptav.product_attribute_value_id.name: ptav
+            for line in cls.product.attribute_line_ids
+            for ptav in line.product_template_value_ids
+        }
+        cls.ptav['Complet randuri'].price_extra = 20.0
+        cls.simple = cls.product._get_variant_for_combination(cls.ptav['Simplu randuri'])
+        cls.full = cls.product._get_variant_for_combination(cls.ptav['Complet randuri'])
+        cls.simple.default_code = 'RND-S'
+        cls.full.default_code = 'RND-C'
+
+        # Pragul de cantitate: de la 5 bucati in sus, -20%. Fara el, un total ar fi
+        # mereu pretul unitar inmultit cu cantitatea si testul n-ar dovedi nimic.
+        cls.env['product.pricelist.item'].create({
+            'pricelist_id': cls.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': cls.product.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
+
+        cls.product_single = cls.env['product.template'].create({
+            'name': 'Produs Randuri Fara Variante Test', 'is_published': True,
+            'list_price': 10.0, 'taxes_id': [(6, 0, [])]})
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.registry.clear_cache)
+
+    def _rows(self, product=None):
+        product = product or self.product
+        return self.api_get(f'/products/{product.id}').json()['variant_rows']
+
+    def test_one_row_per_variant_with_attributes_code_and_price(self):
+        self.api_login()
+        rows = self._rows()
+        self.assertEqual([row['variant_id'] for row in rows],
+                         self.product.product_variant_ids.ids)
+        by_id = {row['variant_id']: row for row in rows}
+        self.assertEqual(by_id[self.simple.id]['attributes'],
+                         [{'name': 'Set randuri test', 'value': 'Simplu randuri'}])
+        self.assertEqual(by_id[self.simple.id]['default_code'], 'RND-S')
+        self.assertEqual(by_id[self.full.id]['default_code'], 'RND-C')
+        # `price_extra` se vede in pretul randului: altfel tabelul ar arata acelasi
+        # pret pe toate randurile, desi magazinul le arata diferite.
+        self.assertEqual(by_id[self.simple.id]['price']['amount'], 100.0)
+        self.assertEqual(by_id[self.full.id]['price']['amount'], 120.0)
+        # Simbolul depinde de valuta companiei bazei de test; ce e de contract e
+        # formatarea romaneasca a numarului (virgula zecimala).
+        self.assertIn('120,00', by_id[self.full.id]['price']['formatted'])
+
+    def test_row_availability_uses_the_shared_helper(self):
+        # `website_sale_stock` nu e instalat pe baza locala, deci ajutorul intoarce
+        # None - important e ca randul are cheia, nu ca are un mesaj.
+        self.api_login()
+        rows = self._rows()
+        for row in rows:
+            self.assertIn('availability', row)
+            self.assertEqual(row['availability'],
+                             self.product._uportho_availability(
+                                 variant=self.env['product.product'].browse(row['variant_id'])))
+
+    def test_single_variant_product_has_no_rows(self):
+        self.api_login()
+        self.assertEqual(self._rows(self.product_single), [])
+
+    def test_rows_shape_matches_contract(self):
+        self.api_login()
+        contract = load_contract('product_detail.json')
+        row = self._rows()[0]
+        self.assertEqual(set(row.keys()), set(contract['variant_rows'][0].keys()))
+        self.assertEqual(set(row['attributes'][0].keys()),
+                         set(contract['variant_rows'][0]['attributes'][0].keys()))
+        self.assertEqual(set(row['price'].keys()),
+                         set(contract['variant_rows'][0]['price'].keys()))
+
+
+@tagged('post_install', '-at_install')
+class TestControllersProductPrices(AppHttpCase):
+    """`POST /products/<id>/prices` - preturile si subtotalurile tabelului de
+    variante, calculate de Odoo. Aplicatia nu inmulteste niciodata bani, iar o
+    cantitate mai mare poate trece un prag de pret: de aceea cere aici."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.currency = cls.env.company.currency_id
+        cls.pricelist = cls.env['product.pricelist'].create({
+            'name': 'Lista client test preturi linii', 'currency_id': cls.currency.id})
+        cls.portal_user.partner_id.property_product_pricelist = cls.pricelist.id
+
+        cls.attribute = cls.env['product.attribute'].create({
+            'name': 'Set linii test',
+            'value_ids': [(0, 0, {'name': 'Simplu linii'}), (0, 0, {'name': 'Complet linii'})],
+        })
+        cls.product = cls.env['product.template'].create({
+            'name': 'Produs Linii Pret Test', 'is_published': True, 'list_price': 100.0,
+            'taxes_id': [(6, 0, [])],
+            'attribute_line_ids': [(0, 0, {
+                'attribute_id': cls.attribute.id,
+                'value_ids': [(6, 0, cls.attribute.value_ids.ids)],
+            })],
+        })
+        cls.ptav = {
+            ptav.product_attribute_value_id.name: ptav
+            for line in cls.product.attribute_line_ids
+            for ptav in line.product_template_value_ids
+        }
+        cls.ptav['Complet linii'].price_extra = 20.0
+        cls.simple = cls.product._get_variant_for_combination(cls.ptav['Simplu linii'])
+        cls.full = cls.product._get_variant_for_combination(cls.ptav['Complet linii'])
+
+        cls.env['product.pricelist.item'].create({
+            'pricelist_id': cls.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': cls.product.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
+
+        cls.other_product = cls.env['product.template'].create({
+            'name': 'Alt Produs Linii Pret Test', 'is_published': True, 'list_price': 10.0})
+        cls.unpublished = cls.env['product.template'].create({
+            'name': 'Produs Linii Pret Nepublicat Test', 'is_published': False, 'list_price': 10.0})
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.registry.clear_cache)
+
+    def _prices(self, lines, product=None, with_header=True):
+        product = product or self.product
+        return self.api_post(f'/products/{product.id}/prices',
+                             {'lines': lines}, with_header=with_header)
+
+    # --- acces si validare ----------------------------------------------------
+
+    def test_requires_login(self):
+        self.assertEqual(self._prices([]).status_code, 401)
+
+    def test_requires_app_header(self):
+        self.api_login()
+        response = self._prices([], with_header=False)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['error']['code'], 'forbidden')
+
+    def test_unpublished_product_is_404(self):
+        self.api_login()
+        self.assertEqual(self._prices([], product=self.unpublished).status_code, 404)
+
+    def test_error_shape_is_the_module_one(self):
+        response = self._prices([])
+        self.assertEqual(set(response.json()['error'].keys()),
+                         set(load_contract('error.json')['error'].keys()))
+
+    def test_variant_of_another_product_is_422_not_500(self):
+        self.api_login()
+        stranger = self.other_product.product_variant_id
+        response = self._prices([{'variant_id': stranger.id, 'qty': 1}])
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()['error']['code'], 'validation_error')
+
+    def test_unknown_variant_is_422_not_500(self):
+        self.api_login()
+        self.assertEqual(self._prices([{'variant_id': 99999999, 'qty': 1}]).status_code, 422)
+
+    def test_missing_variant_id_is_422(self):
+        self.api_login()
+        self.assertEqual(self._prices([{'qty': 1}]).status_code, 422)
+
+    def test_negative_quantity_is_422(self):
+        self.api_login()
+        self.assertEqual(
+            self._prices([{'variant_id': self.simple.id, 'qty': -1}]).status_code, 422)
+
+    def test_non_integer_quantity_is_422(self):
+        self.api_login()
+        for qty in (1.5, '3', None, True):
+            self.assertEqual(
+                self._prices([{'variant_id': self.simple.id, 'qty': qty}]).status_code, 422, qty)
+
+    def test_lines_must_be_a_list_of_objects(self):
+        self.api_login()
+        self.assertEqual(self._prices('nu e lista').status_code, 422)
+        self.assertEqual(self._prices([7]).status_code, 422)
+
+    # --- preturi --------------------------------------------------------------
+
+    def test_empty_lines_give_a_zero_total(self):
+        self.api_login()
+        body = self._prices([]).json()
+        self.assertEqual(body['lines'], [])
+        self.assertEqual(body['total']['amount'], 0.0)
+        self.assertIn('0,00', body['total']['formatted'])
+
+    def test_line_price_and_subtotal_come_from_odoo(self):
+        self.api_login()
+        body = self._prices([{'variant_id': self.simple.id, 'qty': 2}]).json()
+        line = body['lines'][0]
+        self.assertEqual(line['variant_id'], self.simple.id)
+        self.assertEqual(line['qty'], 2)
+        self.assertEqual(line['price']['amount'], 100.0)
+        self.assertEqual(line['subtotal']['amount'], 200.0)
+        self.assertIn('200,00', line['subtotal']['formatted'])
+        self.assertEqual(body['total']['amount'], 200.0)
+
+    def test_quantity_threshold_changes_the_unit_price_and_the_total(self):
+        # Miezul rutei: la 5 bucati se aplica pragul, deci totalul NU e pretul
+        # unitar afisat (100) inmultit cu cantitatea. Daca aplicatia ar inmulti
+        # singura, ar arata 500 in loc de 400.
+        self.api_login()
+        body = self._prices([{'variant_id': self.simple.id, 'qty': 5}]).json()
+        line = body['lines'][0]
+        self.assertEqual(line['price']['amount'], 80.0)
+        self.assertEqual(line['subtotal']['amount'], 400.0)
+        self.assertEqual(body['total']['amount'], 400.0)
+
+    def test_price_extra_of_the_variant_is_included(self):
+        self.api_login()
+        body = self._prices([{'variant_id': self.full.id, 'qty': 1}]).json()
+        self.assertEqual(body['lines'][0]['price']['amount'], 120.0)
+
+    def test_total_sums_lines_priced_at_their_own_quantity(self):
+        self.api_login()
+        body = self._prices([
+            {'variant_id': self.simple.id, 'qty': 5},
+            {'variant_id': self.full.id, 'qty': 2},
+        ]).json()
+        self.assertEqual([line['subtotal']['amount'] for line in body['lines']], [400.0, 240.0])
+        self.assertEqual(body['total']['amount'], 640.0)
+        self.assertIn('640,00', body['total']['formatted'])
+
+    def test_zero_quantity_keeps_the_unit_price_of_one(self):
+        # `quantity=0` nu e un prag real: pretuit chiar la 0, Odoo nu aplica regula
+        # (aceeasi capcana ca `min_quantity = 0` din `_uportho_price_tiers`). Randul
+        # gol trebuie sa arate pretul de la 1 bucata, cu subtotal zero.
+        self.api_login()
+        body = self._prices([{'variant_id': self.simple.id, 'qty': 0}]).json()
+        self.assertEqual(body['lines'][0]['price']['amount'], 100.0)
+        self.assertEqual(body['lines'][0]['subtotal']['amount'], 0.0)
+        self.assertEqual(body['total']['amount'], 0.0)
+
+    def test_shape_matches_contract(self):
+        self.api_login()
+        contract = load_contract('product_prices.json')
+        body = self._prices([{'variant_id': self.simple.id, 'qty': 5}]).json()
+        self.assertEqual(set(body.keys()), set(contract.keys()))
+        self.assertEqual(set(body['lines'][0].keys()), set(contract['lines'][0].keys()))
+        self.assertEqual(set(body['lines'][0]['price'].keys()),
+                         set(contract['lines'][0]['price'].keys()))
+        self.assertEqual(set(body['lines'][0]['subtotal'].keys()),
+                         set(contract['lines'][0]['subtotal'].keys()))
+        self.assertEqual(set(body['total'].keys()), set(contract['total'].keys()))
