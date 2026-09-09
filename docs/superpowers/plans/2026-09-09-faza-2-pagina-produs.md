@@ -50,6 +50,8 @@ publicate pe website 11:
 
 Poze: 3157 in total, din care 135 cu `video_url`.
 Praguri de cantitate: 75 de reguli pe lista publica (45), **0** pe lista Ortho Club (59).
+Produse alternative setate: **485**; accesorii: 149.
+Recenzii: 22 in total, pe **15** produse.
 
 Consecinte obligatorii:
 
@@ -62,7 +64,11 @@ Consecinte obligatorii:
 3. **Ribbon-ul "Nou -20%" nu e `website_ribbon_id`** (zero produse il folosesc). Partea
    "-20%" se deduce din `discount_pct`, deja in contract; partea "Nou" vine din
    `app_badge_text`, campul nostru din Faza 1, editabil din Odoo.
-4. **Tabelul de club are un singur rand azi.** Se construieste tot ca lista de praguri, ca
+4. **Produsele similare vin din ce e configurat in Odoo.** 485 din 619 au deja
+   `alternative_product_ids`; categoria e doar rezerva pentru restul de 134.
+5. **Recenziile exista pe 15 produse.** Sectiunea se implementeaza (e ieftina) dar va fi
+   ascunsa la 604 produse din 619. Nu se investeste mai mult in ea acum.
+6. **Tabelul de club are un singur rand azi.** Se construieste tot ca lista de praguri, ca
    sa nu se rupa cand se adauga praguri la o lista viitoare.
 
 ---
@@ -224,15 +230,25 @@ Aici apare si brandul, pentru ca brandul **este** un atribut (vezi cifrele de ma
 
 ## Task 3: ruta `GET /products/<id>`
 
-**Fisiere:** creeaza `controllers/product.py`, `tests/test_controllers_product.py`,
-`contract/product_detail.json`; modifica `controllers/__init__.py`.
+**Fisiere:** creeaza `controllers/product.py`, `pricing.py`,
+`tests/test_controllers_product.py`, `contract/product_detail.json`; modifica
+`controllers/__init__.py`, `controllers/catalog.py`, `models/product_template.py`.
+
+**Se incepe cu o mutare, inainte de orice functionalitate noua.** Task 2 a lasat
+`models/product_template.py` sa importe `serialize_price` din `controllers/catalog.py`,
+in interiorul metodei — un model care depinde de un controller, adica exact invers decat
+trebuie, plus un import intarziat ca sa se evite ciclul. Se muta `_format_amount` si
+`serialize_price` intr-un modul nou `odoo/uportho_app/pricing.py`, fara alte schimbari de
+comportament, si atat controllerul cat si modelul importa de acolo, normal, la inceput de
+fisier. Testele existente trebuie sa treaca neschimbate dupa mutare — daca vreunul cere
+modificari, mutarea a schimbat comportament si e gresita. Commit separat pentru mutare.
 
 - Variantele: `product.template._get_combination_info(...)` — API-ul pe care il
   foloseste si site-ul. `available` pe valoare vine din combinatiile posibile, nu se
   deduce singur. Produs fara `attribute_line_ids` cu mai multe valori → `variants: null`.
-- `similar`: `alternative_product_ids` daca sunt setate, altfel produsele din aceeasi
-  `public_categ_ids`, maxim 10, fara produsul curent, doar publicate pe website-ul
-  configurat. Se serializeaza cu **acelasi** serializator ca `/products`.
+- `similar`: `alternative_product_ids` daca sunt setate (485 din 619 le au), altfel
+  produsele din aceeasi `public_categ_ids`, maxim 10, fara produsul curent, doar
+  publicate pe website-ul configurat. Se serializeaza cu **acelasi** serializator ca `/products`.
 - `availability`: `out_of_stock_message` (curatat de HTML) si starea de stoc; `null`
   cand produsul n-are mesaj si `show_availability` e fals.
 - `rating` / `reviews`: din `rating.rating` legate de produs; maxim 20 de recenzii,
