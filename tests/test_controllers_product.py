@@ -5,6 +5,7 @@ from odoo.addons.uportho_app.controllers import product as product_controller
 from odoo.addons.website_sale.models.product_template import (
     ProductTemplate as WebsiteSaleProductTemplate,
 )
+from odoo.exceptions import MissingError
 from odoo.tests.common import tagged
 
 from .common import AppHttpCase
@@ -1434,6 +1435,94 @@ class TestControllersProductBrand(AppHttpCase):
         body = self._detail()
         self.assertEqual(body['brand']['name'], 'DB Orthodontics')
         self.assertIn({'name': 'Brand ruta test', 'value': 'DB Orthodontics'}, body['specs'])
+
+
+@tagged('post_install', '-at_install')
+class TestControllersImageBinaryField(AppHttpCase):
+    """Rutele de imagine ale modulului trebuie sa serveasca si campuri `fields.Binary`
+    simple, nu doar `fields.Image`.
+
+    Motivul e un bug adevarat, vazut pe instanta lor: logoul de brand se ia din
+    `product.attribute.value.dr_image`, care e un `fields.Binary` simplu (clasa
+    `Binary`), iar `_image_response` trecea totul prin
+    `ir.binary._get_image_stream_from` - metoda scrisa pentru campuri `Image`. Pentru
+    un Binary simplu ea nu intoarce octetii stocati, deci ruta raspundea 200 cu un
+    corp gol si aplicatia desena un chenar gol in locul logoului.
+
+    Campul lor nu exista pe baza locala (modulele magazinului nu sunt instalate), asa
+    ca se foloseste un `fields.Binary` simplu de pe un model din nucleu -
+    `res.company.layout_background_image` - servit prin aceeasi ruta de logo, cu
+    brandul si numele campului simulate ca in `TestControllersProductBrand`. Ce se
+    dovedeste e comportamentul lui `_image_response` pe un camp Binary simplu, nu
+    modelul de pe care vine campul."""
+
+    BINARY_FIELD = 'layout_background_image'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.product = cls.env['product.template'].create({
+            'name': 'Produs Logo Binar Test', 'is_published': True, 'list_price': 10.0})
+        cls.company = cls.env.company
+
+    def _serve_binary_field(self):
+        """Ruta de logo de brand, indreptata catre campul Binary simplu.
+
+        Peticele stau pe clasele din registru si pe modulul controllerului: serverul de
+        test ruleaza in acelasi proces, deci se vad si in cerere."""
+        brand = patch.object(
+            type(self.product), '_uportho_brand_value', lambda inner_self: self.company)
+        brand.start()
+        self.addCleanup(brand.stop)
+        field = patch.object(
+            product_controller, 'UPORTHO_BRAND_LOGO_FIELD', self.BINARY_FIELD)
+        field.start()
+        self.addCleanup(field.stop)
+        self.api_login()
+        return self.api_get(f'/products/{self.product.id}/brand/logo')
+
+    def test_plain_binary_field_is_served_with_its_real_bytes(self):
+        self.company.sudo().write({self.BINARY_FIELD: base64.b64encode(PNG_1PX)})
+        response = self._serve_binary_field()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, PNG_1PX)
+
+    def test_plain_binary_field_is_served_with_its_content_type(self):
+        self.company.sudo().write({self.BINARY_FIELD: base64.b64encode(PNG_1PX)})
+        response = self._serve_binary_field()
+        self.assertTrue(
+            response.headers['Content-Type'].startswith('image/png'),
+            response.headers.get('Content-Type'))
+
+    def test_plain_binary_field_without_data_is_404(self):
+        self.company.sudo().write({self.BINARY_FIELD: False})
+        self.assertEqual(self._serve_binary_field().status_code, 404)
+
+    def test_plain_binary_field_that_cannot_be_read_is_404_not_500(self):
+        """Drumul de imagine inghitea erorile de acces sau de atasament disparut si
+        servea poza de rezerva. Pe drumul de Binary simplu ele trebuie sa ramana un
+        404, nu sa devina 500."""
+        self.company.sudo().write({self.BINARY_FIELD: base64.b64encode(PNG_1PX)})
+
+        def missing(binary_self, record, **kw):
+            raise MissingError('Atasamentul legat nu mai exista.')
+
+        broken = patch.object(
+            type(self.env['ir.binary']), '_get_stream_from', missing)
+        broken.start()
+        self.addCleanup(broken.stop)
+        self.assertEqual(self._serve_binary_field().status_code, 404)
+
+    def test_image_field_keeps_serving_its_real_bytes(self):
+        """Campurile `Image` ale modulului nu au voie sa-si schimbe comportamentul."""
+        self.api_login()
+        benefit = self.env['uportho.app.benefit'].create({
+            'name': 'Beneficiu imagine camp Image test', 'icon': 'delivery',
+            'image': base64.b64encode(PNG_1PX)})
+        response = self.api_get(f'/benefits/{benefit.id}/image')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, PNG_1PX)
+        self.assertTrue(response.headers['Content-Type'].startswith('image/png'))
 
 
 @tagged('post_install', '-at_install')

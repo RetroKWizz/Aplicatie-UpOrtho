@@ -1,7 +1,8 @@
 import hashlib
 import logging
 
-from odoo import http
+from odoo import fields, http
+from odoo.exceptions import AccessError, MissingError
 from odoo.http import request
 
 from .base import API_PREFIX, ApiError, app_route, json_ok
@@ -106,9 +107,35 @@ def serialize_quick_category(category):
 
 
 def _image_response(record, field_name):
+    """Serveste un camp binar al unei inregistrari ca raspuns HTTP.
+
+    Ajutorul din `ir.binary` se alege dupa **clasa** campului, nu dupa `field.type`:
+    si `fields.Image`, si `fields.Binary` raporteaza `type == 'binary'`, deci tipul nu
+    le deosebeste. `_get_image_stream_from` e scris pentru campuri `Image` (redimen-
+    sionare dupa numele campului, inlocuire cu poza de rezerva, mimetype implicit de
+    imagine); pe un `Binary` simplu prelucrarile acelea nu au ce cauta si ne-au si
+    stricat deja o ruta: logoul de brand se ia din `product.attribute.value.dr_image`,
+    un `fields.Binary` simplu al modulelor magazinului, iar ruta raspundea 200 cu corp
+    gol, deci aplicatia desena un chenar gol in loc de logo.
+
+    Campurile modulului (`uportho.app.banner.image`, `product.public.category.
+    app_home_icon`, `uportho.app.benefit.image`, pozele de produs si de galerie) sunt
+    `Image` si raman pe drumul de imagine, cu tot cu 404-ul lor pentru poza lipsa.
+
+    Pe drumul de Binary simplu, o inregistrare la care nu se poate ajunge (atasament
+    disparut, camp fara drept de citire) intoarce tot 404, nu 500: `_get_image_stream_from`
+    inghitea astfel de erori si servea poza de rezerva, iar o ruta care incepe sa cada
+    cu 500 dupa aceasta schimbare ar fi o inrautatire, nu o reparatie."""
     if not record.exists() or not record[field_name]:
         raise ApiError(404, 'not_found', 'Imaginea nu exista.')
-    stream = request.env['ir.binary']._get_image_stream_from(record, field_name=field_name)
+    binary = request.env['ir.binary']
+    if isinstance(record._fields[field_name], fields.Image):
+        stream = binary._get_image_stream_from(record, field_name=field_name)
+    else:
+        try:
+            stream = binary._get_stream_from(record, field_name=field_name)
+        except (AccessError, MissingError) as error:
+            raise ApiError(404, 'not_found', 'Imaginea nu exista.') from error
     return stream.get_response()
 
 
