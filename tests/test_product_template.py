@@ -571,3 +571,132 @@ class TestProductSitePriceTables(TransactionCase):
     def test_no_pricelists_gives_no_tables(self):
         self.assertEqual(
             self.product._uportho_site_price_tables(self.Pricelist.browse(), self.partner), [])
+
+
+@tagged('post_install', '-at_install')
+class TestProductDocuments(TransactionCase):
+    """`_uportho_documents()`: documentele aratate in tabul "Documente" al paginii de
+    produs de pe site.
+
+    Doua surse, in ordinea in care le citeste raspunsul: `product_document_ids`
+    (standardul Odoo 18, exista mereu - `product` e dependinta declarata) si
+    `dr_document_ids` (al temei magazinului, care NU exista pe baza locala). De aceea
+    testele sunt impartite in doua, ca la bifele de pricelist:
+    - ramura reala a bazei locale: campul temei chiar lipseste (se si verifica, altfel
+      testul care se sprijina pe lipsa lui ar deveni degenerat fara sa se vada);
+    - ramura in care campul exista: se simuleaza doar citirea campului
+      (`_uportho_document_records`), restul - filtrarea, deduplicarea, numele, URL-ul -
+      ruleaza codul adevarat, pe documente adevarate.
+
+    URL-ul e ruta standard a Odoo pentru atasament, nu una a modulului: documentul se
+    deschide in afara aplicatiei, deci accesul il decide Odoo."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Template = cls.env['product.template']
+        cls.Document = cls.env['product.document']
+        cls.product = cls.Template.create({'name': 'Produs documente test', 'list_price': 10.0})
+        cls.other_product = cls.Template.create({'name': 'Alt produs documente test'})
+        cls.shown = cls._make_document(cls.product, 'Fisa tehnica.pdf', shown=True)
+        cls.hidden = cls._make_document(cls.product, 'Doar intern.pdf', shown=False)
+
+    @classmethod
+    def _make_document(cls, product, name, shown=True, raw=b'%PDF-1.4 test', **vals):
+        values = {
+            'name': name,
+            'res_model': 'product.template',
+            'res_id': product.id,
+            'shown_on_product_page': shown,
+        }
+        if raw is not None:
+            values['raw'] = raw
+        values.update(vals)
+        return cls.Document.create(values)
+
+    def _names(self, documents):
+        return [document['name'] for document in documents]
+
+    # --- ramura reala a bazei locale ------------------------------------------
+
+    def test_local_database_has_no_theme_document_field(self):
+        # Premisa testului de mai jos: campul temei chiar lipseste aici. Daca modulele
+        # lor ar ajunge vreodata pe baza locala, testul care verifica lipsa lui ar
+        # trece degeaba, fara sa se vada.
+        self.assertNotIn('dr_document_ids', self.Template._fields)
+
+    def test_missing_field_reads_nothing_instead_of_failing(self):
+        self.assertFalse(self.product._uportho_document_records('dr_document_ids'))
+
+    # --- ce ajunge in lista ---------------------------------------------------
+
+    def test_only_documents_published_on_the_product_page_are_listed(self):
+        # Exact filtrul sablonului din `website_sale`
+        # (`product_document_ids.filtered(lambda doc: doc.shown_on_product_page)`):
+        # un document intern nu are voie sa apara in aplicatie doar pentru ca ea
+        # n-are ecran de administrare.
+        self.assertEqual(self._names(self.product._uportho_documents()), ['Fisa tehnica.pdf'])
+
+    def test_document_carries_display_name_file_name_and_odoo_url(self):
+        [document] = self.product._uportho_documents()
+        attachment = self.shown.ir_attachment_id
+        self.assertEqual(document['name'], 'Fisa tehnica.pdf')
+        self.assertEqual(document['file_name'], 'Fisa tehnica.pdf')
+        self.assertEqual(document['id'], attachment.id)
+        self.assertEqual(document['url'], f'/web/content/{attachment.id}?download=true')
+
+    def test_link_document_is_listed_too(self):
+        # Site-ul arata in acelasi tab si documentele care sunt doar un link
+        # (`type='url'`). URL-ul ramane tot cel al Odoo, care stie sa redirecteze.
+        self._make_document(
+            self.product, 'Catalog online', raw=None, type='url',
+            url='https://example.org/catalog.pdf')
+        self.assertEqual(sorted(self._names(self.product._uportho_documents())),
+                         ['Catalog online', 'Fisa tehnica.pdf'])
+
+    def test_archived_document_is_excluded(self):
+        archived = self._make_document(self.product, 'Arhivat.pdf')
+        archived.active = False
+        self.assertNotIn('Arhivat.pdf', self._names(self.product._uportho_documents()))
+
+    def test_document_of_another_product_is_not_listed(self):
+        self._make_document(self.other_product, 'Al altui produs.pdf')
+        self.assertEqual(self._names(self.product._uportho_documents()), ['Fisa tehnica.pdf'])
+
+    def test_the_list_never_reads_the_file_itself(self):
+        # Un PDF de zeci de MB citit integral doar ca sa se construiasca lista ar fi
+        # exact greseala pe care o evita si `_ids_with_image` pentru poze. Aici nici
+        # macar nu se pune intrebarea daca fisierul exista: raspunde Odoo, la
+        # deschiderea URL-ului.
+        touched = []
+        with patch.object(type(self.shown.ir_attachment_id), 'raw',
+                          property(lambda inner_self: touched.append(inner_self.id))):
+            names = self._names(self.product._uportho_documents())
+        self.assertEqual(names, ['Fisa tehnica.pdf'])
+        self.assertFalse(touched, 'lista de documente a citit fisierul')
+
+    # --- ramura in care exista si campul temei --------------------------------
+
+    def _with_theme_documents(self, records):
+        """Citirea campului temei, simulata: `dr_document_ids` nu exista pe baza
+        locala, deci se inlocuieste DOAR citirea lui. Documentele intoarse sunt
+        `product.document` adevarate - filtrarea, deduplicarea, numele si URL-ul raman
+        ale codului adevarat."""
+
+        def records_for(inner_self, field_name):
+            if field_name == 'dr_document_ids':
+                return records
+            return inner_self.sudo()[field_name]
+
+        return patch.object(type(self.product), '_uportho_document_records', records_for)
+
+    def test_theme_documents_come_after_the_standard_ones(self):
+        theme_only = self._make_document(self.other_product, 'Doar la tema.pdf')
+        with self._with_theme_documents(theme_only):
+            documents = self.product._uportho_documents()
+        self.assertEqual(self._names(documents), ['Fisa tehnica.pdf', 'Doar la tema.pdf'])
+
+    def test_theme_document_already_in_the_standard_list_appears_once(self):
+        with self._with_theme_documents(self.shown):
+            documents = self.product._uportho_documents()
+        self.assertEqual(self._names(documents), ['Fisa tehnica.pdf'])

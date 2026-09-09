@@ -14,6 +14,9 @@ from .test_controllers_catalog import PNG_1PX
 # Un URL de video acceptat de `get_video_embed_code` (constrangerea Odoo de pe
 # `product.image.video_url` respinge orice URL din care nu poate scoate un embed).
 VIDEO_URL = 'https://www.youtube.com/watch?v=ykU7NEmEd8g'
+# Continutul unui document de test: cateva octeti care incep ca un PDF adevarat,
+# ca `ir.attachment` sa-i ghiceasca un mimetype rezonabil.
+PDF_BYTES = b'%PDF-1.4 document de test'
 
 
 @tagged('post_install', '-at_install')
@@ -216,6 +219,12 @@ class TestControllersProductDetail(AppHttpCase):
             'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
             'product_tmpl_id': self.product.id, 'compute_price': 'percentage',
             'percent_price': 20.0, 'min_quantity': 5})
+        # Un document publicat pe pagina de produs, ca sa existe si o intrare de
+        # document a carei forma sa se poata compara cu contractul.
+        self.env['product.document'].create({
+            'name': 'Fisa tehnica forma test.pdf', 'res_model': 'product.template',
+            'res_id': self.product.id, 'shown_on_product_page': True,
+            'raw': PDF_BYTES, 'mimetype': 'application/pdf'})
         contract = load_contract('product_detail.json')
         body = self._detail().json()
 
@@ -240,6 +249,7 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertEqual(set(body['rating'].keys()), set(contract['rating'].keys()))
         self.assertEqual(set(body['similar'][0].keys()), set(contract['similar'][0].keys()))
         self.assertEqual(set(body['benefits'][0].keys()), set(contract['benefits'][0].keys()))
+        self.assertEqual(set(body['documents'][0].keys()), set(contract['documents'][0].keys()))
 
     def test_bare_product_has_empty_lists_and_nulls_never_missing_keys(self):
         self.api_login()
@@ -247,9 +257,10 @@ class TestControllersProductDetail(AppHttpCase):
         body = self._detail(self.product_bare).json()
         # Liste: goale, niciodata null.
         for key in ('price_tables', 'specs', 'description', 'reviews', 'similar',
-                    'benefits', 'images', 'variant_rows'):
+                    'benefits', 'images', 'variant_rows', 'documents'):
             self.assertIsInstance(body[key], list, key)
         self.assertEqual(body['images'], [])
+        self.assertEqual(body['documents'], [])
         # Produs cu o singura varianta: tabelul de comanda pe variante nu are ce arata.
         self.assertEqual(body['variant_rows'], [])
         self.assertEqual(body['specs'], [])
@@ -1169,6 +1180,72 @@ class TestControllersProductGallery(AppHttpCase):
         self.assertEqual(self.api_get(f'/products/{self.no_image.id}/gallery/0').status_code, 404)
         self.assertEqual(
             self.api_get(f'/products/{self.product.id}/gallery/{self.video.id}').status_code, 404)
+
+
+@tagged('post_install', '-at_install')
+class TestControllersProductDocuments(AppHttpCase):
+    """Tabul "Documente" al paginii de produs, in `GET /products/<id>`.
+
+    Modulul NU serveste el fisierele: URL-ul e ruta standard a Odoo pentru atasament
+    (`/web/content/<id>?download=true`). Documentul se deschide in afara aplicatiei,
+    unde cookie-ul de sesiune nu ajunge, deci decizia daca fisierul se descarca ramane
+    a Odoo si a regulilor lui de acces - alegere explicita a userului.
+
+    Fiecare test isi creeaza singur produsele si documentele; baza locala are date
+    ramase din verificari manuale si nu are voie sa influenteze rezultatul."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.pricelist = cls.env['product.pricelist'].create({
+            'name': 'Lista client test documente', 'currency_id': cls.env.company.currency_id.id})
+        cls.portal_user.partner_id.property_product_pricelist = cls.pricelist.id
+
+        cls.product = cls.env['product.template'].create({
+            'name': 'Produs Documente Test', 'is_published': True, 'list_price': 10.0})
+        cls.other_product = cls.env['product.template'].create({
+            'name': 'Alt Produs Documente Test', 'is_published': True, 'list_price': 10.0})
+
+        cls.document = cls._make_document(cls.product, 'Fisa tehnica ruta.pdf')
+        cls.hidden = cls._make_document(cls.product, 'Intern ruta.pdf', shown=False)
+
+    @classmethod
+    def _make_document(cls, product, name, shown=True):
+        return cls.env['product.document'].create({
+            'name': name,
+            'res_model': 'product.template',
+            'res_id': product.id,
+            'shown_on_product_page': shown,
+            'raw': PDF_BYTES,
+            'mimetype': 'application/pdf',
+        })
+
+    def _documents(self, product=None):
+        return self.api_get(f'/products/{(product or self.product).id}').json()['documents']
+
+    def test_only_documents_published_on_the_product_page_are_listed(self):
+        self.api_login()
+        documents = self._documents()
+        self.assertEqual([document['name'] for document in documents], ['Fisa tehnica ruta.pdf'])
+        self.assertEqual(documents[0]['file_name'], 'Fisa tehnica ruta.pdf')
+
+    def test_document_url_is_the_standard_odoo_attachment_route(self):
+        self.api_login()
+        [document] = self._documents()
+        attachment = self.document.ir_attachment_id
+        self.assertEqual(document['id'], attachment.id)
+        self.assertEqual(document['url'], f'/web/content/{attachment.id}?download=true')
+
+    def test_module_does_not_serve_documents_itself(self):
+        # Nu exista ruta proprie de documente: fisierul se ia de la Odoo, pe URL-ul lui.
+        self.api_login()
+        response = self.api_get(
+            f'/products/{self.product.id}/documents/standard/{self.document.id}')
+        self.assertEqual(response.status_code, 404)
+
+    def test_product_without_documents_has_an_empty_list(self):
+        self.api_login()
+        self.assertEqual(self._documents(self.other_product), [])
 
 
 @tagged('post_install', '-at_install')
