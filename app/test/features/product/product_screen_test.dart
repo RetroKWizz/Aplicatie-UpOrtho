@@ -246,6 +246,44 @@ void main() {
     expect(find.text('Cleste Tie Back mare (.016 - .021x.025) Ixion'), findsOneWidget);
   });
 
+  testWidgets('pe un ecran ingust, cu texte romanesti lungi, nimic nu depaseste latimea',
+      (tester) async {
+    const longName =
+        'Cleste Tie Back mare pentru arcuri groase (.016 - .021x.025) Ixion, cu falci zimtate';
+    final transport = FakeTransport();
+    transport.when(
+      'GET',
+      '/api/app/v1/products/101',
+      ApiResponse(status: 200, json: {
+        ...fullProductJson(),
+        'name': longName,
+        'default_code': 'IX954-MARE-ARGINTIU-EDITIE-LIMITATA',
+        'price': priceJson(
+          amount: 11211.5,
+          formatted: '11.211,50 lei',
+          listAmount: 13999.99,
+          listFormatted: '13.999,99 lei',
+          discountPct: 20,
+        ),
+        'availability': {
+          'message': 'Precomanda. Livrare incepand cu 1 August, in limita stocului disponibil.',
+          'in_stock': true,
+        },
+        'specs': [
+          {'name': 'Denumire comerciala a producatorului', 'value': 'DB Orthodontics Limited, Marea Britanie'},
+        ],
+      }),
+    );
+
+    // 320px: cel mai ingust telefon pe care il tintim. Aici au aparut si data
+    // trecuta depasirile de latime (RenderFlex overflow).
+    await pumpProduct(tester, transport: transport, surface: const Size(320, 4000));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(longName), findsOneWidget);
+    expect(find.text('11.211,50 lei'), findsOneWidget);
+  });
+
   testWidgets('eroarea serverului arata mesajul si un buton de reincercare', (tester) async {
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/products/101', const ApiResponse(status: 404, json: {
