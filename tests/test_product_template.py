@@ -277,3 +277,135 @@ class TestProductPriceTiers(TransactionCase):
         product = self.Template.create({'name': 'Produs fara pricelist test praguri', 'list_price': 100.0})
         empty_pricelist = self.Pricelist.browse()
         self.assertEqual(product._uportho_price_tiers(empty_pricelist, self.partner), [])
+
+
+@tagged('post_install', '-at_install')
+class TestProductPriceTablesFromTheme(TransactionCase):
+    """`_uportho_price_tables_from_theme()`: tabelele de pret CITITE din ce a calculat
+    deja magazinul, nu recalculate de noi.
+
+    Modulul clientului (`terrabit_prime_extension`) suprascrie `_get_combination_info`
+    si pune in dictionarul intors `other_bulk_prices`: cate o intrare per lista de pret
+    aratata pe pagina de produs (`is_public_pricelist`, `is_compare_pricelist`), cu
+    `name` (titlul aratat pe site), `bulk_info` (HTML) si `prices`
+    (`qty` / `price` / `formatted_price`). Titlul celei de-a doua liste e un nume de
+    campanie pe care aplicatia nu are cum sa-l ghiceasca - de aceea vine de la server.
+
+    Modulele acelea nu exista pe baza locala; forma de aici e copiata din codul lor,
+    verbatim ca structura (inclusiv `Markup` pe campurile de HTML)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Template = cls.env['product.template']
+        cls.currency = cls.env.company.currency_id
+        cls.product = cls.Template.create({'name': 'Produs test tabele tema', 'list_price': 100.0})
+
+    def _payload(self, tables):
+        """Un `combination_info` ca cel intors de tema, din care ne intereseaza doar
+        `other_bulk_prices` (+ `currency`, valuta afisata)."""
+        return {'currency': self.currency, 'other_bulk_prices': tables}
+
+    def test_each_entry_becomes_a_table_with_its_own_title(self):
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'name': 'Pret public', 'bulk_info': '', 'prices': [
+                {'id': '1_1', 'qty': 1, 'price': 120.0, 'uom_name': 'Units'},
+                {'id': '1_5', 'qty': 5, 'price': 100.0, 'uom_name': 'Units'},
+            ]},
+            {'name': 'Campanie Toamna 2026', 'bulk_info': '', 'prices': [
+                {'id': '2_1', 'qty': 1, 'price': 90.0, 'uom_name': 'Units'},
+            ]},
+        ]), self.currency)
+
+        self.assertEqual([t['title'] for t in tables], ['Pret public', 'Campanie Toamna 2026'])
+        self.assertEqual([e['label'] for e in tables[0]['entries']], ['1+', '5+'])
+        self.assertEqual([e['min_qty'] for e in tables[0]['entries']], [1, 5])
+        self.assertAlmostEqual(tables[0]['entries'][1]['price']['amount'], 100.0, places=2)
+        self.assertEqual([e['label'] for e in tables[1]['entries']], ['1+'])
+
+    def test_prices_are_formatted_by_the_module_never_as_html(self):
+        # `formatted_price` din tema e HTML (Markup). Aplicatia nu are motor HTML:
+        # suma se formateaza cu formatorul modulului, ca toate celelalte sume din API.
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'name': 'Pret public', 'bulk_info': '', 'prices': [
+                {'qty': 1, 'price': 1234.5,
+                 'formatted_price': '<span class="oe_currency_value">1.234,50</span>&nbsp;lei'},
+            ]},
+        ]), self.currency)
+
+        price = tables[0]['entries'][0]['price']
+        self.assertNotIn('<', price['formatted'])
+        self.assertIn('1.234,50', price['formatted'])
+        self.assertEqual(price['currency'], self.currency.name)
+        self.assertTrue(price['with_vat'])
+        self.assertIsNone(price['list_amount'])
+
+    def test_bulk_info_html_becomes_description_blocks_never_html(self):
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'name': 'Pret public',
+             'bulk_info': '<p>Pret <strong>fara</strong> abonament.</p>',
+             'prices': [{'qty': 1, 'price': 120.0}]},
+        ]), self.currency)
+
+        note = tables[0]['note']
+        self.assertEqual([block['type'] for block in note], ['paragraph'])
+        self.assertEqual(''.join(span['text'] for span in note[0]['spans']),
+                         'Pret fara abonament.')
+        self.assertTrue(any(span['bold'] for span in note[0]['spans']))
+
+    def test_missing_bulk_info_gives_an_empty_note(self):
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'name': 'Pret public', 'prices': [{'qty': 1, 'price': 120.0}]},
+        ]), self.currency)
+        self.assertEqual(tables[0]['note'], [])
+
+    def test_quantity_zero_is_labelled_as_one(self):
+        # `min_quantity = 0` e implicitul Odoo pentru "fara minim", nu un prag real -
+        # aceeasi normalizare ca in `_uportho_price_tiers`.
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'name': 'Pret public', 'prices': [{'qty': 0, 'price': 120.0}]},
+        ]), self.currency)
+        self.assertEqual(tables[0]['entries'][0], {
+            'min_qty': 1, 'label': '1+', 'price': tables[0]['entries'][0]['price']})
+
+    def test_currency_comes_from_the_combination_info_displayed_currency(self):
+        # `active_test=False`: pe baza de test o singura valuta e activa, iar o cautare
+        # normala ar intoarce un recordset gol (si testul ar trece degeaba).
+        other = self.env['res.currency'].with_context(active_test=False).search(
+            [('name', '!=', self.currency.name)], limit=1)
+        self.assertTrue(other, 'fixtura degenerata: nu exista o a doua valuta')
+        tables = self.product._uportho_price_tables_from_theme(
+            {'currency': other, 'other_bulk_prices': [
+                {'name': 'Pret public', 'prices': [{'qty': 1, 'price': 120.0}]}]},
+            self.currency)
+        self.assertEqual(tables[0]['entries'][0]['price']['currency'], other.name)
+
+    def test_no_theme_data_returns_no_tables(self):
+        for info in ({}, {'other_bulk_prices': []}, {'other_bulk_prices': None}):
+            self.assertEqual(
+                self.product._uportho_price_tables_from_theme(info, self.currency), [], info)
+
+    def test_entry_without_prices_is_skipped(self):
+        # Un tabel fara niciun rand n-are ce desena; nu ajunge in raspuns.
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'name': 'Lista goala', 'prices': []},
+            {'name': 'Pret public', 'prices': [{'qty': 1, 'price': 120.0}]},
+        ]), self.currency)
+        self.assertEqual([t['title'] for t in tables], ['Pret public'])
+
+    def test_entry_without_name_has_a_null_title_instead_of_breaking(self):
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'bulk_info': '', 'prices': [{'qty': 1, 'price': 120.0}]},
+        ]), self.currency)
+        self.assertIsNone(tables[0]['title'])
+
+    def test_garbage_rows_are_ignored_not_fatal(self):
+        # Cod strain: un rand fara pret sau cu un pret ne-numeric nu are voie sa
+        # transforme pagina de produs in 500.
+        tables = self.product._uportho_price_tables_from_theme(self._payload([
+            {'name': 'Pret public', 'prices': [
+                {'qty': 1, 'price': None}, 'nu e un dictionar',
+                {'qty': 'x', 'price': 120.0}, {'qty': 3, 'price': 110.0},
+            ]},
+        ]), self.currency)
+        self.assertEqual([e['label'] for e in tables[0]['entries']], ['3+'])

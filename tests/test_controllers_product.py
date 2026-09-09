@@ -198,14 +198,24 @@ class TestControllersProductDetail(AppHttpCase):
         self.env['product.template'].create({
             'name': 'Produs Similar Forma Test', 'is_published': True, 'list_price': 5.0,
             'public_categ_ids': [(6, 0, [self.category.id])]})
+        # Un prag de cantitate, ca sa existe un tabel de pret in raspuns: un tabel de
+        # un singur rand, egal cu pretul de deasupra lui, nu se trimite deloc.
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
         contract = load_contract('product_detail.json')
         body = self._detail().json()
 
         self.assertEqual(set(body.keys()), set(contract.keys()))
         self.assertEqual(set(body['price'].keys()), set(contract['price'].keys()))
         self.assertEqual(set(body['images'][0].keys()), set(contract['images'][0].keys()))
-        self.assertEqual(set(body['tiers'][0].keys()), set(contract['tiers'][0].keys()))
-        self.assertEqual(set(body['tiers'][0]['price'].keys()), set(contract['tiers'][0]['price'].keys()))
+        self.assertEqual(set(body['price_tables'][0].keys()),
+                         set(contract['price_tables'][0].keys()))
+        self.assertEqual(set(body['price_tables'][0]['entries'][0].keys()),
+                         set(contract['price_tables'][0]['entries'][0].keys()))
+        self.assertEqual(set(body['price_tables'][0]['entries'][0]['price'].keys()),
+                         set(contract['price_tables'][0]['entries'][0]['price'].keys()))
         self.assertEqual(set(body['variants'].keys()), set(contract['variants'].keys()))
         self.assertEqual(set(body['variants']['attributes'][0].keys()),
                          set(contract['variants']['attributes'][0].keys()))
@@ -224,7 +234,7 @@ class TestControllersProductDetail(AppHttpCase):
         self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
         body = self._detail(self.product_bare).json()
         # Liste: goale, niciodata null.
-        for key in ('tiers', 'club_tiers', 'specs', 'description', 'reviews', 'similar',
+        for key in ('price_tables', 'specs', 'description', 'reviews', 'similar',
                     'benefits', 'images'):
             self.assertIsInstance(body[key], list, key)
         self.assertEqual(body['images'], [])
@@ -236,8 +246,9 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertIsNone(body['badge'])
         self.assertIsNone(body['club_price'])
         self.assertIsNone(body['availability'])
-        # Un singur prag, la cantitatea 1 - tabelul de club arata exact asa azi.
-        self.assertEqual([tier['min_qty'] for tier in body['tiers']], [1])
+        # Fara reduceri de cantitate, singurul rand ar fi "1+" cu pretul deja afisat
+        # deasupra: un asemenea tabel nu se trimite deloc.
+        self.assertEqual(body['price_tables'], [])
         self.assertEqual(body['rating'], {'average': 0.0, 'count': 0})
 
     def test_identity_fields(self):
@@ -391,24 +402,35 @@ class TestControllersProductDetail(AppHttpCase):
         # Tabelul de praguri trebuie sa arate pretul variantei alese; altfel randul
         # "1+" ar contrazice pretul mare de deasupra lui pe aceeasi pagina.
         self.api_login()
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
         expensive = self._variant('Mare detaliu', 'Argintiu detaliu')
         body = self._detail(variant_id=expensive.id).json()
-        self.assertEqual(body['tiers'][0]['price']['amount'], body['price']['amount'])
+        entries = body['price_tables'][0]['entries']
+        self.assertEqual(entries[0]['price']['amount'], body['price']['amount'])
 
-    # --- praguri de cantitate si pret de club ---------------------------------
+    # --- tabele de pret (praguri de cantitate, club, tema) --------------------
 
-    def test_tiers_from_pricelist_rules(self):
+    def test_price_tables_from_pricelist_rules(self):
         self.api_login()
         self.env['product.pricelist.item'].create({
             'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
             'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
             'percent_price': 20.0, 'min_quantity': 5})
         body = self._detail(self.product_bare).json()
-        self.assertEqual([tier['min_qty'] for tier in body['tiers']], [1, 5])
-        self.assertEqual([tier['label'] for tier in body['tiers']], ['1+', '5+'])
-        self.assertGreater(body['tiers'][0]['price']['amount'], body['tiers'][1]['price']['amount'])
+        # Fara modulul de tema (nu e pe baza locala), titlul vine tot de la server -
+        # aplicatia nu mai stie niciun titlu de tabel.
+        self.assertEqual([table['title'] for table in body['price_tables']],
+                         ['Pret pe cantitate'])
+        entries = body['price_tables'][0]['entries']
+        self.assertEqual([tier['min_qty'] for tier in entries], [1, 5])
+        self.assertEqual([tier['label'] for tier in entries], ['1+', '5+'])
+        self.assertGreater(entries[0]['price']['amount'], entries[1]['price']['amount'])
+        self.assertEqual(body['price_tables'][0]['note'], [])
 
-    def test_club_price_and_club_tiers_when_parameter_set(self):
+    def test_club_price_and_club_table_when_parameter_set(self):
         club_pricelist = self.env['product.pricelist'].create({
             'name': 'Ortho Club detaliu test', 'currency_id': self.currency.id})
         self.env['product.pricelist.item'].create({
@@ -419,17 +441,127 @@ class TestControllersProductDetail(AppHttpCase):
         body = self._detail(self.product_bare).json()
         self.assertIsNotNone(body['club_price'])
         self.assertAlmostEqual(body['club_price']['amount'], 9.0, places=2)
+        # Tabelul clientului ar avea un singur rand, egal cu pretul de deasupra: nu
+        # se trimite. Ramane doar cel de club, cu titlul lui, tot de la server.
+        self.assertEqual([table['title'] for table in body['price_tables']],
+                         ['Pret Ortho Club'])
+        club_entries = body['price_tables'][0]['entries']
         # Regula globala a listei de club are min_quantity 0; eticheta aratata ramane
         # '1+' (regula 5 din Task 2), asa ca aici se verifica eticheta, nu pragul brut.
-        self.assertEqual([tier['label'] for tier in body['club_tiers']], ['1+'])
-        self.assertAlmostEqual(body['club_tiers'][0]['price']['amount'], 9.0, places=2)
+        self.assertEqual([tier['label'] for tier in club_entries], ['1+'])
+        self.assertAlmostEqual(club_entries[0]['price']['amount'], 9.0, places=2)
 
-    def test_club_tiers_empty_when_parameter_not_set(self):
+    def test_price_tables_empty_when_club_parameter_not_set(self):
         self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
         self.api_login()
         body = self._detail(self.product_bare).json()
         self.assertIsNone(body['club_price'])
-        self.assertEqual(body['club_tiers'], [])
+        self.assertEqual(body['price_tables'], [])
+
+    # --- tabelele de pret ale temei (modulul clientului) ----------------------
+
+    def _combination_info_with_theme_tables(self, tables):
+        """Un `_get_combination_info` care adauga `other_bulk_prices`, ca modulul
+        clientului (`terrabit_prime_extension`).
+
+        Modulul acela suprascrie `_get_combination_info` si pune acolo tabelele deja
+        calculate pentru pagina de produs de pe site: cate o intrare per lista de pret
+        aratata (`is_public_pricelist`, `is_compare_pricelist`), cu `name` (titlul de
+        pe site, pe productie un nume de campanie), `bulk_info` (HTML) si `prices`.
+        Nu e instalat pe baza locala, deci raspunsul lui se simuleaza aici - forma e
+        copiata din codul lor."""
+        Template = type(self.env['product.template'])
+        original = Template._get_combination_info
+
+        def with_tables(inner_self, *args, **kwargs):
+            info = original(inner_self, *args, **kwargs)
+            info['other_bulk_prices'] = tables
+            return info
+
+        return patch.object(Template, '_get_combination_info', with_tables)
+
+    def test_price_tables_come_from_the_theme_when_present(self):
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        theme_tables = [
+            {'name': 'Pret public',
+             'bulk_info': '<p>Pretul <strong>fara</strong> abonament.</p>',
+             'prices': [
+                 {'id': '1_1', 'qty': 1, 'price': 120.0,
+                  'formatted_price': '<span class="oe_currency_value">120,00</span>&nbsp;lei',
+                  'uom_name': 'Units'},
+                 {'id': '1_5', 'qty': 5, 'price': 100.0,
+                  'formatted_price': '<span class="oe_currency_value">100,00</span>&nbsp;lei',
+                  'uom_name': 'Units'},
+             ]},
+            {'name': 'Campanie Toamna 2026', 'bulk_info': '',
+             'prices': [{'id': '2_1', 'qty': 1, 'price': 90.0, 'uom_name': 'Units'}]},
+        ]
+        with self._combination_info_with_theme_tables(theme_tables):
+            body = self._detail(self.product_bare).json()
+
+        # Titlurile sunt cele de pe site, in ordinea de pe site - inclusiv numele de
+        # campanie, pe care aplicatia nu are cum sa-l ghiceasca.
+        self.assertEqual([table['title'] for table in body['price_tables']],
+                         ['Pret public', 'Campanie Toamna 2026'])
+        self.assertEqual([entry['label'] for entry in body['price_tables'][0]['entries']],
+                         ['1+', '5+'])
+        self.assertAlmostEqual(body['price_tables'][0]['entries'][1]['price']['amount'],
+                               100.0, places=2)
+        # `bulk_info` ajunge blocuri, niciodata HTML: aplicatia nu are motor HTML.
+        note = body['price_tables'][0]['note']
+        self.assertEqual([block['type'] for block in note], ['paragraph'])
+        self.assertEqual(''.join(span['text'] for span in note[0]['spans']),
+                         'Pretul fara abonament.')
+        self.assertEqual(body['price_tables'][1]['note'], [])
+        # Nici sumele nu sunt HTML: `formatted_price` al temei e Markup, noi il
+        # inlocuim cu formatorul modulului.
+        for table in body['price_tables']:
+            for entry in table['entries']:
+                self.assertNotIn('<', entry['price']['formatted'])
+
+    def test_theme_tables_replace_the_module_own_tiers(self):
+        # Cand magazinul are deja tabelele calculate, ele sunt singurele aratate -
+        # altfel pagina din app ar spune altceva decat pagina de pe site.
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
+        with self._combination_info_with_theme_tables([
+                {'name': 'Pret public', 'prices': [{'qty': 1, 'price': 120.0}]}]):
+            body = self._detail(self.product_bare).json()
+
+        self.assertEqual([table['title'] for table in body['price_tables']], ['Pret public'])
+        self.assertEqual([entry['min_qty'] for entry in body['price_tables'][0]['entries']], [1])
+
+    def test_theme_table_equal_to_the_displayed_price_is_dropped(self):
+        # Aceeasi regula ca la tabelele proprii: un singur rand care repeta pretul de
+        # deasupra lui nu spune nimic nou.
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        price = self._detail(self.product_bare).json()['price']['amount']
+        with self._combination_info_with_theme_tables([
+                {'name': 'Pret public', 'prices': [{'qty': 1, 'price': price}]}]):
+            body = self._detail(self.product_bare).json()
+        self.assertEqual(body['price_tables'], [])
+
+    def test_theme_tables_survive_a_combination_info_that_fails(self):
+        # Daca override-ul temei cade, raspunsul ramane intreg: se cade pe tabelele
+        # calculate de modul (aici, un prag de cantitate real).
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': self.pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': self.product_bare.id, 'compute_price': 'percentage',
+            'percent_price': 20.0, 'min_quantity': 5})
+        with self._combination_info_raising(), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
+            body = self._detail(self.product_bare).json()
+
+        self.assertEqual([table['title'] for table in body['price_tables']], ['Pret pe cantitate'])
+        self.assertEqual([entry['min_qty'] for entry in body['price_tables'][0]['entries']], [1, 5])
 
     # --- produse similare -----------------------------------------------------
 

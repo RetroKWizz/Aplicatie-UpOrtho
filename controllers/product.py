@@ -106,7 +106,9 @@ def _fallback_combination(template, variant, combination):
                        else template._get_first_possible_combination())
     if not variant:
         variant = template._get_variant_for_combination(combination) or template.product_variant_id
-    return combination, variant
+    # Al treilea element e `combination_info`-ul care lipseste: fara el, tabelele de
+    # pret ale temei nu se pot citi si se cade pe cele calculate de modul.
+    return combination, variant, {}
 
 
 def _resolve_combination(template, variant, values=None):
@@ -121,9 +123,11 @@ def _resolve_combination(template, variant, values=None):
     `exclude_for`) e adusa la cea mai apropiata combinatie posibila. Asa nu ajunge
     niciodata sa fie o eroare ceva ce pe site e doar o alta selectie.
 
-    Din raspunsul lui folosim doar combinatia si varianta: preturile lui vin de pe
-    `website.pricelist_id` (lista rezolvata din sesiune/geoip), nu de pe lista
-    clientului si a Ortho Club, care sunt cele doua de care are nevoie aplicatia.
+    Din preturile lui folosim doar combinatia, varianta si tabelele de pret pe care
+    le adauga tema (`other_bulk_prices` - vezi `_uportho_price_tables_from_theme`):
+    pretul lui principal vine de pe `website.pricelist_id` (lista rezolvata din
+    sesiune/geoip), nu de pe lista clientului si a Ortho Club, care sunt cele doua de
+    care are nevoie aplicatia.
 
     `_get_combination_info` e insa punctul in care intra cod strain: pe instanta
     reala, tema magazinului il suprascrie si randeaza in interiorul lui un template
@@ -154,7 +158,54 @@ def _resolve_combination(template, variant, values=None):
         variant = request.env['product.product'].browse(resolved_id)
     elif not variant:
         variant = template.product_variant_id
-    return combination_info.get('combination'), variant
+    return combination_info.get('combination'), variant, combination_info
+
+
+# Titlurile tabelelor calculate de modul, folosite doar cand magazinul nu are deja
+# tabelele lui (baza locala, sau o instanta fara modulul de teme al clientului).
+# Titlul e mereu un camp de raspuns: aplicatia nu stie niciun titlu de tabel, pentru
+# ca pe productie al doilea tabel poarta un nume de campanie, imposibil de ghicit.
+OWN_TABLE_TITLE = 'Pret pe cantitate'
+CLUB_TABLE_TITLE = 'Pret Ortho Club'
+
+
+def _worth_showing(table, price):
+    """Un tabel cu un singur rand egal cu pretul deja afisat deasupra lui nu spune
+    nimic nou - nu se trimite deloc. Regula veche (era in aplicatie, unde compara
+    siruri formatate); aici, unde sunt si sumele si valutele, comparatia e pe
+    (suma, valuta), aceeasi ca la pretul de club."""
+    entries = table['entries']
+    if len(entries) != 1:
+        return bool(entries)
+    only = entries[0]['price']
+    return (only['amount'], only['currency']) != (price['amount'], price['currency'])
+
+
+def _price_tables(template, combination_info, price, pricelist, club_pricelist,
+                  partner, fiscal_position, variant):
+    """Tabelele de pret ale paginii, in ordinea in care se deseneaza.
+
+    Intai cele ale magazinului (`other_bulk_prices` din `_get_combination_info`, puse
+    acolo de modulul clientului): daca exista, ele SUNT tabelele paginii, ca app-ul sa
+    arate exact ce arata site-ul, cu titlurile lui. Daca lipsesc (baza locala de
+    dezvoltare, sau o instanta fara acele module), se cade pe tabelele calculate de
+    modul: praguri de cantitate pe lista clientului si, cand `club_pricelist` e data
+    (adica pretul de club chiar difera), pe cea Ortho Club.
+
+    Pragurile proprii se calculeaza doar pe ramura de rezerva: cand magazinul are deja
+    tabelele lui, ele nici nu s-ar afisa, deci nu se cer degeaba preturi de la Odoo."""
+    tables = template._uportho_price_tables_from_theme(combination_info, pricelist.currency_id)
+    if not tables:
+        own = template._uportho_price_tiers(
+            pricelist, partner, fiscal_position=fiscal_position, variant=variant)
+        if own:
+            tables.append({'title': OWN_TABLE_TITLE, 'note': [], 'entries': own})
+        club_tiers = template._uportho_price_tiers(
+            club_pricelist, partner, fiscal_position=fiscal_position,
+            variant=variant) if club_pricelist else []
+        if club_tiers:
+            tables.append({'title': CLUB_TABLE_TITLE, 'note': [], 'entries': club_tiers})
+    return [table for table in tables if _worth_showing(table, price)]
 
 
 def _gallery_url(template, image_id, record, variant=None):
@@ -271,7 +322,8 @@ class AppProduct(http.Controller):
         values = _parse_values(template, kw.get('values'))
         variant = (request.env['product.product'].browse() if values is not None
                    else _parse_variant(template, kw.get('variant_id')))
-        combination, variant = _resolve_combination(template, variant, values=values)
+        combination, variant, combination_info = _resolve_combination(
+            template, variant, values=values)
 
         partner = request.env.user.partner_id
         pricelist = _customer_pricelist(partner)
@@ -283,7 +335,10 @@ class AppProduct(http.Controller):
             pricelist, partner, fiscal_position=fiscal_position, variant=variant)
         price = serialize_price(amount, list_amount, pricelist.currency_id)
 
-        club_price, club_tiers = None, []
+        club_price = None
+        # Lista de club din care se face tabelul de club: goala cat timp pretul de club
+        # nu difera de al clientului (vezi mai jos).
+        club_pricelist_for_tables = request.env['product.pricelist'].browse()
         if club_pricelist_comparable(club_pricelist, pricelist):
             club_amount, club_list_amount = template._uportho_price_amounts_for(
                 club_pricelist, partner, fiscal_position=fiscal_position, variant=variant)
@@ -293,8 +348,7 @@ class AppProduct(http.Controller):
             # acelasi tabel de doua ori pe acelasi ecran.
             if (candidate['amount'], candidate['currency']) != (price['amount'], price['currency']):
                 club_price = candidate
-                club_tiers = template._uportho_price_tiers(
-                    club_pricelist, partner, fiscal_position=fiscal_position, variant=variant)
+                club_pricelist_for_tables = club_pricelist
         else:
             club_pricelist = request.env['product.pricelist'].browse()
 
@@ -308,9 +362,12 @@ class AppProduct(http.Controller):
             'images': _serialize_gallery(template, variant),
             'price': price,
             'club_price': club_price,
-            'tiers': template._uportho_price_tiers(
-                pricelist, partner, fiscal_position=fiscal_position, variant=variant),
-            'club_tiers': club_tiers,
+            # Cate un tabel per lista de pret aratata, cu titlul lui - unul, doua sau
+            # niciunul. Aplicatia le deseneaza in ordinea primita si nu presupune
+            # niciodata cate sunt sau cum le cheama.
+            'price_tables': _price_tables(
+                template, combination_info, price, pricelist, club_pricelist_for_tables,
+                partner, fiscal_position, variant),
             'variants': template._uportho_variants(variant=variant, combination=combination),
             'specs': template._uportho_specs(),
             'description': template._uportho_description_blocks(),
