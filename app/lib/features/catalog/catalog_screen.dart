@@ -2,26 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../api/api_exception.dart';
 import '../../api/models/catalog_category.dart';
-import '../../api/models/product.dart';
 import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/widgets/product_card.dart';
 import '../../providers.dart';
+import '../product_badge_palette.dart';
 import 'catalog_controller.dart';
-
-/// Culorile de badge din contract (`orange`/`green`/`blue`/`purple`/`red`) traduse
-/// in `Color` din paleta de brand - `ProductCard` nu stie de `ProductBadgeColor`
-/// (nu importa modele API), asa ca traducerea se face aici, la marginea ecranului.
-Color _badgeColor(ProductBadgeColor color) => switch (color) {
-      ProductBadgeColor.orange => AppColors.accent,
-      ProductBadgeColor.green => AppColors.success,
-      ProductBadgeColor.blue => const Color(0xFF2E75D9),
-      ProductBadgeColor.purple => AppColors.primary,
-      ProductBadgeColor.red => AppColors.danger,
-    };
 
 /// Ecranul de catalog: cautare, filtrare pe categorie, grila de produse cu
 /// paginare (scroll infinit - vezi comentariul de pe `_onScroll`).
@@ -174,10 +164,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       discountLabel: product.price.discountPct == null ? null : '-${product.price.discountPct}%',
                       clubPriceFormatted: product.clubPrice?.formatted,
                       badgeText: product.badge?.text,
-                      badgeColor: product.badge == null ? null : _badgeColor(product.badge!.color),
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Detaliile pentru "${product.name}" vin in etapa urmatoare.')),
-                      ),
+                      badgeColor: product.badge == null ? null : productBadgeColor(product.badge!.color),
+                      // Ruta copil a catalogului: pagina de produs ramane in
+                      // tabul Catalog, iar butonul de inapoi duce la grila.
+                      onTap: () => context.push('/catalog/${product.id}'),
                     );
                   },
                 );

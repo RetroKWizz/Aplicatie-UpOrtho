@@ -6,6 +6,7 @@ import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/catalog/catalog_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/product/product_screen.dart';
 import 'features/shell/shell_screen.dart';
 
 /// Notifica GoRouter cand se schimba starea de auth, ca sa re-evalueze redirect-ul.
@@ -44,6 +45,21 @@ final routerProvider = Provider<GoRouter>((ref) {
                 final categoryId = int.tryParse(state.uri.queryParameters['category_id'] ?? '');
                 return CatalogScreen(initialCategoryId: categoryId);
               },
+              routes: [
+                // Pagina de produs, ca ruta copil: ramane in tabul Catalog (bara
+                // de jos nu dispare) si butonul de inapoi duce la grila, nu la
+                // Acasa. Un produs similar apasat din pagina curenta se deschide
+                // peste ea, tot pe aceasta ruta.
+                GoRoute(
+                  path: ':id',
+                  // Un id nenumeric (link stricat, deep link ciudat) nu are voie
+                  // sa arunce in `int.parse`: se cade inapoi pe catalog.
+                  redirect: (_, state) =>
+                      int.tryParse(state.pathParameters['id'] ?? '') == null ? '/catalog' : null,
+                  builder: (_, state) =>
+                      ProductScreen(productId: int.parse(state.pathParameters['id']!)),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [GoRoute(path: '/cart', builder: (_, _) => const PlaceholderScreen('Cos'))]),
