@@ -60,6 +60,20 @@ potriveste, ia primul website din baza — pe o instanta cu mai multe website-ur
 ar fi o problema de continut, nu un bug. Fallback-ul logheaza un warning
 (`odoo.addons.uportho_app.controllers.home`), tocmai ca sa fie vizibil in loguri.
 
+**Ordinea produselor e o setare de magazin, nu o constanta din cod.** `/products`
+sorteaza dupa `website.shop_default_sort` al website-ului rezolvat mai sus (Website →
+Configurare → Magazin, sau bara de sortare a magazinului), acelasi camp dupa care isi
+ordoneaza rafturile site-ul. Pe instanta reala e `website_sequence asc` — ordinea
+manuala din spatele sortarii "Recomandate" (603 valori distincte pe 619 produse
+publicate, deci chiar ordonata de om). O schimbare de sortare facuta in Odoo se vede
+in aplicatie fara release in store. Valoarea e validata inainte de folosire (fiecare
+camp numit trebuie sa existe si sa fie stocat pe `product.template`, fiecare directie
+sa fie `asc`/`desc`) si i se adauga `id` la final ca criteriu stabil — fara el, doua
+produse cu acelasi `website_sequence` pot veni in ordine diferita la doua pagini
+succesive, iar scroll-ul infinit al aplicatiei ar dubla unul si l-ar sari pe celalalt.
+Setare lipsa, goala sau invalida => ordinea de rezerva `website_sequence, id` plus
+warning in `odoo.addons.uportho_app.controllers.catalog`.
+
 **Lista Ortho Club nu mai e configurare de deploy.** Pe o instanta reala sursa unica de
 adevar e **bifa clientului `is_compare_pricelist`** de pe `product.pricelist` (campul
 adaugat de `terrabit_prime_extension`) — aceeasi bifa dupa care magazinul isi alege

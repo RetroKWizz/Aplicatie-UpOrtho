@@ -15,6 +15,22 @@ CLUB_PRICELIST_FLAG = 'is_compare_pricelist'
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
 
+# Sortarea implicita a magazinului, asa cum o tine Odoo: campul `shop_default_sort` de
+# pe `website` (Website → Configurare → Magazin, sau bara de sortare a magazinului).
+# Pe instanta reala e 'website_sequence asc' - ordinea manuala din spatele sortarii
+# "Recomandate", cu 603 valori distincte pe 619 produse publicate, deci o ordonare
+# chiar facuta de om, nu ramasa pe implicit.
+SHOP_SORT_FIELD = 'shop_default_sort'
+# Ordinea de rezerva cand setarea lipseste sau nu e valida: aceeasi intentie
+# (ordonarea manuala a magazinului), doar fara sa depinda de configurare.
+PRODUCTS_ORDER_FALLBACK = 'website_sequence, id'
+# Criteriul stabil de la finalul oricarei ordini. Fara el, doua produse cu acelasi
+# `website_sequence` pot veni in ordine diferita de la doua interogari succesive, iar
+# paginarea aplicatiei ar arata unul de doua ori si l-ar sari complet pe celalalt -
+# tacut, fara nicio eroare.
+PRODUCTS_ORDER_TIEBREAKER = 'id'
+ORDER_DIRECTIONS = ('asc', 'desc')
+
 
 def _flagged_club_pricelist():
     """Lista Ortho Club asa cum o marcheaza clientul: prima lista de preturi activa
@@ -186,6 +202,82 @@ def _club_prices_by_template(templates, club_pricelist, customer_pricelist, part
     return result
 
 
+def _sanitized_order(raw, Template):
+    """`raw` transformat intr-un `order` sigur pentru `search()`, sau None daca nu e.
+
+    `shop_default_sort` e o Selection, dar continutul lui ajunge in baza si pe alte
+    cai decat interfata (un modul care extinde selectia, o scriere directa) - e text
+    liber, nu o valoare in care sa avem incredere. Interpolat orbeste in `order`, un
+    camp inexistent ar da 500 la fiecare listare de catalog, iar restul ajunge in
+    `ORDER BY`.
+
+    Se accepta doar forma pe care o produce Odoo: termeni separati prin virgula, fiecare
+    un nume de camp existent SI stocat pe `product.template` (un camp calculat nestocat
+    n-are coloana dupa care sa se sorteze), optional urmat de `asc`/`desc`. Orice
+    altceva - inclusiv un termen gol sau al doilea cuvant necunoscut - intoarce None,
+    iar apelantul cade pe ordinea sigura.
+
+    La final se adauga `id` daca ordinea configurata nu se termina deja pe el: vezi
+    PRODUCTS_ORDER_TIEBREAKER."""
+    if not raw or not raw.strip():
+        return None
+    terms = []
+    last_field = None
+    for part in raw.split(','):
+        tokens = part.split()
+        if not tokens or len(tokens) > 2:
+            return None
+        field = Template._fields.get(tokens[0])
+        if field is None or not field.store:
+            return None
+        if len(tokens) == 2 and tokens[1].lower() not in ORDER_DIRECTIONS:
+            return None
+        last_field = tokens[0]
+        terms.append(' '.join(tokens))
+    if last_field != PRODUCTS_ORDER_TIEBREAKER:
+        terms.append(PRODUCTS_ORDER_TIEBREAKER)
+    return ', '.join(terms)
+
+
+def _products_order(website):
+    """Ordinea in care API-ul listeaza produsele: chiar sortarea implicita configurata a
+    magazinului (`website.shop_default_sort`), nu o constanta scrisa in codul nostru.
+
+    Aplicatia lista produsele in ordinea implicita a modelului
+    ('is_favorite desc, name'), adica alfabetic - dar magazinul isi ordoneaza rafturile
+    dupa setarea website-ului, implicit 'website_sequence asc'. Doua liste diferite
+    pentru acelasi catalog. Citita de aici, o schimbare de sortare facuta in Odoo se
+    vede in aplicatie fara release in App Store - acelasi motiv pentru care exista tot
+    modulul.
+
+    Nu se reproduce restul ordinii magazinului ('is_published desc, ..., id desc' din
+    `website_sale.WebsiteSale._get_search_order`): `is_published desc` n-ar face nimic,
+    domeniul nostru contine oricum doar produse publicate.
+
+    Niciodata eroare: setare lipsa, goala sau invalida dau ordinea de rezerva plus un
+    warning care spune ce anume lipsea, ca o configurare gresita sa se diagnosticheze
+    din log (acelasi stil ca warning-urile pentru website si pentru lista de club)."""
+    Template = website.env['product.template']
+    fallback = _sanitized_order(PRODUCTS_ORDER_FALLBACK, Template) or PRODUCTS_ORDER_TIEBREAKER
+    if SHOP_SORT_FIELD not in website._fields:
+        _logger.warning(
+            'Campul %s nu exista pe website (baza fara website_sale sau camp redenumit '
+            'intr-o versiune viitoare de Odoo); produsele se listeaza dupa %r, nu dupa '
+            'sortarea configurata a magazinului.', SHOP_SORT_FIELD, fallback)
+        return fallback
+    raw = website.sudo()[SHOP_SORT_FIELD]
+    order = _sanitized_order(raw, Template)
+    if order:
+        return order
+    _logger.warning(
+        'Website-ul %r (id %s) are %s = %r, care nu e o sortare folosibila (camp '
+        'inexistent sau nestocat pe product.template, ori directie diferita de '
+        'asc/desc); produsele se listeaza dupa %r. Verifica sortarea implicita a '
+        'magazinului in Odoo.',
+        website.name, website.id, SHOP_SORT_FIELD, raw, fallback)
+    return fallback
+
+
 def _products_domain(website, category_id, query):
     domain = [
         ('is_published', '=', True),
@@ -331,12 +423,12 @@ class AppCatalog(http.Controller):
 
         Template = request.env['product.template']
         total = Template.search_count(domain)
-        # Ordine explicita cu 'id' la final: ordinea implicita a modelului
-        # ('is_favorite desc, name') nu include 'id', deci doua produse cu acelasi
-        # nume pot schimba ordinea intre doua pagini succesive - pe 925 de produse,
-        # orice doua cu acelasi nume ar duplica un produs pe doua pagini si l-ar
-        # sari complet pe altul intr-un catalog cu scroll infinit.
-        templates = Template.search(domain, offset=offset, limit=limit, order='is_favorite desc, name, id')
+        # Aceeasi ordine ca in magazin, citita din setarea website-ului si cu un
+        # criteriu stabil la final - vezi _products_order. Se aplica identic listei
+        # nefiltrate, celei filtrate pe categorie si cautarii: domeniul difera,
+        # ordinea nu.
+        order = _products_order(website)
+        templates = Template.search(domain, offset=offset, limit=limit, order=order)
 
         partner = request.env.user.partner_id
         pricelist = _customer_pricelist(partner)
