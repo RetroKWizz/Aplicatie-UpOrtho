@@ -1253,15 +1253,18 @@ class TestControllersProductPrices(AppHttpCase):
         body = self._prices([{'variant_id': self.full.id, 'qty': 1}]).json()
         self.assertEqual(body['lines'][0]['price']['amount'], 120.0)
 
-    def test_total_sums_lines_priced_at_their_own_quantity(self):
+    def test_total_sums_lines_priced_at_the_combined_quantity(self):
+        # 5 + 2 = 7 bucati in tabel, deci pragul de 5 se aplica pe AMBELE randuri
+        # (asa incaseaza si site-ul), nu doar pe randul care are singur 5.
         self.api_login()
         body = self._prices([
             {'variant_id': self.simple.id, 'qty': 5},
             {'variant_id': self.full.id, 'qty': 2},
         ]).json()
-        self.assertEqual([line['subtotal']['amount'] for line in body['lines']], [400.0, 240.0])
-        self.assertEqual(body['total']['amount'], 640.0)
-        self.assertIn('640,00', body['total']['formatted'])
+        self.assertEqual([line['price']['amount'] for line in body['lines']], [80.0, 96.0])
+        self.assertEqual([line['subtotal']['amount'] for line in body['lines']], [400.0, 192.0])
+        self.assertEqual(body['total']['amount'], 592.0)
+        self.assertIn('592,00', body['total']['formatted'])
 
     def test_zero_quantity_keeps_the_unit_price_of_one(self):
         # `quantity=0` nu e un prag real: pretuit chiar la 0, Odoo nu aplica regula
@@ -1284,3 +1287,147 @@ class TestControllersProductPrices(AppHttpCase):
         self.assertEqual(set(body['lines'][0]['subtotal'].keys()),
                          set(contract['lines'][0]['subtotal'].keys()))
         self.assertEqual(set(body['total'].keys()), set(contract['total'].keys()))
+
+
+@tagged('post_install', '-at_install')
+class TestControllersProductPricesCombinedQuantity(AppHttpCase):
+    """Pragurile de cantitate se aplica pe cantitatea CUMULATA a tuturor liniilor, nu
+    pe fiecare linie in parte - exact ce face `website_variant_cart` pe serverul
+    clientului (`total_qty` insumat, apoi `_get_combination_info_variant(add_qty=
+    total_qty)` pentru fiecare varianta).
+
+    Defectul pe care il inchid testele astea: cu praguri 1+ 98 / 4+ 77 / 10+ 70, o
+    comanda de 4 pe o varianta si 7 pe alta era pretuita 77 pe ambele randuri, desi
+    site-ul incaseaza 70 (4 + 7 = 11, peste pragul de 10).
+
+    Toate sumele asteptate se cer de la Odoo (`_uportho_price_amounts_for`), nu se
+    scriu de mana: altfel un test ar putea trece cu o aritmetica de pricelist deviata."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.currency = cls.env.company.currency_id
+        cls.pricelist = cls.env['product.pricelist'].create({
+            'name': 'Lista praguri cumulate test', 'currency_id': cls.currency.id})
+        cls.portal_user.partner_id.property_product_pricelist = cls.pricelist.id
+
+        cls.attribute = cls.env['product.attribute'].create({
+            'name': 'Set cumulat test',
+            'value_ids': [(0, 0, {'name': 'Simplu cumulat'}), (0, 0, {'name': 'Complet cumulat'})],
+        })
+        # Fara taxe: testul vorbeste despre praguri de cantitate, nu despre TVA.
+        cls.product = cls.env['product.template'].create({
+            'name': 'Produs Cantitate Cumulata Test', 'is_published': True, 'list_price': 98.0,
+            'taxes_id': [(6, 0, [])],
+            'attribute_line_ids': [(0, 0, {
+                'attribute_id': cls.attribute.id,
+                'value_ids': [(6, 0, cls.attribute.value_ids.ids)],
+            })],
+        })
+        ptav = {
+            value.product_attribute_value_id.name: value
+            for line in cls.product.attribute_line_ids
+            for value in line.product_template_value_ids
+        }
+        cls.simple = cls.product._get_variant_for_combination(ptav['Simplu cumulat'])
+        cls.full = cls.product._get_variant_for_combination(ptav['Complet cumulat'])
+
+        # Pragurile din raportul de pe staging: 1+ 98,00 / 4+ 77,00 / 10+ 70,00.
+        for min_quantity, price in ((1, 98.0), (4, 77.0), (10, 70.0)):
+            cls.env['product.pricelist.item'].create({
+                'pricelist_id': cls.pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': cls.product.id, 'compute_price': 'fixed',
+                'fixed_price': price, 'min_quantity': min_quantity})
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.registry.clear_cache)
+
+    def _odoo_amount(self, variant, quantity):
+        """Pretul unitar pe care il da Odoo pentru varianta asta la cantitatea asta -
+        aceeasi cale pe care o foloseste si ruta. Sumele asteptate vin de aici, nu din
+        cifre scrise de mana."""
+        amount, _list_amount = self.product._uportho_price_amounts_for(
+            self.pricelist, self.portal_user.partner_id, quantity=quantity, variant=variant)
+        return amount
+
+    def _prices(self, lines):
+        return self.api_post(f'/products/{self.product.id}/prices', {'lines': lines}).json()
+
+    def test_thresholds_apply_to_the_combined_quantity_of_all_lines(self):
+        self.api_login()
+        body = self._prices([
+            {'variant_id': self.simple.id, 'qty': 4},
+            {'variant_id': self.full.id, 'qty': 7},
+        ])
+        # 4 + 7 = 11, deci ambele randuri se pretuiesc la pragul de 10.
+        expected_simple = self._odoo_amount(self.simple, 11)
+        expected_full = self._odoo_amount(self.full, 11)
+        # Dovada ca testul chiar prinde defectul: pretul la 11 NU e pretul la 4.
+        self.assertNotEqual(expected_simple, self._odoo_amount(self.simple, 4))
+
+        lines = {line['variant_id']: line for line in body['lines']}
+        self.assertEqual(lines[self.simple.id]['price']['amount'], expected_simple)
+        self.assertEqual(lines[self.full.id]['price']['amount'], expected_full)
+        self.assertEqual(lines[self.simple.id]['subtotal']['amount'],
+                         self.currency.round(expected_simple * 4))
+        self.assertEqual(lines[self.full.id]['subtotal']['amount'],
+                         self.currency.round(expected_full * 7))
+        self.assertEqual(body['total']['amount'],
+                         self.currency.round(expected_simple * 4) +
+                         self.currency.round(expected_full * 7))
+
+    def test_a_single_line_of_four_still_gets_the_four_price(self):
+        # Regula noua nu inseamna "mereu cel mai ieftin prag": o singura linie de 4
+        # ramane la pretul de 4+, nu coboara la cel de 10+.
+        self.api_login()
+        body = self._prices([
+            {'variant_id': self.simple.id, 'qty': 4},
+            {'variant_id': self.full.id, 'qty': 0},
+        ])
+        expected = self._odoo_amount(self.simple, 4)
+        self.assertNotEqual(expected, self._odoo_amount(self.simple, 10))
+        lines = {line['variant_id']: line for line in body['lines']}
+        self.assertEqual(lines[self.simple.id]['price']['amount'], expected)
+        self.assertEqual(lines[self.simple.id]['subtotal']['amount'],
+                         self.currency.round(expected * 4))
+        self.assertEqual(body['total']['amount'], self.currency.round(expected * 4))
+
+    def test_a_zero_quantity_line_is_priced_at_the_combined_quantity_too(self):
+        # Randul necomandat arata pretul pe care l-ar avea daca ar fi adaugat la
+        # comanda curenta - ca pe site, unde tot tabelul se repretuieste la total.
+        self.api_login()
+        body = self._prices([
+            {'variant_id': self.simple.id, 'qty': 11},
+            {'variant_id': self.full.id, 'qty': 0},
+        ])
+        lines = {line['variant_id']: line for line in body['lines']}
+        self.assertEqual(lines[self.full.id]['price']['amount'],
+                         self._odoo_amount(self.full, 11))
+        self.assertEqual(lines[self.full.id]['subtotal']['amount'], 0.0)
+
+    def test_all_quantities_zero_are_priced_at_one(self):
+        # `add_qty=total_qty or 1` din template-ul clientului: cu totalul zero, pretul
+        # afisat e cel de la o bucata, nu pretul nereduse pe care l-ar da o pretuire
+        # la cantitatea 0.
+        self.api_login()
+        body = self._prices([
+            {'variant_id': self.simple.id, 'qty': 0},
+            {'variant_id': self.full.id, 'qty': 0},
+        ])
+        for line in body['lines']:
+            variant = self.env['product.product'].browse(line['variant_id'])
+            self.assertEqual(line['price']['amount'], self._odoo_amount(variant, 1))
+            self.assertEqual(line['subtotal']['amount'], 0.0)
+        self.assertEqual(body['total']['amount'], 0.0)
+
+    def test_starting_rows_of_the_detail_match_a_table_with_no_quantities(self):
+        # Tabelul se deschide cu toate cantitatile pe zero: preturile din
+        # `variant_rows` trebuie sa fie exact cele pe care le da ruta de preturi
+        # pentru aceeasi stare, altfel prima apasare pe plus ar schimba un pret fara
+        # motiv vizibil.
+        self.api_login()
+        rows = self.api_get(f'/products/{self.product.id}').json()['variant_rows']
+        priced = self._prices([{'variant_id': row['variant_id'], 'qty': 0} for row in rows])
+        self.assertEqual([row['price'] for row in rows],
+                         [line['price'] for line in priced['lines']])

@@ -456,9 +456,20 @@ class AppProduct(http.Controller):
         NU e pretul afisat inmultit cu cantitatea. Un total inmultit local ar arata
         alta suma decat comanda reala, tacut.
 
-        Pretul unitar se cere de la Odoo la cantitatea liniei, pe aceeasi cale ca tot
+        **Pragurile se aplica pe cantitatea CUMULATA a tuturor liniilor**, nu pe
+        fiecare linie in parte. Asa face magazinul: modulul clientului
+        (`website_variant_cart`) insumeaza `total_qty` peste toate randurile tabelului
+        si abia apoi cere pretul fiecarei variante cu `_get_combination_info_variant(
+        add_qty=total_qty)` - la fel in controller, in JS-ul de pe pagina si in
+        template-ul QWeb. Cu praguri 1+ 98 / 4+ 77 / 10+ 70, o comanda de 4 pe o
+        varianta si 7 pe alta se pretuieste 70 pe ambele randuri (4 + 7 = 11), nu 77.
+        Pretuirea per linie - ce facea ruta inainte - arata in aplicatie alt pret decat
+        incaseaza site-ul.
+
+        Pretul unitar se cere de la Odoo la cantitatea cumulata, pe aceeasi cale ca tot
         restul modulului (`_uportho_price_amounts_for`, care duce la
-        `pricelist._compute_price_rule` + taxele). Cantitatea 0 se pretuieste la 1:
+        `pricelist._compute_price_rule` + taxele). Cu totalul 0 (tabel proaspat deschis)
+        se pretuieste la 1, exact ca `add_qty=total_qty or 1` din template-ul lor:
         pretuit chiar la 0, Odoo nu aplica regulile listei si ar intoarce pretul
         nereduse - aceeasi capcana ca `min_quantity = 0` din `_uportho_price_tiers`.
         Singura inmultire e `pret unitar x cantitate`, aici pe server, cu rotunjirea
@@ -472,12 +483,16 @@ class AppProduct(http.Controller):
         fiscal_position = request.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
         currency = pricelist.currency_id
 
+        # Cantitatea la care se pretuieste TOT tabelul: suma cantitatilor cerute, sau 1
+        # cand nu s-a comandat inca nimic.
+        priced_qty = sum(qty for _variant, qty in lines) or 1
+
         serialized = []
         total = 0.0
         for variant, qty in lines:
             amount, list_amount = template._uportho_price_amounts_for(
                 pricelist, partner, fiscal_position=fiscal_position,
-                quantity=max(qty, 1), variant=variant)
+                quantity=priced_qty, variant=variant)
             subtotal = currency.round(amount * qty)
             list_subtotal = currency.round(list_amount * qty) if list_amount and qty else None
             serialized.append({

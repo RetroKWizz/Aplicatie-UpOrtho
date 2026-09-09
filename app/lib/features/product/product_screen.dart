@@ -307,8 +307,9 @@ class _PriceBlock extends StatelessWidget {
 /// totalul de sub el.
 ///
 /// Toate sumele vin de la server. Pretul unitar al unui rand e cel din ultimul
-/// raspuns de preturi (acolo se vede pragul de cantitate atins), si abia daca acela
-/// lipseste se cade pe pretul de la o bucata din detaliul produsului. La fel si
+/// raspuns de preturi (acolo se vede pragul atins de cantitatea CUMULATA a tuturor
+/// randurilor, deci o apasare pe un rand poate schimba pretul celorlalte), si abia
+/// daca acela lipseste se cade pe pretul de la o bucata din detaliul produsului. La fel si
 /// subtotalurile cu totalul: pana la primul raspuns de preturi se folosesc sumele de
 /// pornire (cantitate zero) trimise chiar in detaliul produsului. Daca nici acelea
 /// nu exista (server mai vechi), coloana ramane pe liniuta — ecranul nu are cum sa

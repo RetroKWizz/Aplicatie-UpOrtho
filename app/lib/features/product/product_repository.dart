@@ -27,10 +27,14 @@ class ProductRepository {
   /// Preturile tabelului de variante pentru cantitatile alese:
   /// `POST /products/<id>/prices` cu `{variant_id, qty}` pe fiecare rand.
   ///
-  /// Serverul intoarce pretul unitar **la cantitatea ceruta**, subtotalul fiecarei
-  /// linii si totalul, toate gata formatate. Aplicatia nu inmulteste nimic: o
-  /// cantitate mai mare poate trece un prag al listei de pret, deci subtotalul nu e
-  /// pretul afisat inmultit cu cantitatea (vezi CLAUDE.md).
+  /// Serverul intoarce pretul unitar **la cantitatea cumulata a tuturor liniilor**
+  /// (pragurile listei se aplica pe totalul din tabel, ca pe site), subtotalul
+  /// fiecarei linii si totalul, toate gata formatate. Aplicatia nu inmulteste nimic:
+  /// pragul face ca subtotalul sa nu fie pretul afisat inainte inmultit cu cantitatea
+  /// (vezi CLAUDE.md).
+  ///
+  /// Se trimit TOATE randurile tabelului, inclusiv cele cu cantitatea zero: ele intra
+  /// in cumul cu 0, dar isi primesc pretul unitar recalculat la noul total.
   ///
   /// `quantities` pastreaza ordinea randurilor (`Map` in Dart e ordonat dupa
   /// inserare), deci raspunsul vine in aceeasi ordine ca tabelul.

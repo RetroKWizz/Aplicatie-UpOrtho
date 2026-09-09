@@ -8,12 +8,17 @@ part 'variant_prices.freezed.dart';
 part 'variant_prices.g.dart';
 
 /// O linie din raspunsul lui `POST /products/<id>/prices`: varianta, cantitatea
-/// ceruta, pretul unitar **la acea cantitate** si subtotalul liniei.
+/// ceruta, pretul unitar si subtotalul liniei.
 ///
-/// De ce nu se calculeaza in aplicatie: o cantitate mai mare poate trece un prag
-/// de pret al listei clientului, deci `subtotal` nu e `price` inmultit cu `qty`.
-/// Un subtotal calculat local ar contrazice tacut comanda reala (CLAUDE.md:
-/// aplicatia nu face niciodata aritmetica pe bani).
+/// Pretul unitar e cel de la **cantitatea cumulata a tuturor liniilor**, nu de la
+/// cantitatea acestei linii: pragurile listei de pret se aplica pe totalul din tabel,
+/// exact ca pe site (4 pe o varianta si 7 pe alta inseamna 11 bucati, deci pretul de
+/// la pragul de 10). De aceea o apasare pe plus pe un rand poate schimba pretul
+/// tuturor randurilor — ecranul le redeseneaza pe toate din ultimul raspuns.
+///
+/// De ce nu se calculeaza in aplicatie: pragul face ca `subtotal` sa nu fie pretul
+/// afisat inainte inmultit cu `qty`. Un subtotal calculat local ar contrazice tacut
+/// comanda reala (CLAUDE.md: aplicatia nu face niciodata aritmetica pe bani).
 @freezed
 abstract class VariantPriceLine with _$VariantPriceLine {
   const factory VariantPriceLine({
