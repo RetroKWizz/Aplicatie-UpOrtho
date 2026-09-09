@@ -584,3 +584,172 @@ class TestControllersProductPricing(AppHttpCase):
         self.assertEqual(
             self._product('Produs cu eticheta test pret')['badge'], {'text': 'Nou', 'color': 'green'})
         self.assertIsNone(self._product('Produs fara reducere test pret')['badge'])
+
+
+class _WebsiteWithoutShopSort:
+    """Dublura pentru o baza pe care `website.shop_default_sort` nu exista deloc
+    (website_sale lipsa sau redenumit intr-o versiune viitoare de Odoo). Nu se poate
+    obtine dintr-un website real fara sa umblam la `_fields`-ul modelului in timp ce
+    serverul il foloseste, deci ordinea se cere direct functiei."""
+
+    _fields = {}
+
+    def __init__(self, env):
+        self.env = env
+        self.id = 0
+        self.name = 'Site fara shop_default_sort'
+
+    def sudo(self):
+        return self
+
+
+@tagged('post_install', '-at_install')
+class TestControllersProductsOrdering(AppHttpCase):
+    """Ordinea listei de produse.
+
+    Magazinul isi ordoneaza rafturile dupa `website.shop_default_sort` (implicit
+    'website_sequence asc', ordinea manuala din spatele sortarii "Recomandate"), nu
+    alfabetic. Aplicatia citea ordinea implicita a modelului
+    ('is_favorite desc, name'), deci arata alta lista decat site-ul."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.currency = cls.env.company.currency_id
+        cls.pricelist = cls.env['product.pricelist'].create({
+            'name': 'Lista client test ordine', 'currency_id': cls.currency.id})
+        cls.portal_user.partner_id.property_product_pricelist = cls.pricelist.id
+
+        cls.website = cls.env['website'].create({
+            'name': 'Site ordine test', 'shop_default_sort': 'website_sequence asc',
+            'show_line_subtotals_tax_selection': 'tax_included'})
+        cls.env['ir.config_parameter'].sudo().set_param('uportho_app.website_id', str(cls.website.id))
+
+        cls.category = cls.env['product.public.category'].create({'name': 'Categorie ordine test'})
+        # Numele cresc alfabetic exact invers fata de secventa de magazin: orice
+        # raspuns ordonat alfabetic iese in oglinda fata de cel corect.
+        cls.alfa = cls.env['product.template'].create({
+            'name': 'Ordine Test Alfa', 'is_published': True, 'list_price': 10.0,
+            'website_sequence': 300, 'public_categ_ids': [(6, 0, [cls.category.id])]})
+        cls.beta = cls.env['product.template'].create({
+            'name': 'Ordine Test Beta', 'is_published': True, 'list_price': 10.0,
+            'website_sequence': 200, 'public_categ_ids': [(6, 0, [cls.category.id])]})
+        cls.gama = cls.env['product.template'].create({
+            'name': 'Ordine Test Gama', 'is_published': True, 'list_price': 10.0,
+            'website_sequence': 100, 'public_categ_ids': [(6, 0, [cls.category.id])]})
+        cls.own_ids = {cls.alfa.id, cls.beta.id, cls.gama.id}
+
+    def _own_ids_in_order(self, path):
+        body = self.api_get(path).json()
+        return [p['id'] for p in body['products'] if p['id'] in self.own_ids]
+
+    def test_search_listing_follows_website_sequence_not_the_alphabet(self):
+        self.api_login()
+        self.assertEqual(
+            self._own_ids_in_order('/products?q=Ordine Test&limit=100'),
+            [self.gama.id, self.beta.id, self.alfa.id])
+
+    def test_category_listing_follows_website_sequence(self):
+        # Aceeasi ordine trebuie sa se aplice si listei filtrate pe categorie, nu doar
+        # cautarii - altfel utilizatorul vede doua ordini diferite in acelasi ecran.
+        self.api_login()
+        self.assertEqual(
+            self._own_ids_in_order(f'/products?category_id={self.category.id}&limit=100'),
+            [self.gama.id, self.beta.id, self.alfa.id])
+
+    def test_order_follows_the_website_setting_without_a_code_change(self):
+        # Rostul intregii schimbari: cand magazinul isi schimba sortarea implicita din
+        # Odoo, aplicatia o urmeaza fara release. 'name asc' e o valoare reala din
+        # selectia website_sale ("Name (A-Z)").
+        self.api_login()
+        self.website.shop_default_sort = 'name asc'
+        self.assertEqual(
+            self._own_ids_in_order('/products?q=Ordine Test&limit=100'),
+            [self.alfa.id, self.beta.id, self.gama.id])
+
+    def test_paging_over_equal_sequences_neither_repeats_nor_loses_a_product(self):
+        # Doua produse cu ACEEASI website_sequence: fara un criteriu stabil la final,
+        # baza le poate intoarce in ordine diferita la doua interogari succesive, iar
+        # scroll-ul infinit al aplicatiei ar arata unul de doua ori si l-ar sari
+        # complet pe celalalt - tacut, fara nicio eroare.
+        self.api_login()
+        twins = self.env['product.template'].create([
+            {'name': 'Ordine Geamana Unu', 'is_published': True, 'list_price': 10.0,
+             'website_sequence': 500},
+            {'name': 'Ordine Geamana Doi', 'is_published': True, 'list_price': 10.0,
+             'website_sequence': 500},
+        ])
+        seen = []
+        for offset in (0, 1):
+            body = self.api_get(
+                f'/products?q=Ordine Geamana&limit=1&offset={offset}').json()
+            seen.extend(p['id'] for p in body['products'])
+        # Fiecare o singura data, si in ordinea deterministica data de criteriul 'id'.
+        self.assertEqual(seen, sorted(twins.ids))
+
+    def test_nonsense_sort_setting_falls_back_and_warns(self):
+        # `shop_default_sort` e text pe care un administrator de site il poate ajunge sa
+        # editeze (selectie extinsa de un modul, scriere directa in baza). Interpolat
+        # orbeste in `order`, ar iesi 500 la fiecare listare de catalog - sau mai rau.
+        # Scrierea prin ORM ar fi respinsa de validarea de Selection, deci punem
+        # valoarea gresita direct in baza, exact cum ar ajunge acolo.
+        self.api_login()
+        self.env.cr.execute(
+            'UPDATE website SET shop_default_sort = %s WHERE id = %s',
+            ('name asc; DROP TABLE res_users', self.website.id))
+        self.env['website'].invalidate_model(['shop_default_sort'])
+        with self.assertLogs(
+                'odoo.addons.uportho_app.controllers.catalog', level='WARNING') as captured:
+            ids = self._own_ids_in_order('/products?q=Ordine Test&limit=100')
+        # Cade pe ordinea sigura ('website_sequence, id'), nu pe alfabetic si nu pe 500.
+        self.assertEqual(ids, [self.gama.id, self.beta.id, self.alfa.id])
+        self.assertTrue(any('shop_default_sort' in message for message in captured.output))
+
+    def test_empty_sort_setting_falls_back_and_warns(self):
+        # Coloana e NOT NULL (campul e `required=True`), deci "gol" inseamna sir vid,
+        # nu NULL - asa poate arata dupa o migrare sau un import.
+        self.api_login()
+        self.env.cr.execute(
+            "UPDATE website SET shop_default_sort = '' WHERE id = %s", (self.website.id,))
+        self.env['website'].invalidate_model(['shop_default_sort'])
+        with self.assertLogs(
+                'odoo.addons.uportho_app.controllers.catalog', level='WARNING') as captured:
+            ids = self._own_ids_in_order('/products?q=Ordine Test&limit=100')
+        self.assertEqual(ids, [self.gama.id, self.beta.id, self.alfa.id])
+        self.assertTrue(any('shop_default_sort' in message for message in captured.output))
+
+    def test_missing_sort_field_falls_back_and_warns(self):
+        with self.assertLogs(
+                'odoo.addons.uportho_app.controllers.catalog', level='WARNING') as captured:
+            order = catalog_controller._products_order(_WebsiteWithoutShopSort(self.env))
+        self.assertEqual(order, catalog_controller.PRODUCTS_ORDER_FALLBACK)
+        self.assertTrue(any('shop_default_sort' in message for message in captured.output))
+
+    def test_sanitized_order_accepts_only_real_fields_and_directions(self):
+        Template = self.env['product.template']
+        for raw in (
+                'name asc; DROP TABLE res_users',   # injectie
+                'nu_exista_pe_template asc',        # camp inexistent
+                'name sideways',                    # directie inventata
+                'name asc desc',                    # doua directii
+                '(SELECT 1)',
+                'name,',                            # termen gol
+                '',
+        ):
+            self.assertIsNone(
+                catalog_controller._sanitized_order(raw, Template), f'ar fi trebuit respins: {raw!r}')
+
+    def test_sanitized_order_appends_a_stable_tiebreaker_once(self):
+        Template = self.env['product.template']
+        self.assertEqual(
+            catalog_controller._sanitized_order('website_sequence asc', Template),
+            'website_sequence asc, id')
+        self.assertEqual(
+            catalog_controller._sanitized_order('create_date desc', Template),
+            'create_date desc, id')
+        # Daca sortarea configurata se termina deja pe 'id', nu se mai adauga inca unul
+        # (un al doilea criteriu pe acelasi camp e ignorat de baza, dar ar ascunde in
+        # cod intentia).
+        self.assertEqual(
+            catalog_controller._sanitized_order('website_sequence asc, id desc', Template),
+            'website_sequence asc, id desc')
