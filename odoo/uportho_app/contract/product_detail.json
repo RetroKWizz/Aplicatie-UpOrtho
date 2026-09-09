@@ -1,0 +1,59 @@
+{
+  "id": 101,
+  "variant_id": 501,
+  "name": "Cleste Tie Back mare (.016 - .021x.025) Ixion",
+  "default_code": "IX954",
+  "badge": { "text": "Nou", "color": "blue" },
+  "images": [
+    { "id": 0, "url": "/api/app/v1/products/101/gallery/0?unique=3a1f9c2", "kind": "image", "video_url": null },
+    { "id": 14, "url": "/api/app/v1/products/101/gallery/14?unique=9b2e1d0",
+      "kind": "video", "video_url": "https://www.youtube.com/watch?v=xxxx" }
+  ],
+  "price": {
+    "amount": 1120.0, "currency": "RON", "formatted": "1.120,00 lei", "with_vat": true,
+    "list_amount": 1399.99, "list_formatted": "1.399,99 lei", "discount_pct": 20
+  },
+  "club_price": {
+    "amount": 1120.0, "currency": "RON", "formatted": "1.120,00 lei", "with_vat": true,
+    "list_amount": null, "list_formatted": null, "discount_pct": null
+  },
+  "tiers": [
+    { "min_qty": 1, "label": "1+", "price": { "formatted": "1.399,99 lei", "amount": 1399.99, "currency": "RON", "with_vat": true, "list_amount": null, "list_formatted": null, "discount_pct": null } },
+    { "min_qty": 3, "label": "3+", "price": { "formatted": "1.120,00 lei", "amount": 1120.0, "currency": "RON", "with_vat": true, "list_amount": null, "list_formatted": null, "discount_pct": null } }
+  ],
+  "club_tiers": [
+    { "min_qty": 1, "label": "1+", "price": { "formatted": "1.120,00 lei", "amount": 1120.0, "currency": "RON", "with_vat": true, "list_amount": null, "list_formatted": null, "discount_pct": null } }
+  ],
+  "variants": {
+    "attributes": [
+      { "id": 7, "name": "Marime",
+        "values": [
+          { "id": 1357, "name": "Mare", "selected": true, "available": true },
+          { "id": 1358, "name": "Mic", "selected": false, "available": true }
+        ] }
+    ]
+  },
+  "specs": [ { "name": "Brand", "value": "DB Orthodontics" } ],
+  "description": [
+    { "type": "heading", "spans": [ { "text": "Cleste Tie Back pentru arcuri groase", "bold": true, "italic": false } ] },
+    { "type": "paragraph", "spans": [ { "text": "Clestele este conceput pentru...", "bold": false, "italic": false } ] },
+    { "type": "bullets", "items": [
+      { "spans": [ { "text": "Falci zimtate care asigura o prindere ferma.", "bold": false, "italic": false } ] }
+    ] }
+  ],
+  "availability": { "message": "Precomanda. Livrare incepand cu 1 August", "in_stock": true },
+  "rating": { "average": 0.0, "count": 0 },
+  "reviews": [
+    { "author": "Ana P.", "rating": 5, "date": "2026-02-14", "text": "Foarte bun." }
+  ],
+  "similar": [ { "id": 102, "name": "Cleste Tie Back mic Ixion", "default_code": null, "image_url": null,
+                 "price": { "amount": 25.0, "currency": "RON", "formatted": "25,00 lei", "with_vat": true,
+                            "list_amount": null, "list_formatted": null, "discount_pct": null },
+                 "club_price": null, "badge": null } ],
+  "benefits": [
+    { "icon": "club", "title": "Alatura-te Ortho Club", "text": "pentru extra beneficii" },
+    { "icon": "delivery", "title": "Livrare gratuita", "text": "pentru comenzi de peste 400 lei" },
+    { "icon": "return", "title": "Retur gratuit", "text": "30 de zile" },
+    { "icon": "payment", "title": "Plata online sigura", "text": "prin Stripe" }
+  ]
+}

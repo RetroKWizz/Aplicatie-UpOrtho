@@ -61,6 +61,38 @@ def _warn_if_tax_display_mismatch(website):
             website.name, website.id, website.show_line_subtotals_tax_selection)
 
 
+def _customer_pricelist(partner):
+    """Lista de preturi a contului. `property_product_pricelist` e un camp
+    calculat/configurat; daca vreodata nu rezolva nimic pentru cont, `currency.round`
+    din calculul de pret ar arunca `ensure_one()` si ar iesi ca 500 generic - preferam
+    un raspuns clar, de configurare, nu o eroare interna opaca."""
+    pricelist = partner.property_product_pricelist
+    if not pricelist:
+        raise ApiError(
+            503, 'pricelist_unavailable',
+            'Lista de preturi a contului nu este configurata. Incearca din nou mai tarziu.')
+    return pricelist
+
+
+def club_pricelist_comparable(club_pricelist, customer_pricelist):
+    """Daca pretul de club poate fi aratat alaturi de cel al clientului. Fals (fara
+    alt calcul) cand nu exista pricelist de club configurat sau cand valuta lui difera
+    de a clientului - altfel am arata doua preturi in valute diferite ca si cum ar fi
+    comparabile ("148,50 lei" langa "133,65 EUR"), desi niciun calcul din spate nu le
+    face echivalente (docs/STAGING.md confirma o lista "Euro Discount" printre cele
+    active pe baza reala)."""
+    if not club_pricelist:
+        return False
+    if club_pricelist.currency_id != customer_pricelist.currency_id:
+        _logger.warning(
+            'Pricelist-ul Ortho Club (id %s, valuta %s) e intr-o valuta diferita de cea '
+            'a clientului (%s); club_price va fi null ca sa nu aratam doua preturi '
+            'necomparabile.',
+            club_pricelist.id, club_pricelist.currency_id.name, customer_pricelist.currency_id.name)
+        return False
+    return True
+
+
 def _prices_by_template(templates, pricelist, partner, fiscal_position):
     """Preturile serializate (obiectul intreg cu formatted/discount_pct) pentru tot
     recordset-ul `templates` pe `pricelist`, intr-o singura trecere prin varianta
@@ -76,22 +108,10 @@ def _prices_by_template(templates, pricelist, partner, fiscal_position):
 
 def _club_prices_by_template(templates, club_pricelist, customer_pricelist, partner, fiscal_position,
                               price_by_template):
-    """club_price per produs; None (fara alt calcul) cand:
-    - nu exista pricelist de club configurat;
-    - valuta lui difera de a clientului - altfel am arata doua preturi in valute
-      diferite ca si cum ar fi comparabile ("148,50 lei" langa "133,65 EUR"), desi
-      niciun calcul din spate nu le face echivalente (docs/STAGING.md confirma o
-      lista "Euro Discount" printre cele active pe baza reala);
-    - rezultatul e identic cu pretul clientului - spec 6.4: club_price se arata "cand
-      difera", nu mereu."""
-    if not club_pricelist:
-        return {}
-    if club_pricelist.currency_id != customer_pricelist.currency_id:
-        _logger.warning(
-            'Pricelist-ul Ortho Club (id %s, valuta %s) e intr-o valuta diferita de cea '
-            'a clientului (%s); club_price va fi null pentru toate produsele din acest '
-            'raspuns ca sa nu aratam doua preturi necomparabile.',
-            club_pricelist.id, club_pricelist.currency_id.name, customer_pricelist.currency_id.name)
+    """club_price per produs; None (fara alt calcul) cand `club_pricelist_comparable`
+    spune nu (lipsa parametru sau valuta diferita) sau cand rezultatul e identic cu
+    pretul clientului - spec 6.4: club_price se arata "cand difera", nu mereu."""
+    if not club_pricelist_comparable(club_pricelist, customer_pricelist):
         return {}
 
     amounts = templates._uportho_price_amounts_multi(club_pricelist, partner, fiscal_position=fiscal_position)
@@ -165,18 +185,21 @@ def serialize_category(category, website, product_count):
     }
 
 
-def _ids_with_image(templates):
-    """Id-urile din `templates` care au efectiv imagine pe `image_1920`, aflate
-    printr-o singura interogare pe `ir.attachment` in loc sa se citeasca fiecare
-    `image_1920` (camp `fields.Image` cu `attachment=True`: o citire = acces la
-    filestore + encodare base64 a unei imagini de pana la 1920px, per produs de pe
-    pagina - pana la 100 de imagini incarcate integral doar ca sa fie aruncate)."""
-    if not templates:
+def _ids_with_image(records, field_name='image_1920'):
+    """Id-urile din `records` care au efectiv imagine pe `field_name`, aflate printr-o
+    singura interogare pe `ir.attachment` in loc sa se citeasca fiecare `image_1920`
+    (camp `fields.Image` cu `attachment=True`: o citire = acces la filestore +
+    encodare base64 a unei imagini de pana la 1920px, per produs de pe pagina - pana
+    la 100 de imagini incarcate integral doar ca sa fie aruncate).
+
+    Merge pentru orice model cu imagini (`product.template`, `product.image`) -
+    modelul se ia din recordset, nu se scrie in cod."""
+    if not records:
         return set()
     attachments = request.env['ir.attachment'].sudo().search([
-        ('res_model', '=', 'product.template'),
-        ('res_field', '=', 'image_1920'),
-        ('res_id', 'in', templates.ids),
+        ('res_model', '=', records._name),
+        ('res_field', '=', field_name),
+        ('res_id', 'in', records.ids),
     ])
     return set(attachments.mapped('res_id'))
 
@@ -256,15 +279,7 @@ class AppCatalog(http.Controller):
         templates = Template.search(domain, offset=offset, limit=limit, order='is_favorite desc, name, id')
 
         partner = request.env.user.partner_id
-        pricelist = partner.property_product_pricelist
-        if not pricelist:
-            # property_product_pricelist e un camp calculat/configurat; daca vreodata
-            # nu rezolva nimic pentru cont, currency.round din calculul de pret ar
-            # arunca ensure_one() si ar iesi ca 500 generic - preferam un raspuns clar,
-            # de configurare, nu o eroare interna opaca.
-            raise ApiError(
-                503, 'pricelist_unavailable',
-                'Lista de preturi a contului nu este configurata. Incearca din nou mai tarziu.')
+        pricelist = _customer_pricelist(partner)
         club_pricelist = _current_club_pricelist()
         _warn_if_tax_display_mismatch(website)
 
