@@ -27,7 +27,26 @@ Parametri de sistem (Setari > Tehnic > Parametri de sistem):
 | Parametru | Valoare | De ce |
 |---|---|---|
 | `uportho_app.website_id` | `11` | Magazinul romanesc. Fara el, `/home` vine gol si arata a problema de continut, nu a bug |
-| `uportho_app.club_pricelist_id` | `59` | Lista Ortho Club, pentru pretul afisat membrilor. Se schimba anual — de-aia e parametru, nu constanta in cod |
+| `uportho_app.club_pricelist_id` | `59` | **Nu mai are efect aici.** Pe staging exista modulele clientului, deci lista Ortho Club se ia din bifa `is_compare_pricelist` (vezi mai jos). Parametrul ramane doar rezerva pentru bazele fara modulele lor (dezvoltare locala, teste); pe staging poate fi si sters |
+
+### Lista Ortho Club: bifa clientului e sursa unica
+
+Pe o instanta reala, lista Ortho Club e **prima lista de preturi activa bifata
+`is_compare_pricelist`** (campul adaugat de `terrabit_prime_extension` pe
+`product.pricelist`) — exact bifa dupa care magazinul isi alege lista de comparatie pe
+pagina de produs. Asa pretul de club si tabelul de club de sub el nu pot arata liste
+diferite. Inainte erau doua comutatoare independente (bifa lor + parametrul de sistem);
+azi amandoua indica `59`, dar la aparitia unei liste "Ortho Club 2027" cine uita
+parametrul ar fi vazut tabelul listei noi langa pretul celei vechi, fara nicio eroare.
+
+- **Rollover anual:** se bifeaza lista noua, se debifeaza cea veche. Niciun parametru de
+  atins.
+- **Daca nicio lista nu e bifata:** `club_price` e null si apare un warning in
+  `odoo.addons.uportho_app.controllers.catalog` — nu se cade inapoi pe parametru.
+- **Regula de operare:** exact **o singura** lista poate purta fiecare din
+  `is_public_pricelist` si `is_compare_pricelist`. Codul (si al lor, si al nostru) ia
+  *prima* potrivire, iar "prima" e ordinea din baza: cu doua liste bifate, care castiga
+  e imprevizibil si se poate schimba singur.
 
 Continut de test creat: doua bannere (`uportho.app.banner`) si sase categorii marcate
 `app_home_visible` (Bracketi, Tuburi si inele, Arcuri, Elastomeri, Adezivi, Instrumentar).

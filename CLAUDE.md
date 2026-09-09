@@ -60,6 +60,23 @@ potriveste, ia primul website din baza — pe o instanta cu mai multe website-ur
 ar fi o problema de continut, nu un bug. Fallback-ul logheaza un warning
 (`odoo.addons.uportho_app.controllers.home`), tocmai ca sa fie vizibil in loguri.
 
+**Lista Ortho Club nu mai e configurare de deploy.** Pe o instanta reala sursa unica de
+adevar e **bifa clientului `is_compare_pricelist`** de pe `product.pricelist` (campul
+adaugat de `terrabit_prime_extension`) — aceeasi bifa dupa care magazinul isi alege
+lista de comparatie pe pagina de produs, deci pretul de club si tabelul de club nu au
+cum sa arate liste diferite. Parametrul de sistem `uportho_app.club_pricelist_id`
+supravietuieste **doar ca rezerva pe bazele fara modulele clientului** (baza locala
+`uportho_test`, testele), unde campul nici nu exista; prezenta lui se verifica
+defensiv (`'is_compare_pricelist' in Pricelist._fields`). Daca campul exista dar nicio
+lista nu e bifata, `club_price` e null cu warning — nu se cade inapoi pe parametru,
+altfel s-ar reintroduce a doua sursa de adevar. La rollover-ul anual se bifeaza lista
+noua si se debifeaza cea veche; nu mai trebuie atins niciun parametru.
+
+**Regula de operare:** exact **o singura** lista de preturi poate purta fiecare din
+`is_public_pricelist` si `is_compare_pricelist`. Codul (al lor si al nostru) ia *prima*
+potrivire, iar "prima" e ordinea din baza — cu doua liste bifate, care castiga e
+imprevizibil si se poate schimba singur.
+
 Modele de continut care inlocuiesc Odoo Studio: `uportho.app.banner`, plus campuri
 `app_home_visible` / `app_home_sequence` / `app_home_icon` pe `product.public.category`
 si `app_badge_text` / `app_badge_color` / `app_badge_date_end` pe `product.template`.
