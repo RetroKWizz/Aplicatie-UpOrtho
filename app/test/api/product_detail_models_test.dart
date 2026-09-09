@@ -112,6 +112,19 @@ void main() {
     expect(attribute.values[0].selected, isTrue);
     expect(attribute.values[0].available, isTrue);
     expect(attribute.values[1].selected, isFalse);
+
+    // Combinatia de trimis inapoi la apasare vine de la server, pe fiecare valoare,
+    // plus combinatia activa acum - aplicatia nu compune niciun id singura.
+    expect(variants.selected, [1357]);
+    expect(attribute.values[0].combination, [1357]);
+    expect(attribute.values[1].combination, [1358]);
+  });
+
+  test('o valoare fara `combination` in raspuns decodeaza cu lista goala', () {
+    // Camp adaugat dupa Faza 2: un server mai vechi nu-l trimite, iar ecranul nu are
+    // voie sa crape pe el.
+    final value = VariantValue.fromJson(const {'id': 9, 'name': 'Mare'});
+    expect(value.combination, isEmpty);
   });
 
   test('descrierea: heading/paragraph/bullets, cu bold si italic pe span', () {

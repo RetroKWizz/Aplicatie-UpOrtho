@@ -16,7 +16,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$VariantValue {
 
- int get id; String get name; bool get selected; bool get available;
+ int get id; String get name; bool get selected; bool get available;/// Combinatia completa de trimis serverului (`?values=`) cand se apasa pe
+/// aceasta valoare. Vine gata compusa de la server: aplicatia are in ecran doar
+/// id-ul valorii apasate si nu are cum sa deduca restul combinatiei.
+ List<int> get combination;
 /// Create a copy of VariantValue
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +33,20 @@ $VariantValueCopyWith<VariantValue> get copyWith => _$VariantValueCopyWithImpl<V
 @override
 bool operator ==(Object other) {
   final _this = this as VariantValue;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VariantValue&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.selected, _this.selected) || other.selected == _this.selected)&&(identical(other.available, _this.available) || other.available == _this.available));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VariantValue&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.selected, _this.selected) || other.selected == _this.selected)&&(identical(other.available, _this.available) || other.available == _this.available)&&const DeepCollectionEquality().equals(other.combination, _this.combination));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as VariantValue;
-  return Object.hash(runtimeType,_this.id,_this.name,_this.selected,_this.available);
+  return Object.hash(runtimeType,_this.id,_this.name,_this.selected,_this.available,const DeepCollectionEquality().hash(_this.combination));
 }
 
 @override
 String toString() {
   final _this = this as VariantValue;
-  return 'VariantValue(id: ${_this.id}, name: ${_this.name}, selected: ${_this.selected}, available: ${_this.available})';
+  return 'VariantValue(id: ${_this.id}, name: ${_this.name}, selected: ${_this.selected}, available: ${_this.available}, combination: ${_this.combination})';
 }
 
 
@@ -54,7 +57,7 @@ abstract mixin class $VariantValueCopyWith<$Res>  {
   factory $VariantValueCopyWith(VariantValue value, $Res Function(VariantValue) _then) = _$VariantValueCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, bool selected, bool available
+ int id, String name, bool selected, bool available, List<int> combination
 });
 
 
@@ -71,13 +74,14 @@ class _$VariantValueCopyWithImpl<$Res>
 
 /// Create a copy of VariantValue
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? selected = null,Object? available = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? selected = null,Object? available = null,Object? combination = null,}) {
   return _then(VariantValue(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,selected: null == selected ? _self.selected : selected // ignore: cast_nullable_to_non_nullable
 as bool,available: null == available ? _self.available : available // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,combination: null == combination ? _self.combination : combination // ignore: cast_nullable_to_non_nullable
+as List<int>,
   ));
 }
 
@@ -162,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  bool selected,  bool available)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  bool selected,  bool available,  List<int> combination)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VariantValue() when $default != null:
-return $default(_that.id,_that.name,_that.selected,_that.available);case _:
+return $default(_that.id,_that.name,_that.selected,_that.available,_that.combination);case _:
   return orElse();
 
 }
@@ -183,10 +187,10 @@ return $default(_that.id,_that.name,_that.selected,_that.available);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  bool selected,  bool available)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  bool selected,  bool available,  List<int> combination)  $default,) {final _that = this;
 switch (_that) {
 case _VariantValue():
-return $default(_that.id,_that.name,_that.selected,_that.available);case _:
+return $default(_that.id,_that.name,_that.selected,_that.available,_that.combination);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +207,10 @@ return $default(_that.id,_that.name,_that.selected,_that.available);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  bool selected,  bool available)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  bool selected,  bool available,  List<int> combination)?  $default,) {final _that = this;
 switch (_that) {
 case _VariantValue() when $default != null:
-return $default(_that.id,_that.name,_that.selected,_that.available);case _:
+return $default(_that.id,_that.name,_that.selected,_that.available,_that.combination);case _:
   return null;
 
 }
@@ -218,13 +222,26 @@ return $default(_that.id,_that.name,_that.selected,_that.available);case _:
 @JsonSerializable()
 
 class _VariantValue implements VariantValue {
-  const _VariantValue({required this.id, required this.name, this.selected = false, this.available = true});
+  const _VariantValue({required this.id, required this.name, this.selected = false, this.available = true,  List<int> combination = const []}): _combination = combination;
   factory _VariantValue.fromJson(Map<String, dynamic> json) => _$VariantValueFromJson(json);
 
 @override final  int id;
 @override final  String name;
 @override@JsonKey() final  bool selected;
 @override@JsonKey() final  bool available;
+/// Combinatia completa de trimis serverului (`?values=`) cand se apasa pe
+/// aceasta valoare. Vine gata compusa de la server: aplicatia are in ecran doar
+/// id-ul valorii apasate si nu are cum sa deduca restul combinatiei.
+ final  List<int> _combination;
+/// Combinatia completa de trimis serverului (`?values=`) cand se apasa pe
+/// aceasta valoare. Vine gata compusa de la server: aplicatia are in ecran doar
+/// id-ul valorii apasate si nu are cum sa deduca restul combinatiei.
+@override@JsonKey() List<int> get combination {
+  if (_combination is EqualUnmodifiableListView) return _combination;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_combination);
+}
+
 
 /// Create a copy of VariantValue
 /// with the given fields replaced by the non-null parameter values.
@@ -239,18 +256,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _VariantValue&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.selected, selected) || other.selected == selected)&&(identical(other.available, available) || other.available == available));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _VariantValue&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.selected, selected) || other.selected == selected)&&(identical(other.available, available) || other.available == available)&&const DeepCollectionEquality().equals(other.combination, _combination));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,name,selected,available);
+    return Object.hash(runtimeType,id,name,selected,available,const DeepCollectionEquality().hash(_combination));
 }
 
 @override
 String toString() {
-    return 'VariantValue(id: $id, name: $name, selected: $selected, available: $available)';
+    return 'VariantValue(id: $id, name: $name, selected: $selected, available: $available, combination: $combination)';
 }
 
 
@@ -261,7 +278,7 @@ abstract mixin class _$VariantValueCopyWith<$Res> implements $VariantValueCopyWi
   factory _$VariantValueCopyWith(_VariantValue value, $Res Function(_VariantValue) _then) = __$VariantValueCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, bool selected, bool available
+ int id, String name, bool selected, bool available, List<int> combination
 });
 
 
@@ -278,13 +295,14 @@ class __$VariantValueCopyWithImpl<$Res>
 
 /// Create a copy of VariantValue
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? selected = null,Object? available = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? selected = null,Object? available = null,Object? combination = null,}) {
   return _then(_VariantValue(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,selected: null == selected ? _self.selected : selected // ignore: cast_nullable_to_non_nullable
 as bool,available: null == available ? _self.available : available // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,combination: null == combination ? _self._combination : combination // ignore: cast_nullable_to_non_nullable
+as List<int>,
   ));
 }
 
@@ -577,7 +595,9 @@ as List<VariantValue>,
 /// @nodoc
 mixin _$VariantOptions {
 
- List<VariantAttribute> get attributes;
+/// Combinatia activa acum, asa cum a rezolvat-o serverul. Ecranul o poate folosi
+/// ca sa arate din nou selectia dupa o re-cerere, fara sa o deduca.
+ List<int> get selected; List<VariantAttribute> get attributes;
 /// Create a copy of VariantOptions
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -591,20 +611,20 @@ $VariantOptionsCopyWith<VariantOptions> get copyWith => _$VariantOptionsCopyWith
 @override
 bool operator ==(Object other) {
   final _this = this as VariantOptions;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VariantOptions&&const DeepCollectionEquality().equals(other.attributes, _this.attributes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VariantOptions&&const DeepCollectionEquality().equals(other.selected, _this.selected)&&const DeepCollectionEquality().equals(other.attributes, _this.attributes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as VariantOptions;
-  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.attributes));
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.selected),const DeepCollectionEquality().hash(_this.attributes));
 }
 
 @override
 String toString() {
   final _this = this as VariantOptions;
-  return 'VariantOptions(attributes: ${_this.attributes})';
+  return 'VariantOptions(selected: ${_this.selected}, attributes: ${_this.attributes})';
 }
 
 
@@ -615,7 +635,7 @@ abstract mixin class $VariantOptionsCopyWith<$Res>  {
   factory $VariantOptionsCopyWith(VariantOptions value, $Res Function(VariantOptions) _then) = _$VariantOptionsCopyWithImpl;
 @useResult
 $Res call({
- List<VariantAttribute> attributes
+ List<int> selected, List<VariantAttribute> attributes
 });
 
 
@@ -632,9 +652,10 @@ class _$VariantOptionsCopyWithImpl<$Res>
 
 /// Create a copy of VariantOptions
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? attributes = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? selected = null,Object? attributes = null,}) {
   return _then(VariantOptions(
-attributes: null == attributes ? _self.attributes : attributes // ignore: cast_nullable_to_non_nullable
+selected: null == selected ? _self.selected : selected // ignore: cast_nullable_to_non_nullable
+as List<int>,attributes: null == attributes ? _self.attributes : attributes // ignore: cast_nullable_to_non_nullable
 as List<VariantAttribute>,
   ));
 }
@@ -720,10 +741,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<VariantAttribute> attributes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<int> selected,  List<VariantAttribute> attributes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VariantOptions() when $default != null:
-return $default(_that.attributes);case _:
+return $default(_that.selected,_that.attributes);case _:
   return orElse();
 
 }
@@ -741,10 +762,10 @@ return $default(_that.attributes);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<VariantAttribute> attributes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<int> selected,  List<VariantAttribute> attributes)  $default,) {final _that = this;
 switch (_that) {
 case _VariantOptions():
-return $default(_that.attributes);case _:
+return $default(_that.selected,_that.attributes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -761,10 +782,10 @@ return $default(_that.attributes);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<VariantAttribute> attributes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<int> selected,  List<VariantAttribute> attributes)?  $default,) {final _that = this;
 switch (_that) {
 case _VariantOptions() when $default != null:
-return $default(_that.attributes);case _:
+return $default(_that.selected,_that.attributes);case _:
   return null;
 
 }
@@ -776,8 +797,19 @@ return $default(_that.attributes);case _:
 @JsonSerializable()
 
 class _VariantOptions implements VariantOptions {
-  const _VariantOptions({ List<VariantAttribute> attributes = const []}): _attributes = attributes;
+  const _VariantOptions({ List<int> selected = const [],  List<VariantAttribute> attributes = const []}): _selected = selected,_attributes = attributes;
   factory _VariantOptions.fromJson(Map<String, dynamic> json) => _$VariantOptionsFromJson(json);
+
+/// Combinatia activa acum, asa cum a rezolvat-o serverul. Ecranul o poate folosi
+/// ca sa arate din nou selectia dupa o re-cerere, fara sa o deduca.
+ final  List<int> _selected;
+/// Combinatia activa acum, asa cum a rezolvat-o serverul. Ecranul o poate folosi
+/// ca sa arate din nou selectia dupa o re-cerere, fara sa o deduca.
+@override@JsonKey() List<int> get selected {
+  if (_selected is EqualUnmodifiableListView) return _selected;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_selected);
+}
 
  final  List<VariantAttribute> _attributes;
 @override@JsonKey() List<VariantAttribute> get attributes {
@@ -800,18 +832,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _VariantOptions&&const DeepCollectionEquality().equals(other.attributes, _attributes));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _VariantOptions&&const DeepCollectionEquality().equals(other.selected, _selected)&&const DeepCollectionEquality().equals(other.attributes, _attributes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_attributes));
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_selected),const DeepCollectionEquality().hash(_attributes));
 }
 
 @override
 String toString() {
-    return 'VariantOptions(attributes: $attributes)';
+    return 'VariantOptions(selected: $selected, attributes: $attributes)';
 }
 
 
@@ -822,7 +854,7 @@ abstract mixin class _$VariantOptionsCopyWith<$Res> implements $VariantOptionsCo
   factory _$VariantOptionsCopyWith(_VariantOptions value, $Res Function(_VariantOptions) _then) = __$VariantOptionsCopyWithImpl;
 @override @useResult
 $Res call({
- List<VariantAttribute> attributes
+ List<int> selected, List<VariantAttribute> attributes
 });
 
 
@@ -839,9 +871,10 @@ class __$VariantOptionsCopyWithImpl<$Res>
 
 /// Create a copy of VariantOptions
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? attributes = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? selected = null,Object? attributes = null,}) {
   return _then(_VariantOptions(
-attributes: null == attributes ? _self._attributes : attributes // ignore: cast_nullable_to_non_nullable
+selected: null == selected ? _self._selected : selected // ignore: cast_nullable_to_non_nullable
+as List<int>,attributes: null == attributes ? _self._attributes : attributes // ignore: cast_nullable_to_non_nullable
 as List<VariantAttribute>,
   ));
 }

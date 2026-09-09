@@ -42,6 +42,24 @@ void main() {
     expect(transport.calls.single.path, '/api/app/v1/products/101?variant_id=502');
   });
 
+  test('getProduct cu values trimite combinatia in query', () async {
+    transport.when('GET', '/api/app/v1/products/101?values=1358,2401',
+        ApiResponse(status: 200, json: detailFixture()));
+
+    await repository.getProduct(101, values: const [1358, 2401]);
+
+    expect(transport.calls.single.path, '/api/app/v1/products/101?values=1358,2401');
+  });
+
+  test('values bate variantId - serverul rezolva singur varianta din combinatie', () async {
+    transport.when('GET', '/api/app/v1/products/101?values=1358',
+        ApiResponse(status: 200, json: detailFixture()));
+
+    await repository.getProduct(101, variantId: 502, values: const [1358]);
+
+    expect(transport.calls.single.path, '/api/app/v1/products/101?values=1358');
+  });
+
   test('un 404 se propaga ca ApiException, nu ca eroare de decodare', () async {
     transport.when('GET', '/api/app/v1/products/999', const ApiResponse(status: 404, json: {
       'error': {'code': 'not_found', 'message': 'Produsul nu exista.', 'details': {}}

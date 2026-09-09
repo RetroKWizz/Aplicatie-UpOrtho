@@ -62,23 +62,20 @@ class ProductController extends AsyncNotifier<ProductState> {
   void retry() => ref.invalidateSelf();
 
   /// Alegerea unei valori de atribut din selectorul de variante. Serverul
-  /// recalculeaza pretul, codul si galeria pentru varianta ceruta — aplicatia nu
+  /// recalculeaza pretul, codul si galeria pentru combinatia ceruta — aplicatia nu
   /// deduce nimic local.
   ///
-  /// ATENTIE (limitare de contract cunoscuta): selectorul emite id-uri de
-  /// `product.template.attribute.value`, iar ruta serverului valideaza `variant_id`
-  /// contra lui `product.product`. Pana cand ruta accepta si id-ul de valoare (sau
-  /// pana cand contractul trimite un `variant_id` per valoare), cererea de mai jos
-  /// intoarce 422 pe date reale; de aceea esecul e tratat ca mai jos — detaliul
-  /// vechi ramane pe ecran si utilizatorul primeste un mesaj, nu o pagina de
-  /// eroare. Vezi raportul Task 6.
+  /// Ecranul stie doar id-ul valorii apasate; combinatia completa de trimis vine de
+  /// la server, pe fiecare valoare din selector (`combination`). Un esec nu arunca
+  /// tot ecranul pe pagina de eroare: detaliul vechi ramane si apare un mesaj.
   Future<void> selectVariantValue(int valueId) async {
     final current = state.value;
     if (current == null || current.isSwitchingVariant) return;
     state = AsyncData(ProductState(detail: current.detail, isSwitchingVariant: true));
     try {
-      final detail =
-          await ref.read(productRepositoryProvider).getProduct(productId, variantId: valueId);
+      final detail = await ref
+          .read(productRepositoryProvider)
+          .getProduct(productId, values: _combinationFor(valueId, current.detail));
       state = AsyncData(ProductState(detail: detail));
     } catch (error) {
       state = AsyncData(ProductState(
@@ -86,5 +83,19 @@ class ProductController extends AsyncNotifier<ProductState> {
         variantError: error is ApiException ? error.message : 'Nu s-a putut schimba varianta.',
       ));
     }
+  }
+
+  /// Combinatia trimisa de server pentru valoarea apasata. Daca lipseste (server mai
+  /// vechi, sau produs cu un singur atribut), se cere valoarea singura: serverul
+  /// completeaza combinatiile partiale.
+  List<int> _combinationFor(int valueId, ProductDetail detail) {
+    for (final attribute in detail.variants?.attributes ?? const <VariantAttribute>[]) {
+      for (final value in attribute.values) {
+        if (value.id == valueId) {
+          return value.combination.isEmpty ? [valueId] : value.combination;
+        }
+      }
+    }
+    return [valueId];
   }
 }

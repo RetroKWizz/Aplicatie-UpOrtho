@@ -20,6 +20,35 @@ Map<String, dynamic> detailFixture() =>
 /// pret si alt cod - exact ce se schimba pe server la trecerea pe alta varianta).
 Map<String, dynamic> detailWith(Map<String, dynamic> overrides) => {...detailFixture(), ...overrides};
 
+/// Selector cu doua atribute: acolo combinatia unei valori NU e id-ul ei singur,
+/// deci testele pot dovedi ca aplicatia trimite combinatia primita de la server,
+/// nu id-ul valorii apasate (singurul lucru pe care il stie ecranul).
+Map<String, dynamic> twoAttributeVariantsJson() => {
+      'selected': [1357, 2401],
+      'attributes': [
+        {
+          'id': 7,
+          'name': 'Marime',
+          'values': [
+            {'id': 1357, 'name': 'Mare', 'selected': true, 'available': true,
+             'combination': [1357, 2401]},
+            {'id': 1358, 'name': 'Mic', 'selected': false, 'available': true,
+             'combination': [1358, 2401]},
+          ],
+        },
+        {
+          'id': 8,
+          'name': 'Culoare',
+          'values': [
+            {'id': 2401, 'name': 'Argintiu', 'selected': true, 'available': true,
+             'combination': [1357, 2401]},
+            {'id': 2402, 'name': 'Auriu', 'selected': false, 'available': true,
+             'combination': [1357, 2402]},
+          ],
+        },
+      ],
+    };
+
 /// Transport care tine raspunsul in loc (un `Completer` per apel), ca testul sa
 /// poata inspecta starea EXACT in timp ce cererea e in aer - altfel raspunsurile
 /// imediate ale lui `FakeTransport` fac starea intermediara imposibil de observat.
@@ -77,12 +106,14 @@ void main() {
     expect(transport.calls.length, 1);
   });
 
-  test('schimbarea variantei cere produsul cu variant_id si inlocuieste detaliul', () async {
+  test('schimbarea variantei trimite combinatia valorii, nu id-ul ei, si inlocuieste detaliul',
+      () async {
     final transport = FakeTransport();
-    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: detailWith({'variants': twoAttributeVariantsJson()})));
     transport.when(
       'GET',
-      '/api/app/v1/products/101?variant_id=1358',
+      '/api/app/v1/products/101?values=1358,2401',
       ApiResponse(
         status: 200,
         json: detailWith({
@@ -109,7 +140,23 @@ void main() {
     expect(state.detail.defaultCode, 'IX955');
     expect(state.detail.price.formatted, '990,00 lei');
     expect(state.isSwitchingVariant, isFalse);
-    expect(transport.calls.last.path, '/api/app/v1/products/101?variant_id=1358');
+    expect(transport.calls.last.path, '/api/app/v1/products/101?values=1358,2401');
+  });
+
+  test('o valoare fara combinatie in raspuns se cere ca o combinatie de un singur id',
+      () async {
+    // Fixture-ul de contract are un singur atribut, deci combinatia unei valori e
+    // exact valoarea ei; nici asa aplicatia nu compune id-uri de la sine.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
+    transport.when('GET', '/api/app/v1/products/101?values=1358',
+        ApiResponse(status: 200, json: detailFixture()));
+    final container = containerWith(transport);
+    await container.read(productControllerProvider(101).future);
+
+    await container.read(productControllerProvider(101).notifier).selectVariantValue(1358);
+
+    expect(transport.calls.last.path, '/api/app/v1/products/101?values=1358');
   });
 
   test('cat timp se schimba varianta, detaliul vechi ramane in stare (fara AsyncLoading)', () async {
@@ -138,8 +185,8 @@ void main() {
   test('o schimbare de varianta esuata pastreaza detaliul precedent si arata mesajul', () async {
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: detailFixture()));
-    transport.when('GET', '/api/app/v1/products/101?variant_id=1358', const ApiResponse(status: 422, json: {
-      'error': {'code': 'validation_error', 'message': 'variant_id nu apartine acestui produs.', 'details': {}}
+    transport.when('GET', '/api/app/v1/products/101?values=1358', const ApiResponse(status: 422, json: {
+      'error': {'code': 'validation_error', 'message': 'values nu apartin acestui produs.', 'details': {}}
     }));
     final container = containerWith(transport);
     await container.read(productControllerProvider(101).future);
@@ -149,7 +196,7 @@ void main() {
     final state = container.read(productControllerProvider(101));
     expect(state.hasError, isFalse, reason: 'un esec pe varianta nu arunca tot ecranul pe eroare');
     expect(state.value!.detail.defaultCode, 'IX954');
-    expect(state.value!.variantError, 'variant_id nu apartine acestui produs.');
+    expect(state.value!.variantError, 'values nu apartin acestui produs.');
     expect(state.value!.isSwitchingVariant, isFalse);
   });
 

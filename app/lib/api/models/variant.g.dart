@@ -12,6 +12,11 @@ _VariantValue _$VariantValueFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       selected: json['selected'] as bool? ?? false,
       available: json['available'] as bool? ?? true,
+      combination:
+          (json['combination'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$VariantValueToJson(_VariantValue instance) =>
@@ -20,6 +25,7 @@ Map<String, dynamic> _$VariantValueToJson(_VariantValue instance) =>
       'name': instance.name,
       'selected': instance.selected,
       'available': instance.available,
+      'combination': instance.combination,
     };
 
 _VariantAttribute _$VariantAttributeFromJson(Map<String, dynamic> json) =>
@@ -42,6 +48,11 @@ Map<String, dynamic> _$VariantAttributeToJson(_VariantAttribute instance) =>
 
 _VariantOptions _$VariantOptionsFromJson(Map<String, dynamic> json) =>
     _VariantOptions(
+      selected:
+          (json['selected'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [],
       attributes:
           (json['attributes'] as List<dynamic>?)
               ?.map((e) => VariantAttribute.fromJson(e as Map<String, dynamic>))
@@ -50,4 +61,7 @@ _VariantOptions _$VariantOptionsFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$VariantOptionsToJson(_VariantOptions instance) =>
-    <String, dynamic>{'attributes': instance.attributes};
+    <String, dynamic>{
+      'selected': instance.selected,
+      'attributes': instance.attributes,
+    };
