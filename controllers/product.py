@@ -1,6 +1,9 @@
 import logging
 
 from odoo import http
+from odoo.addons.website_sale.models.product_template import (
+    ProductTemplate as WebsiteSaleProductTemplate,
+)
 from odoo.http import request
 
 from ..pricing import serialize_price
@@ -22,15 +25,27 @@ _logger = logging.getLogger(__name__)
 
 MAX_SIMILAR = 10
 MAX_REVIEWS = 20
-# Produsele pentru care s-a scris deja traceback-ul complet al unui
-# `_get_combination_info` cazut, in acest proces. Pe serverul clientului apelul cade
-# la FIECARE cerere de produs (tema randeaza inauntrul lui un template QWeb de
-# website), deci un traceback per cerere ar inunda logurile productiei fara sa adauge
-# nimic: e mereu acelasi traceback. Primul esec al unui produs il scrie intreg,
-# urmatoarele doar o linie scurta de avertizare. Multimea creste cel mult cu numarul
-# de produse din catalog si se goleste la repornirea procesului - adica un deploy sau
-# o repornire aduce din nou traceback-ul, daca problema mai exista.
-_COMBINATION_INFO_LOGGED = set()
+# Produsele pentru care `_get_combination_info` (cu tot cu override-urile de tema) a
+# cazut deja o data in acest proces. Multimea face doua lucruri deodata, pentru ca e
+# vorba de acelasi fapt:
+#
+# 1. **Nu se mai plateste apelul care cade.** Pe serverul clientului override-ul temei
+#    arunca la FIECARE cerere de produs, deci a-l chema din nou inseamna doar munca
+#    aruncata; dupa prima cadere se merge direct pe implementarea din `website_sale`.
+# 2. **Nu se mai scrie traceback-ul.** E mereu acelasi traceback; scris la fiecare
+#    cerere ar face logurile de productie nefolosibile. Primul esec al unui produs il
+#    scrie intreg, urmatoarele doar o linie scurta de avertizare.
+#
+# Multimea creste cel mult cu numarul de produse din catalog si traieste doar cat
+# procesul: un deploy sau o repornire de worker reincearca apelul normal. Deci in ziua
+# in care tema isi repara sablonul, adaugirile magazinului se intorc singure in raspuns,
+# fara nicio schimbare de cod si fara release de aplicatie.
+_COMBINATION_INFO_BROKEN = set()
+# Produsele pentru care a cazut si implementarea standard din `website_sale` (calea de
+# rezerva). Exista din acelasi motiv de volum ca multimea de mai sus: daca vreodata se
+# strica si aia, ar cadea tot la fiecare cerere. Nu opreste apelul - acolo chiar nu mai
+# avem alta sursa de adevar de incercat - doar traceback-ul repetat.
+_CORE_COMBINATION_INFO_LOGGED = set()
 # Cate linii accepta `POST /products/<id>/prices` intr-o cerere. Tabelul are cate un
 # rand per varianta si cel mai variat produs real are cateva zeci; plafonul e doar ca
 # o cerere absurda sa nu ceara mii de pretuiri.
@@ -134,8 +149,43 @@ def _parse_price_lines(template, raw_lines):
     return lines
 
 
+def _core_combination_info(template, variant, combination):
+    """`_get_combination_info` cerut DIRECT implementarii din `website_sale`, sarind
+    peste lantul de override-uri prin care intra tema magazinului.
+
+    Asta e reparatia adevarata a cazului de pe serverul clientului: nu reconstruim noi
+    ce ar fi trebuit sa intoarca Odoo, ci chemam chiar codul standard al Odoo, doar
+    fara stratul care arunca. Verificat pe staging, pe produsul 14219: apelul normal
+    arunca, iar acesta intoarce `price`, `list_price`, `product_id`, `display_name`,
+    `is_combination_possible` - aceleasi cifre pe care le arata aplicatia azi.
+
+    Nu se cheama `super()` din vreo parte si nu se atinge `type(template)`: se ia
+    functia din clasa `website_sale` si i se da `template` ca `self`. Metodele pe care
+    ea le mai cheama pe `self` (`_get_additionnal_combination_info`,
+    `_is_combination_possible`) se rezolva normal, deci daca override-ul temei e reparat
+    pe ele, tot codul lor ruleaza; se ocoleste doar veriga care cade.
+
+    Apelul e in aceeasi forma ca cel normal (combinatia daca aplicatia a trimis
+    `values`, altfel varianta), ca sa nu poata intoarce alta varianta decat cea ceruta.
+
+    Importul clasei se face la incarcarea modulului, nu la fiecare cerere: `website_sale`
+    e deja dependinta declarata in manifest, iar daca vreodata Odoo muta clasa
+    (migrarea la 19), modulul refuza sa se incarce - eroare zgomotoasa la deploy, nu una
+    tacuta pe fiecare cerere de produs."""
+    if combination is not None:
+        return WebsiteSaleProductTemplate._get_combination_info(
+            template, combination=combination)
+    return WebsiteSaleProductTemplate._get_combination_info(
+        template, product_id=variant.id if variant else False)
+
+
 def _fallback_combination(template, variant, combination):
-    """Combinatia si varianta calculate fara `_get_combination_info`, cand acela cade.
+    """Ultima plasa de siguranta: combinatia si varianta calculate fara niciun
+    `_get_combination_info`, cand cade si implementarea standard din `website_sale`.
+
+    Nu s-a intamplat niciodata pe serverul clientului - acolo cade doar override-ul de
+    tema, iar `_core_combination_info` raspunde. Ramane totusi, pentru ca o cerere de
+    produs nu are voie sa devina 500 orice s-ar strica deasupra ei.
 
     Foloseste doar API-ul de baza al Odoo (`product`), nu si pe cel din `website_sale`
     prin care intra tema: `_get_closest_possible_combination` (deja calculat de
@@ -163,19 +213,40 @@ def _log_combination_info_failure(template_id):
     cerere de produs, mereu cu acelasi traceback, iar un traceback complet per cerere
     ar face logurile de productie nefolosibile. Prima aparitie ramane intreaga (acolo
     se vede ce tema si ce template au picat), urmatoarele spun doar ca se mai intampla
-    si pentru care produs."""
-    if template_id in _COMBINATION_INFO_LOGGED:
+    si pentru care produs.
+
+    Linia scurta se scrie si atunci cand apelul nici nu s-a mai incercat (produsul e
+    deja in `_COMBINATION_INFO_BROKEN`): altfel problema ar disparea complet din loguri
+    dupa prima cerere si nimeni n-ar mai vedea ca aplicatia merge pe calea de rezerva."""
+    if template_id in _COMBINATION_INFO_BROKEN:
         _logger.warning(
-            'product_detail: _get_combination_info a esuat din nou pentru produsul %s '
-            '(traceback-ul complet a fost deja scris o data in acest proces). Raspund '
-            'cu datele pe care le calculeaza modulul singur.', template_id)
+            'product_detail: _get_combination_info nu se mai cheama pentru produsul %s '
+            '(a esuat deja o data in acest proces, traceback-ul complet e mai sus). '
+            'Raspund cu implementarea standard din website_sale.', template_id)
         return
-    _COMBINATION_INFO_LOGGED.add(template_id)
+    _COMBINATION_INFO_BROKEN.add(template_id)
     _logger.exception(
         'product_detail: _get_combination_info a esuat pentru produsul %s '
-        '(probabil un override dintr-un modul de tema). Raspund cu datele pe care '
-        'le calculeaza modulul singur (varianta, pret, nume, cod); pot lipsi doar '
-        'adaugirile temei.', template_id)
+        '(probabil un override dintr-un modul de tema). Raspund cu implementarea '
+        'standard din website_sale, chemata direct; pot lipsi doar adaugirile temei.',
+        template_id)
+
+
+def _log_core_combination_info_failure(template_id):
+    """Acelasi tipar de logare (traceback intreg o data, apoi linie scurta) pentru
+    cazul in care cade si implementarea standard din `website_sale`."""
+    if template_id in _CORE_COMBINATION_INFO_LOGGED:
+        _logger.warning(
+            'product_detail: implementarea standard website_sale a lui '
+            '_get_combination_info esueaza din nou pentru produsul %s '
+            '(traceback-ul complet e mai sus). Raspund cu datele pe care le '
+            'calculeaza modulul singur.', template_id)
+        return
+    _CORE_COMBINATION_INFO_LOGGED.add(template_id)
+    _logger.exception(
+        'product_detail: si implementarea standard website_sale a lui '
+        '_get_combination_info a esuat pentru produsul %s. Raspund cu datele pe care '
+        'le calculeaza modulul singur (varianta, pret, nume, cod).', template_id)
 
 
 def _resolve_combination(template, variant, values=None):
@@ -198,28 +269,47 @@ def _resolve_combination(template, variant, values=None):
     reala, tema magazinului il suprascrie si randeaza in interiorul lui un template
     QWeb de website. Cauza verificata pe serverul lor: `droggol_theme_common` pune in
     `combination_info['tp_extra_fields']` randarea lui `theme_prime.product_extra_fields`,
-    iar acel template citeste `website.shop_extra_field_ids` - are nevoie de un context
-    complet de randare de website, pe care un request JSON nu-l are. De aceea apelul
-    arunca la FIECARE cerere de produs, nu ocazional; `uportho_app.website_id` pus in
-    contextul mediului nu a fost de ajuns.
+    iar acel sablon contine
+    `t-value="product_variant.all_product_tag_ids.filtered(lambda x: x.visible_on_ecommerce)"`
+    - un `lambda` pe care QWeb nu-l poate evalua, deci randarea arunca
+    `TypeError: 'NoneType' object is not callable`. Se intampla la FIECARE cerere si
+    pentru ORICE produs (verificat pe staging si cu, si fara etichete de ecommerce);
+    `uportho_app.website_id` pus in contextul mediului nu are nicio legatura si nu ajuta.
 
-    O tema nu are voie sa doboare API-ul, deci esecul se prinde si se cade pe
-    combinatia calculata local (`_fallback_combination`). Tabelele de pret nu mai trec
-    pe aici deloc - se calculeaza direct din listele magazinului, vezi
-    `_price_tables`."""
+    O tema nu are voie sa doboare API-ul, deci esecul se prinde. Ce se raspunde in loc
+    NU mai e o reconstructie de-a noastra: se cheama direct implementarea din
+    `website_sale` (`_core_combination_info`), adica exact acelasi cod al Odoo, doar
+    fara veriga de tema care arunca - deci aplicatia primeste datele Odoo, nu o copie.
+    `_fallback_combination` a ramas ultima plasa, pentru cazul in care ar cadea si
+    aceea. Tabelele de pret nu mai trec pe aici deloc - se calculeaza direct din
+    listele magazinului, vezi `_price_tables`."""
     combination = template._get_closest_possible_combination(values) if values is not None else None
-    try:
-        if combination is not None:
-            combination_info = template._get_combination_info(combination=combination)
-        else:
-            combination_info = template._get_combination_info(
-                product_id=variant.id if variant else False)
-    except Exception:
-        # Deliberat larg: nu stim ce arunca un override de tema (pe staging a fost un
-        # TypeError dintr-un template QWeb). Nu se inghite nimic tacut - se scrie in
-        # loguri, cu id-ul produsului, ca sa se vada ce tema si ce template au picat.
+    combination_info = None
+    if template.id in _COMBINATION_INFO_BROKEN:
+        # Stim deja din acest proces ca lantul de override-uri cade pentru produsul
+        # asta: nu se mai plateste apelul, doar se noteaza in loguri (linie scurta).
         _log_combination_info_failure(template.id)
-        return _fallback_combination(template, variant, combination)
+    else:
+        try:
+            if combination is not None:
+                combination_info = template._get_combination_info(combination=combination)
+            else:
+                combination_info = template._get_combination_info(
+                    product_id=variant.id if variant else False)
+        except Exception:
+            # Deliberat larg: nu stim ce arunca un override de tema (pe staging a fost
+            # un TypeError dintr-un template QWeb). Nu se inghite nimic tacut - se
+            # scrie in loguri, cu id-ul produsului, ca sa se vada ce a picat.
+            _log_combination_info_failure(template.id)
+    if combination_info is None:
+        try:
+            combination_info = _core_combination_info(template, variant, combination)
+        except Exception:
+            # Ar insemna ca e stricat chiar codul standard al Odoo. Nu s-a intamplat,
+            # dar o cerere de produs tot nu are voie sa devina 500: se raspunde cu ce
+            # calculeaza modulul singur.
+            _log_core_combination_info_failure(template.id)
+            return _fallback_combination(template, variant, combination)
     resolved_id = combination_info.get('product_id')
     if resolved_id:
         variant = request.env['product.product'].browse(resolved_id)
