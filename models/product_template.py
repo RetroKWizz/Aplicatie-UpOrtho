@@ -199,13 +199,20 @@ class ProductTemplate(models.Model):
                     'name': ptav.name,
                     'selected': ptav in combination,
                     'available': bool(self._is_combination_possible(combination=candidate)),
+                    # Combinatia de trimis inapoi in `?values=` la apasarea pe aceasta
+                    # valoare. Fara ea aplicatia ar avea doar id-uri de valoare si nicio
+                    # cale sa ceara varianta rezultata - exact gaura care facea ca
+                    # fiecare apasare pe o marime sa dea 422.
+                    'combination': candidate.ids,
                 })
             attributes.append({
                 'id': line.attribute_id.id,
                 'name': line.attribute_id.name,
                 'values': values,
             })
-        return {'attributes': attributes}
+        # `selected`: combinatia activa acum, ca aplicatia sa poata desena starea de
+        # selectie dupa o re-cerere fara sa o deduca din altceva.
+        return {'selected': combination.ids, 'attributes': attributes}
 
     def _uportho_availability(self, variant=None):
         """Mesajul de disponibilitate si starea de stoc, sau None cand produsul n-are
