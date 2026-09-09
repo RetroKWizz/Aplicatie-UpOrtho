@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/api_client.dart';
 import 'package:uportho_app/api/api_transport.dart';
 import 'package:uportho_app/api/session_store.dart';
+import 'package:uportho_app/design_system/widgets/benefit_list.dart';
 import 'package:uportho_app/design_system/widgets/brand_card.dart';
 import 'package:uportho_app/design_system/widgets/description_view.dart';
 import 'package:uportho_app/design_system/widgets/document_list.dart';
@@ -644,5 +645,34 @@ void main() {
     await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
 
     expect(find.byType(BrandCard), findsNothing);
+  });
+
+  testWidgets('beneficiul cu logo incarcat in Odoo il arata pe el, cu URL absolut',
+      (tester) async {
+    // Ce se schimba din Odoo fara release de aplicatie: un curier nou, alt
+    // procesator de plati.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    final list = tester.widget<BenefitList>(find.byType(BenefitList));
+    final withImage = list.items.firstWhere((item) => item.imageUrl != null);
+    expect(withImage.title, 'Livrare gratuita');
+    expect(withImage.imageUrl, 'http://x/api/app/v1/benefits/3/image?unique=b19f0d4');
+
+    // Restul raman pe iconita.
+    expect(list.items.where((item) => item.imageUrl == null), hasLength(3));
+  });
+
+  testWidgets('fara beneficii, blocul lipseste complet', (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: {...fullProductJson(), 'benefits': <dynamic>[]}));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.byType(BenefitList), findsNothing);
   });
 }

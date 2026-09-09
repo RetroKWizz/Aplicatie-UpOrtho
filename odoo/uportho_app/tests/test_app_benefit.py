@@ -1,4 +1,8 @@
+import base64
+
 from odoo.tests.common import TransactionCase, tagged
+
+from .test_controllers_catalog import PNG_1PX
 
 
 @tagged('post_install', '-at_install')
@@ -35,3 +39,14 @@ class TestAppBenefit(TransactionCase):
         result = self._own(self.Benefit._search_active(), first, second)
         names = result.mapped('name')
         self.assertLess(names.index('A'), names.index('B'))
+
+    def test_image_is_optional(self):
+        # Beneficiile existente n-au imagine si nu se schimba cu nimic: fara ea,
+        # aplicatia deseneaza mai departe iconita din lista fixa.
+        self.assertFalse(self._make(name='Fara imagine').image)
+
+    def test_image_can_be_uploaded(self):
+        # Blocurile echivalente de pe site arata logouri adevarate (curier, siglele de
+        # card). Userul le poate schimba din Odoo, fara release de aplicatie.
+        benefit = self._make(name='Cu imagine', image=base64.b64encode(PNG_1PX))
+        self.assertTrue(benefit.image)

@@ -824,6 +824,63 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertEqual(by_title[first.name]['text'], 'subtitlu unu')
         self.assertIsNone(by_title[second.name]['text'])
 
+    def test_benefit_without_an_image_has_a_null_url(self):
+        # Beneficiile existente n-au imagine: aplicatia deseneaza iconita, ca inainte.
+        self.api_login()
+        benefit = self.env['uportho.app.benefit'].create(
+            {'name': 'Beneficiu fara imagine test', 'icon': 'info'})
+        body = self._detail().json()
+        by_title = {b['title']: b for b in body['benefits']}
+        self.assertIsNone(by_title[benefit.name]['image_url'])
+
+    def test_benefit_with_an_image_carries_an_authenticated_url(self):
+        # Site-ul arata in blocurile astea logouri adevarate (curier, sigle de card);
+        # incarcate in Odoo, ele se pot schimba fara release de aplicatie.
+        self.api_login()
+        benefit = self.env['uportho.app.benefit'].create({
+            'name': 'Beneficiu cu imagine test', 'icon': 'delivery',
+            'image': base64.b64encode(PNG_1PX)})
+        body = self._detail().json()
+        by_title = {b['title']: b for b in body['benefits']}
+        self.assertTrue(by_title[benefit.name]['image_url'].startswith(
+            f'/api/app/v1/benefits/{benefit.id}/image?unique='))
+        # Iconita ramane in raspuns: e rezerva desenata cand imaginea lipseste.
+        self.assertEqual(by_title[benefit.name]['icon'], 'delivery')
+
+    def test_benefit_image_route_serves_the_image(self):
+        self.api_login()
+        benefit = self.env['uportho.app.benefit'].create({
+            'name': 'Beneficiu imagine ruta test', 'icon': 'delivery',
+            'image': base64.b64encode(PNG_1PX)})
+        response = self.api_get(f'/benefits/{benefit.id}/image')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.headers['Content-Type'].startswith('image/'))
+
+    def test_benefit_image_requires_login(self):
+        benefit = self.env['uportho.app.benefit'].create({
+            'name': 'Beneficiu imagine 401 test', 'icon': 'info',
+            'image': base64.b64encode(PNG_1PX)})
+        self.assertEqual(self.api_get(f'/benefits/{benefit.id}/image').status_code, 401)
+
+    def test_benefit_image_route_is_404_without_an_image(self):
+        self.api_login()
+        benefit = self.env['uportho.app.benefit'].create(
+            {'name': 'Beneficiu imagine lipsa test', 'icon': 'info'})
+        self.assertEqual(self.api_get(f'/benefits/{benefit.id}/image').status_code, 404)
+
+    def test_benefit_list_does_not_read_the_image_field(self):
+        # Prezenta imaginii se afla dintr-o interogare pe `ir.attachment`; citirea
+        # campului ar incarca toate logourile la fiecare cerere de produs.
+        self.api_login()
+        self.env['uportho.app.benefit'].create({
+            'name': 'Beneficiu imagine necitita test', 'icon': 'info',
+            'image': base64.b64encode(PNG_1PX)})
+        touched = []
+        with patch.object(type(self.env['uportho.app.benefit']), 'image',
+                          property(lambda inner_self: touched.append(inner_self.id))):
+            self._detail()
+        self.assertFalse(touched, 'lista de beneficii a citit campul de imagine')
+
     # --- disponibilitate ------------------------------------------------------
 
     def test_availability_is_null_without_website_sale_stock_fields(self):

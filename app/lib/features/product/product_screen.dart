@@ -7,6 +7,7 @@ import '../../api/models/product_detail.dart';
 import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/typography.dart';
+import '../../design_system/widgets/benefit_list.dart';
 import '../../design_system/widgets/brand_card.dart';
 import '../../design_system/widgets/description_view.dart';
 import '../../design_system/widgets/document_list.dart';
@@ -21,8 +22,8 @@ import 'product_controller.dart';
 
 /// Pagina de produs. Ordinea sectiunilor e cea de pe uportho.ro (plan Faza 2,
 /// Task 6): galerie, badge, titlu, stele, pret, praguri, praguri Ortho Club,
-/// variante, disponibilitate, buton de cos, beneficii, cod, descriere,
-/// specificatii, recenzii, produse similare.
+/// variante, disponibilitate, buton de cos, brand, beneficii, cod, descriere,
+/// specificatii, documente, recenzii, produse similare.
 ///
 /// **Fiecare sectiune fara date lipseste complet** — nu un chenar gol, nu un titlu
 /// fara continut sub el. Nu e o subtilitate de stil: 354 din 619 produse reale
@@ -108,6 +109,23 @@ class _ProductBody extends ConsumerWidget {
     final brand = detail.brand;
     final brandLogoUrl = brand?.logoUrl == null ? null : api.absoluteUrl(brand!.logoUrl!);
 
+    // Beneficiile: logoul incarcat in Odoo cand exista (curier, sigla de card),
+    // altfel iconita din lista fixa. Maparea iconita -> simbol de desenat sta aici,
+    // in ecran: design system-ul nu cunoaste valorile din Odoo.
+    final benefitItems = [
+      for (final benefit in detail.benefits)
+        BenefitItem(
+          icon: _benefitIcons[benefit.icon] ?? Icons.info_outline,
+          title: benefit.title,
+          text: benefit.text,
+          imageUrl: benefit.imageUrl == null ? null : api.absoluteUrl(benefit.imageUrl!),
+        ),
+    ];
+    final firstBenefitImageUrl = benefitItems.map((item) => item.imageUrl).nonNulls.firstOrNull;
+    final benefitHeaders = firstBenefitImageUrl == null
+        ? null
+        : imageHeadersFor(firstBenefitImageUrl, apiBaseUrl: api.baseUrl, headers: imageHeaders);
+
     final documentItems = [
       for (final document in detail.documents)
         DocumentItem(
@@ -157,7 +175,8 @@ class _ProductBody extends ConsumerWidget {
               ? null
               : imageHeadersFor(brandLogoUrl, apiBaseUrl: api.baseUrl, headers: imageHeaders),
         ),
-      if (detail.benefits.isNotEmpty) _Benefits(benefits: detail.benefits),
+      if (benefitItems.isNotEmpty)
+        BenefitList(items: benefitItems, httpHeaders: benefitHeaders),
       if (detail.defaultCode != null && detail.defaultCode!.isNotEmpty)
         Text('Cod: ${detail.defaultCode}', style: AppTypography.caption),
       if (_hasText(descriptionBlocks))
@@ -212,6 +231,16 @@ class _ProductBody extends ConsumerWidget {
       block.spans.any((span) => span.text.isNotEmpty) ||
       block.bullets.any((bullet) => bullet.any((span) => span.text.isNotEmpty)));
 }
+
+/// Iconita desenata pentru fiecare valoare din lista fixa a Odoo. E rezerva: cand
+/// beneficiul are un logo incarcat, se arata logoul.
+const _benefitIcons = {
+  BenefitIcon.club: Icons.card_membership_outlined,
+  BenefitIcon.delivery: Icons.local_shipping_outlined,
+  BenefitIcon.returns: Icons.assignment_return_outlined,
+  BenefitIcon.payment: Icons.lock_outline,
+  BenefitIcon.info: Icons.info_outline,
+};
 
 class _Heading extends StatelessWidget {
   const _Heading({required this.detail});
@@ -484,62 +513,6 @@ class _CartButton extends StatelessWidget {
         Text('Disponibil la pasul urmator',
             style: AppTypography.caption, textAlign: TextAlign.center),
       ],
-    );
-  }
-}
-
-class _Benefits extends StatelessWidget {
-  const _Benefits({required this.benefits});
-
-  final List<Benefit> benefits;
-
-  static const _icons = {
-    BenefitIcon.club: Icons.card_membership_outlined,
-    BenefitIcon.delivery: Icons.local_shipping_outlined,
-    BenefitIcon.returns: Icons.assignment_return_outlined,
-    BenefitIcon.payment: Icons.lock_outline,
-    BenefitIcon.info: Icons.info_outline,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var index = 0; index < benefits.length; index++)
-            Padding(
-              padding: EdgeInsets.only(top: index == 0 ? 0 : 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(_icons[benefits[index].icon] ?? Icons.info_outline,
-                      size: 20, color: AppColors.primary),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(benefits[index].title,
-                            style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
-                        if (benefits[index].text != null && benefits[index].text!.isNotEmpty)
-                          Text(benefits[index].text!, style: AppTypography.caption),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

@@ -22,12 +22,18 @@ enum BenefitIcon {
 
 /// Un bloc de beneficii de magazin (livrare gratuita, retur, plata sigura),
 /// editabil din Odoo. `text` e optional — in Odoo doar titlul e obligatoriu.
+///
+/// `imageUrl` e un logo incarcat in Odoo (curier, sigla de card — ce arata site-ul
+/// in blocurile echivalente). Cand exista, se arata el; altfel se deseneaza `icon`,
+/// din lista fixa. Asa se schimba un curier sau un procesator de plati fara release
+/// in magazinele de aplicatii. Ruta e autentificata, ca toate imaginile modulului.
 @freezed
 abstract class Benefit with _$Benefit {
   const factory Benefit({
     @JsonKey(unknownEnumValue: BenefitIcon.info) required BenefitIcon icon,
     required String title,
     String? text,
+    @JsonKey(name: 'image_url') String? imageUrl,
   }) = _Benefit;
 
   factory Benefit.fromJson(Map<String, dynamic> json) => _$BenefitFromJson(json);

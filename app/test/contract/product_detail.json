@@ -95,9 +95,10 @@
                             "list_amount": null, "list_formatted": null, "discount_pct": null },
                  "club_price": null, "badge": null } ],
   "benefits": [
-    { "icon": "club", "title": "Alatura-te Ortho Club", "text": "pentru extra beneficii" },
-    { "icon": "delivery", "title": "Livrare gratuita", "text": "pentru comenzi de peste 400 lei" },
-    { "icon": "return", "title": "Retur gratuit", "text": "30 de zile" },
-    { "icon": "payment", "title": "Plata online sigura", "text": "prin Stripe" }
+    { "icon": "club", "title": "Alatura-te Ortho Club", "text": "pentru extra beneficii", "image_url": null },
+    { "icon": "delivery", "title": "Livrare gratuita", "text": "pentru comenzi de peste 400 lei",
+      "image_url": "/api/app/v1/benefits/3/image?unique=b19f0d4" },
+    { "icon": "return", "title": "Retur gratuit", "text": "30 de zile", "image_url": null },
+    { "icon": "payment", "title": "Plata online sigura", "text": "prin Stripe", "image_url": null }
   ]
 }

@@ -51,6 +51,23 @@ parametrul ar fi vazut tabelul listei noi langa pretul celei vechi, fara nicio e
 Continut de test creat: doua bannere (`uportho.app.banner`) si sase categorii marcate
 `app_home_visible` (Bracketi, Tuburi si inele, Arcuri, Elastomeri, Adezivi, Instrumentar).
 
+### Beneficiile de pe pagina de produs (`uportho.app.benefit`)
+
+Blocurile de sub butonul de cos (Ortho Club, livrare, retur, plata) se editeaza din
+**Site web → Aplicatie mobila → Beneficii**. Fiecare are titlu, subtitlu, ordine si
+doua moduri de a arata un simbol:
+
+- **Iconita** — o lista fixa (`club`, `delivery`, `return`, `payment`, `info`) desenata
+  de aplicatie. E rezerva: se foloseste cand nu exista imagine.
+- **Imagine** — un logo incarcat in Odoo. Blocurile echivalente de pe site arata
+  logouri adevarate (curierul, siglele de card), nu iconite desenate. Cand exista
+  imagine, aplicatia o arata pe ea. **Asa se schimba un curier sau un procesator de
+  plati fara release in App Store**, ceea ce era chiar motivul modulului.
+
+Imaginea se serveste prin ruta autentificata `/api/app/v1/benefits/<id>/image`, ca
+bannerele si iconitele de categorie; URL-ul poarta `?unique=` din `write_date`, deci
+o inlocuire in Odoo se vede in aplicatie fara sa astepte cache-ul.
+
 Cont de test, portal obisnuit, creat special — **nu e contul niciunui client real**:
 `app.test@uportho.ro` — parola NU se scrie aici (repo-ul de transfer e public). E la user.
 

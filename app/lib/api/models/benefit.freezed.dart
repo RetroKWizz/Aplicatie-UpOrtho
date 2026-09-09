@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Benefit {
 
-@JsonKey(unknownEnumValue: BenefitIcon.info) BenefitIcon get icon; String get title; String? get text;
+@JsonKey(unknownEnumValue: BenefitIcon.info) BenefitIcon get icon; String get title; String? get text;@JsonKey(name: 'image_url') String? get imageUrl;
 /// Create a copy of Benefit
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $BenefitCopyWith<Benefit> get copyWith => _$BenefitCopyWithImpl<Benefit>(this as
 @override
 bool operator ==(Object other) {
   final _this = this as Benefit;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Benefit&&(identical(other.icon, _this.icon) || other.icon == _this.icon)&&(identical(other.title, _this.title) || other.title == _this.title)&&(identical(other.text, _this.text) || other.text == _this.text));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Benefit&&(identical(other.icon, _this.icon) || other.icon == _this.icon)&&(identical(other.title, _this.title) || other.title == _this.title)&&(identical(other.text, _this.text) || other.text == _this.text)&&(identical(other.imageUrl, _this.imageUrl) || other.imageUrl == _this.imageUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Benefit;
-  return Object.hash(runtimeType,_this.icon,_this.title,_this.text);
+  return Object.hash(runtimeType,_this.icon,_this.title,_this.text,_this.imageUrl);
 }
 
 @override
 String toString() {
   final _this = this as Benefit;
-  return 'Benefit(icon: ${_this.icon}, title: ${_this.title}, text: ${_this.text})';
+  return 'Benefit(icon: ${_this.icon}, title: ${_this.title}, text: ${_this.text}, imageUrl: ${_this.imageUrl})';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $BenefitCopyWith<$Res>  {
   factory $BenefitCopyWith(Benefit value, $Res Function(Benefit) _then) = _$BenefitCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(unknownEnumValue: BenefitIcon.info) BenefitIcon icon, String title, String? text
+@JsonKey(unknownEnumValue: BenefitIcon.info) BenefitIcon icon, String title, String? text,@JsonKey(name: 'image_url') String? imageUrl
 });
 
 
@@ -71,11 +71,12 @@ class _$BenefitCopyWithImpl<$Res>
 
 /// Create a copy of Benefit
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? icon = null,Object? title = null,Object? text = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? icon = null,Object? title = null,Object? text = freezed,Object? imageUrl = freezed,}) {
   return _then(Benefit(
 icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as BenefitIcon,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,text: freezed == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -161,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(unknownEnumValue: BenefitIcon.info)  BenefitIcon icon,  String title,  String? text)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(unknownEnumValue: BenefitIcon.info)  BenefitIcon icon,  String title,  String? text, @JsonKey(name: 'image_url')  String? imageUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Benefit() when $default != null:
-return $default(_that.icon,_that.title,_that.text);case _:
+return $default(_that.icon,_that.title,_that.text,_that.imageUrl);case _:
   return orElse();
 
 }
@@ -182,10 +183,10 @@ return $default(_that.icon,_that.title,_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(unknownEnumValue: BenefitIcon.info)  BenefitIcon icon,  String title,  String? text)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(unknownEnumValue: BenefitIcon.info)  BenefitIcon icon,  String title,  String? text, @JsonKey(name: 'image_url')  String? imageUrl)  $default,) {final _that = this;
 switch (_that) {
 case _Benefit():
-return $default(_that.icon,_that.title,_that.text);case _:
+return $default(_that.icon,_that.title,_that.text,_that.imageUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -202,10 +203,10 @@ return $default(_that.icon,_that.title,_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(unknownEnumValue: BenefitIcon.info)  BenefitIcon icon,  String title,  String? text)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(unknownEnumValue: BenefitIcon.info)  BenefitIcon icon,  String title,  String? text, @JsonKey(name: 'image_url')  String? imageUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _Benefit() when $default != null:
-return $default(_that.icon,_that.title,_that.text);case _:
+return $default(_that.icon,_that.title,_that.text,_that.imageUrl);case _:
   return null;
 
 }
@@ -217,12 +218,13 @@ return $default(_that.icon,_that.title,_that.text);case _:
 @JsonSerializable()
 
 class _Benefit implements Benefit {
-  const _Benefit({@JsonKey(unknownEnumValue: BenefitIcon.info) required this.icon, required this.title, this.text});
+  const _Benefit({@JsonKey(unknownEnumValue: BenefitIcon.info) required this.icon, required this.title, this.text, @JsonKey(name: 'image_url') this.imageUrl});
   factory _Benefit.fromJson(Map<String, dynamic> json) => _$BenefitFromJson(json);
 
 @override@JsonKey(unknownEnumValue: BenefitIcon.info) final  BenefitIcon icon;
 @override final  String title;
 @override final  String? text;
+@override@JsonKey(name: 'image_url') final  String? imageUrl;
 
 /// Create a copy of Benefit
 /// with the given fields replaced by the non-null parameter values.
@@ -237,18 +239,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Benefit&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.title, title) || other.title == title)&&(identical(other.text, text) || other.text == text));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Benefit&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.title, title) || other.title == title)&&(identical(other.text, text) || other.text == text)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,icon,title,text);
+    return Object.hash(runtimeType,icon,title,text,imageUrl);
 }
 
 @override
 String toString() {
-    return 'Benefit(icon: $icon, title: $title, text: $text)';
+    return 'Benefit(icon: $icon, title: $title, text: $text, imageUrl: $imageUrl)';
 }
 
 
@@ -259,7 +261,7 @@ abstract mixin class _$BenefitCopyWith<$Res> implements $BenefitCopyWith<$Res> {
   factory _$BenefitCopyWith(_Benefit value, $Res Function(_Benefit) _then) = __$BenefitCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(unknownEnumValue: BenefitIcon.info) BenefitIcon icon, String title, String? text
+@JsonKey(unknownEnumValue: BenefitIcon.info) BenefitIcon icon, String title, String? text,@JsonKey(name: 'image_url') String? imageUrl
 });
 
 
@@ -276,11 +278,12 @@ class __$BenefitCopyWithImpl<$Res>
 
 /// Create a copy of Benefit
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? icon = null,Object? title = null,Object? text = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? icon = null,Object? title = null,Object? text = freezed,Object? imageUrl = freezed,}) {
   return _then(_Benefit(
 icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as BenefitIcon,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,text: freezed == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

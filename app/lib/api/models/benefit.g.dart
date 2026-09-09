@@ -14,12 +14,14 @@ _Benefit _$BenefitFromJson(Map<String, dynamic> json) => _Benefit(
   ),
   title: json['title'] as String,
   text: json['text'] as String?,
+  imageUrl: json['image_url'] as String?,
 );
 
 Map<String, dynamic> _$BenefitToJson(_Benefit instance) => <String, dynamic>{
   'icon': _$BenefitIconEnumMap[instance.icon]!,
   'title': instance.title,
   'text': instance.text,
+  'image_url': instance.imageUrl,
 };
 
 const _$BenefitIconEnumMap = {

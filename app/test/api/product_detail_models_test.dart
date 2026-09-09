@@ -265,6 +265,17 @@ void main() {
     expect(benefits[1].icon, BenefitIcon.delivery);
     expect(benefits[2].icon, BenefitIcon.returns);
     expect(benefits[3].icon, BenefitIcon.payment);
+
+    // Logoul incarcat in Odoo: cand exista, aplicatia il arata in locul iconitei.
+    expect(benefits[0].imageUrl, isNull);
+    expect(benefits[1].imageUrl, '/api/app/v1/benefits/3/image?unique=b19f0d4');
+  });
+
+  test('un beneficiu fara `image_url` decodeaza cu null, nu arunca', () {
+    // Camp adaugat dupa prima versiune a beneficiilor: un server mai vechi nu-l
+    // trimite, iar ecranul cade atunci pe iconita, ca inainte.
+    final benefit = Benefit.fromJson(const {'icon': 'club', 'title': 'Ortho Club'});
+    expect(benefit.imageUrl, isNull);
   });
 
   test('Benefit decodeaza si benefits.json (array la nivelul radacinii)', () {
