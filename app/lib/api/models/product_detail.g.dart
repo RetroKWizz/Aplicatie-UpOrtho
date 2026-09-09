@@ -60,6 +60,9 @@ _VariantRow _$VariantRowFromJson(Map<String, dynamic> json) => _VariantRow(
           json['availability'] as Map<String, dynamic>,
         ),
   price: Price.fromJson(json['price'] as Map<String, dynamic>),
+  subtotal: json['subtotal'] == null
+      ? null
+      : Price.fromJson(json['subtotal'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$VariantRowToJson(_VariantRow instance) =>
@@ -69,6 +72,7 @@ Map<String, dynamic> _$VariantRowToJson(_VariantRow instance) =>
       'default_code': instance.defaultCode,
       'availability': instance.availability,
       'price': instance.price,
+      'subtotal': instance.subtotal,
     };
 
 _ProductDetail _$ProductDetailFromJson(Map<String, dynamic> json) =>
@@ -102,6 +106,9 @@ _ProductDetail _$ProductDetailFromJson(Map<String, dynamic> json) =>
               ?.map((e) => VariantRow.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      variantTotal: json['variant_total'] == null
+          ? null
+          : Price.fromJson(json['variant_total'] as Map<String, dynamic>),
       specs:
           (json['specs'] as List<dynamic>?)
               ?.map((e) => ProductSpec.fromJson(e as Map<String, dynamic>))
@@ -150,6 +157,7 @@ Map<String, dynamic> _$ProductDetailToJson(_ProductDetail instance) =>
       'price_tables': instance.priceTables,
       'variants': instance.variants,
       'variant_rows': instance.variantRows,
+      'variant_total': instance.variantTotal,
       'specs': instance.specs,
       'description': instance.description,
       'availability': instance.availability,

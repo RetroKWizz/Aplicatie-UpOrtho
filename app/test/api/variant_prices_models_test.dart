@@ -64,4 +64,27 @@ void main() {
 
     expect(detail.variantRows, isEmpty);
   });
+
+  test('sumele de pornire (cantitate zero) vin gata formatate in detaliu', () {
+    // Tabelul se deschide cu toate cantitatile pe zero; sumele acelea sunt in
+    // detaliu, deci ecranul nu are nevoie de niciun tur suplimentar la server ca sa
+    // arate subtotalurile si totalul.
+    final detail = ProductDetail.fromJson(detailFixture());
+
+    expect(detail.variantRows.first.subtotal?.formatted, '0,00 lei');
+    expect(detail.variantTotal?.formatted, '0,00 lei');
+  });
+
+  test('un server care nu trimite sumele de pornire decodeaza cu null, nu cu zero', () {
+    final json = {...detailFixture()}..remove('variant_total');
+    json['variant_rows'] = [
+      for (final row in json['variant_rows'] as List)
+        {...row as Map<String, dynamic>}..remove('subtotal'),
+    ];
+
+    final detail = ProductDetail.fromJson(json);
+
+    expect(detail.variantTotal, isNull);
+    expect(detail.variantRows.first.subtotal, isNull);
+  });
 }

@@ -140,8 +140,9 @@ def _fallback_combination(template, variant, combination):
                        else template._get_first_possible_combination())
     if not variant:
         variant = template._get_variant_for_combination(combination) or template.product_variant_id
-    # Al treilea element e `combination_info`-ul care lipseste: fara el, tabelele de
-    # pret ale temei nu se pot citi si se cade pe cele calculate de modul.
+    # Al treilea element e `combination_info`-ul care lipseste. Nimic esential nu
+    # depinde de el: tabelele de pret se calculeaza oricum direct din listele
+    # magazinului (vezi `_price_tables`), asta e doar sursa lui preferata.
     return combination, variant, {}
 
 
@@ -157,18 +158,23 @@ def _resolve_combination(template, variant, values=None):
     `exclude_for`) e adusa la cea mai apropiata combinatie posibila. Asa nu ajunge
     niciodata sa fie o eroare ceva ce pe site e doar o alta selectie.
 
-    Din preturile lui folosim doar combinatia, varianta si tabelele de pret pe care
-    le adauga tema (`other_bulk_prices` - vezi `_uportho_price_tables_from_theme`):
-    pretul lui principal vine de pe `website.pricelist_id` (lista rezolvata din
-    sesiune/geoip), nu de pe lista clientului si a Ortho Club, care sunt cele doua de
-    care are nevoie aplicatia.
+    Din raspunsul lui folosim combinatia si varianta (pretul lui principal vine de pe
+    `website.pricelist_id`, lista rezolvata din sesiune/geoip, nu de pe lista
+    clientului si a Ortho Club, care sunt cele doua de care are nevoie aplicatia).
 
     `_get_combination_info` e insa punctul in care intra cod strain: pe instanta
     reala, tema magazinului il suprascrie si randeaza in interiorul lui un template
-    QWeb de website. Randarea aceea a cazut pe staging (`TypeError: 'NoneType'
-    object is not callable`) si a facut din fiecare pagina de produs un 500. O tema
-    nu are voie sa doboare API-ul, deci esecul lui se prinde si se cade pe combinatia
-    calculata local - vezi `_fallback_combination`."""
+    QWeb de website. Cauza verificata pe serverul lor: `droggol_theme_common` pune in
+    `combination_info['tp_extra_fields']` randarea lui `theme_prime.product_extra_fields`,
+    iar acel template citeste `website.shop_extra_field_ids` - are nevoie de un context
+    complet de randare de website, pe care un request JSON nu-l are. De aceea apelul
+    arunca la FIECARE cerere de produs, nu ocazional; `uportho_app.website_id` pus in
+    contextul mediului nu a fost de ajuns.
+
+    O tema nu are voie sa doboare API-ul, deci esecul se prinde si se cade pe
+    combinatia calculata local (`_fallback_combination`). Tabelele de pret nu mai trec
+    pe aici deloc - se calculeaza direct din listele magazinului, vezi
+    `_price_tables`."""
     combination = template._get_closest_possible_combination(values) if values is not None else None
     try:
         if combination is not None:
@@ -195,8 +201,9 @@ def _resolve_combination(template, variant, values=None):
     return combination_info.get('combination'), variant, combination_info
 
 
-# Titlurile tabelelor calculate de modul, folosite doar cand magazinul nu are deja
-# tabelele lui (baza locala, sau o instanta fara modulul de teme al clientului).
+# Titlurile tabelelor calculate de modul, folosite doar cand magazinul nu are listele
+# lui marcate pentru pagina de produs (baza locala, sau o instanta fara modulele
+# clientului - vezi `_uportho_site_pricelists`).
 # Titlul e mereu un camp de raspuns: aplicatia nu stie niciun titlu de tabel, pentru
 # ca pe productie al doilea tabel poarta un nume de campanie, imposibil de ghicit.
 OWN_TABLE_TITLE = 'Pret pe cantitate'
@@ -217,18 +224,29 @@ def _worth_showing(table, price):
 
 def _price_tables(template, combination_info, price, pricelist, club_pricelist,
                   partner, fiscal_position, variant):
-    """Tabelele de pret ale paginii, in ordinea in care se deseneaza.
+    """Tabelele de pret ale paginii, in ordinea in care se deseneaza. Trei surse,
+    incercate in ordine; prima care da ceva castiga.
 
-    Intai cele ale magazinului (`other_bulk_prices` din `_get_combination_info`, puse
-    acolo de modulul clientului): daca exista, ele SUNT tabelele paginii, ca app-ul sa
-    arate exact ce arata site-ul, cu titlurile lui. Daca lipsesc (baza locala de
-    dezvoltare, sau o instanta fara acele module), se cade pe tabelele calculate de
-    modul: praguri de cantitate pe lista clientului si, cand `club_pricelist` e data
-    (adica pretul de club chiar difera), pe cea Ortho Club.
+    1. `other_bulk_prices` din `_get_combination_info` - exact ce a calculat magazinul
+       pentru pagina lui. Ramane prima alegere, dar pe serverul clientului nu se poate
+       citi niciodata: acolo `_get_combination_info` randeaza inauntrul lui un template
+       QWeb de website al temei si arunca la fiecare cerere (vezi `_resolve_combination`).
+    2. Listele de pret ale magazinului, luate direct (`_uportho_site_pricelists` +
+       `_uportho_site_price_tables`) - aceeasi selectie ca a modulului clientului
+       (`is_public_pricelist`, apoi `is_compare_pricelist`), doar fara sa treaca prin
+       apelul care cade. ASTA e calea care functioneaza azi pe serverul lor.
+    3. Tabelele calculate de modul, pe o instanta care n-are modulele clientului (baza
+       locala de dezvoltare): praguri de cantitate pe lista clientului si, cand
+       `club_pricelist` e data (adica pretul de club chiar difera), pe cea Ortho Club.
+       Doar aici titlurile sunt ale noastre.
 
-    Pragurile proprii se calculeaza doar pe ramura de rezerva: cand magazinul are deja
-    tabelele lui, ele nici nu s-ar afisa, deci nu se cer degeaba preturi de la Odoo."""
+    Preturile se cer de la Odoo doar pe ramura care ajunge sa fie folosita: un tabel
+    care oricum n-ar fi afisat nu costa nicio pretuire."""
     tables = template._uportho_price_tables_from_theme(combination_info, pricelist.currency_id)
+    if not tables:
+        tables = template._uportho_site_price_tables(
+            template._uportho_site_pricelists(), partner,
+            fiscal_position=fiscal_position, variant=variant)
     if not tables:
         own = template._uportho_price_tiers(
             pricelist, partner, fiscal_position=fiscal_position, variant=variant)
@@ -386,6 +404,8 @@ class AppProduct(http.Controller):
         else:
             club_pricelist = request.env['product.pricelist'].browse()
 
+        variant_rows = template._uportho_variant_rows(
+            pricelist, partner, fiscal_position=fiscal_position)
         rating, reviews = _serialize_reviews(template)
         return json_ok({
             'id': template.id,
@@ -407,8 +427,13 @@ class AppProduct(http.Controller):
             # ca pe site. Gol pentru un produs cu o singura varianta - atunci ecranul
             # ramane cum era. Cand exista randuri, ele inlocuiesc selectorul
             # `variants`: fiecare varianta isi are deja randul ei.
-            'variant_rows': template._uportho_variant_rows(
-                pricelist, partner, fiscal_position=fiscal_position),
+            'variant_rows': variant_rows,
+            # Totalul de pornire al tabelului de variante: toate cantitatile sunt zero
+            # cand ecranul se deschide, iar aplicatia nu are voie sa scrie ea "0,00 lei"
+            # (nu formateaza bani). Fara el, Totalul ar arata "—" pana la prima apasare
+            # pe plus. Null cand nu exista tabel - atunci nu exista nici total.
+            'variant_total': (template._uportho_zero_amount(pricelist.currency_id)
+                              if variant_rows else None),
             'specs': template._uportho_specs(),
             'description': template._uportho_description_blocks(),
             'availability': template._uportho_availability(variant=variant),

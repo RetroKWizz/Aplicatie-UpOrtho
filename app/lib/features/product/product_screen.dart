@@ -308,9 +308,12 @@ class _PriceBlock extends StatelessWidget {
 ///
 /// Toate sumele vin de la server. Pretul unitar al unui rand e cel din ultimul
 /// raspuns de preturi (acolo se vede pragul de cantitate atins), si abia daca acela
-/// lipseste se cade pe pretul de la o bucata din detaliul produsului. Subtotalul si
-/// totalul lipsesc pana la primul raspuns — ecranul nu are cum sa scrie "0,00 lei"
-/// fara sa faca aritmetica pe bani, ceea ce ii e interzis (CLAUDE.md).
+/// lipseste se cade pe pretul de la o bucata din detaliul produsului. La fel si
+/// subtotalurile cu totalul: pana la primul raspuns de preturi se folosesc sumele de
+/// pornire (cantitate zero) trimise chiar in detaliul produsului. Daca nici acelea
+/// nu exista (server mai vechi), coloana ramane pe liniuta — ecranul nu are cum sa
+/// scrie "0,00 lei" fara sa faca aritmetica pe bani, ceea ce ii e interzis
+/// (CLAUDE.md).
 ///
 /// Cat timp o cerere de preturi e in aer, cifrele ramase pe ecran sunt cele
 /// dinainte: tabelul nu clipeste la fiecare apasare pe plus.
@@ -335,7 +338,7 @@ class _VariantOrderSection extends ConsumerWidget {
           stockLabel: _stockLabel(row.availability),
           inStock: row.availability?.inStock ?? true,
           priceFormatted: (lines[row.variantId]?.price ?? row.price).formatted,
-          subtotalFormatted: lines[row.variantId]?.subtotal.formatted,
+          subtotalFormatted: (lines[row.variantId]?.subtotal ?? row.subtotal)?.formatted,
           qty: state.quantities[row.variantId] ?? 0,
         ),
     ];
@@ -346,7 +349,7 @@ class _VariantOrderSection extends ConsumerWidget {
       children: [
         VariantOrderTable(
           rows: rows,
-          totalFormatted: state.prices?.total.formatted,
+          totalFormatted: (state.prices?.total ?? state.detail.variantTotal)?.formatted,
           // Steperul ramane activ si cat timp se recalculeaza: asta e tot rostul
           // debounce-ului din controller.
           onQuantityChanged: (variantId, quantity) =>

@@ -73,10 +73,14 @@ abstract class ProductAvailability with _$ProductAvailability {
 /// disponibilitatea si pretul unitar.
 ///
 /// Lista de randuri e goala pentru un produs cu o singura varianta; atunci ecranul
-/// pastreaza forma dinainte (selectorul `variants`, cand exista). Subtotalul si
-/// totalul **nu** sunt aici: ele depind de cantitatile alese si se cer separat,
-/// prin `POST /products/<id>/prices`, pentru ca o cantitate mai mare poate trece un
-/// prag de pret.
+/// pastreaza forma dinainte (selectorul `variants`, cand exista).
+///
+/// `subtotal` e subtotalul de **pornire**, la cantitatea zero cu care se deschide
+/// tabelul — gata formatat de server, ca ecranul sa arate sume reale din primul
+/// cadru fara sa scrie el "0,00 lei" (aplicatia nu formateaza bani). Subtotalurile
+/// de dupa se cer prin `POST /products/<id>/prices`, pentru ca o cantitate mai mare
+/// poate trece un prag de pret. Poate lipsi (server mai vechi): atunci coloana
+/// ramane pe liniuta.
 @freezed
 abstract class VariantRow with _$VariantRow {
   const factory VariantRow({
@@ -85,6 +89,7 @@ abstract class VariantRow with _$VariantRow {
     @JsonKey(name: 'default_code') String? defaultCode,
     ProductAvailability? availability,
     required Price price,
+    Price? subtotal,
   }) = _VariantRow;
 
   factory VariantRow.fromJson(Map<String, dynamic> json) => _$VariantRowFromJson(json);
@@ -123,6 +128,12 @@ abstract class ProductDetail with _$ProductDetail {
     /// `variants` pe ecran: fiecare varianta isi are deja randul ei, cu pretul si
     /// cantitatea ei.
     @JsonKey(name: 'variant_rows') @Default([]) List<VariantRow> variantRows,
+
+    /// Totalul de pornire al tabelului de variante (toate cantitatile pe zero),
+    /// gata formatat de server. `null` cand nu exista tabel — sau cand serverul e
+    /// mai vechi si nu-l trimite, si atunci Totalul ramane pe liniuta pana la
+    /// primul raspuns de preturi.
+    @JsonKey(name: 'variant_total') Price? variantTotal,
     @Default([]) List<ProductSpec> specs,
     @Default([]) List<DescriptionBlock> description,
     ProductAvailability? availability,

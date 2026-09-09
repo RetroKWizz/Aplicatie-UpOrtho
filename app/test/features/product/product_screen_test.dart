@@ -434,9 +434,32 @@ void main() {
     expect(find.text('Marime: Mic'), findsOneWidget);
     expect(find.text('Cod: IX954-M'), findsOneWidget);
     expect(find.text('990,00 lei'), findsOneWidget);
-    // Inainte de prima cantitate aleasa nu exista niciun subtotal de la server -
-    // ecranul nu inventeaza "0,00 lei".
+    // Cantitatile pornesc de la zero, dar sumele de zero vin tot de la server (in
+    // detaliul produsului): tabelul arata "0,00 lei" din primul cadru, fara sa mai
+    // ceara nimic si fara ca ecranul sa formateze el vreo suma.
     expect(find.text('Total'), findsOneWidget);
+    expect(find.text('0,00 lei'), findsNWidgets(3),
+        reason: 'subtotalul fiecarui rand si totalul');
+    expect(find.text(VariantOrderTable.missingAmount), findsNothing);
+    expect(transport.calls.where((call) => call.method == 'POST'), isEmpty,
+        reason: 'sumele de pornire vin cu detaliul, fara un tur suplimentar la server');
+  });
+
+  testWidgets('fara sumele de pornire de la server, tabelul lasa liniuta, nu "0,00 lei"',
+      (tester) async {
+    // Un server care nu trimite inca `subtotal`/`variant_total` (versiune mai veche):
+    // ecranul NU are voie sa scrie el zero - nu formateaza bani (CLAUDE.md).
+    final json = fullProductJson();
+    json['variant_total'] = null;
+    json['variant_rows'] = [
+      for (final row in json['variant_rows'] as List)
+        {...row as Map<String, dynamic>}..remove('subtotal'),
+    ];
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: json));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
     expect(find.text(VariantOrderTable.missingAmount), findsWidgets);
   });
 

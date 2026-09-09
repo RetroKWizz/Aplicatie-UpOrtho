@@ -244,10 +244,16 @@ class ProductTemplate(models.Model):
         Pretul fiecarui rand vine tot de la Odoo, pe calea proprie modulului
         (`_uportho_price_amounts_for` cu `variant`), la cantitatea 1: asa intra in
         pret si `price_extra`-ul valorilor de atribut ("Complet +20 lei"), pe care
-        magazinul il arata. Subtotalurile si totalul NU se calculeaza aici - ele
-        depind de cantitatile alese in aplicatie si se cer separat, prin
+        magazinul il arata. Subtotalurile de dupa prima apasare pe plus NU se
+        calculeaza aici - ele depind de cantitatile alese in aplicatie si se cer prin
         `POST /products/<id>/prices`, pentru ca o cantitate mai mare poate trece un
-        prag de pret."""
+        prag de pret.
+
+        Randul poarta insa subtotalul de PORNIRE (`_uportho_zero_amount`): tabelul se
+        deschide cu toate cantitatile pe zero si aplicatia nu are voie sa scrie ea
+        "0,00 lei" - nu formateaza si nu calculeaza bani (CLAUDE.md). Fara suma asta in
+        raspuns, coloana Subtotal si Totalul ar arata "—" pana la prima apasare pe
+        plus, desi valoarea lor e cunoscuta din primul moment."""
         self.ensure_one()
         variants = self.product_variant_ids
         if len(variants) < 2:
@@ -268,8 +274,19 @@ class ProductTemplate(models.Model):
                 'default_code': variant.default_code or None,
                 'availability': self._uportho_availability(variant=variant),
                 'price': serialize_price(amount, list_amount, pricelist.currency_id),
+                'subtotal': self._uportho_zero_amount(pricelist.currency_id),
             })
         return rows
+
+    def _uportho_zero_amount(self, currency):
+        """Suma zero, formatata de server, in forma standard de pret al API-ului.
+
+        E subtotalul unui rand necomandat si totalul unui tabel proaspat deschis -
+        aceleasi sume pe care le intoarce `POST /products/<id>/prices` cu toate
+        cantitatile pe zero (`currency.round(pret * 0)`), doar ca aici nu se mai cere
+        niciun pret ca sa se ajunga la ele. Fara pret taiat: un zero n-a fost niciodata
+        redus de la altceva."""
+        return serialize_price(0.0, None, currency)
 
     def _uportho_availability(self, variant=None):
         """Mesajul de disponibilitate si starea de stoc, sau None cand produsul n-are
@@ -309,9 +326,16 @@ class ProductTemplate(models.Model):
         - `bulk_info`: HTML de pe lista de pret;
         - `prices`: `qty` + `price` (cu taxe, in valuta afisata) + `formatted_price`
           (HTML).
-        Ruta noastra cheama oricum `_get_combination_info`, deci pe serverul real
-        datele astea sunt deja in mana: le citim, ca pagina din app sa arate exact
-        tabelele de pe site.
+        Ruta noastra cheama oricum `_get_combination_info`, deci daca datele sunt
+        acolo le citim - sunt exact ce a calculat magazinul pentru pagina lui.
+
+        ATENTIE: pe serverul clientului nu ajung niciodata aici. Acolo
+        `_get_combination_info` arunca la fiecare cerere (tema randeaza inauntrul lui
+        un template QWeb de website - vezi `controllers/product._resolve_combination`),
+        deci `combination_info` e gol si calea care functioneaza in realitate e cea
+        directa: `_uportho_site_pricelists` + `_uportho_site_price_tables`. Metoda asta
+        ramane prima incercata pentru ca, atunci cand merge, e sursa cea mai apropiata
+        de site.
 
         Doua lucruri NU se preiau ca atare:
         - `formatted_price` e Markup (HTML). Aplicatia n-are motor HTML, deci suma se
@@ -357,6 +381,88 @@ class ProductTemplate(models.Model):
                 'entries': rows,
             })
         return tables
+
+    def _uportho_site_pricelist_for(self, flag):
+        """Prima lista de pret activa marcata cu `flag`, sau un recordset gol.
+
+        `flag` e unul din campurile pe care modulul clientului
+        (`terrabit_prime_extension`) le adauga pe `product.pricelist`. Pe o baza fara
+        modulele lor - baza locala de dezvoltare - campul nu exista, iar o cautare pe
+        un camp inexistent ar fi o eroare: de aceea prezenta lui se VERIFICA, nu se
+        presupune (aceeasi regula ca la campurile din `website_sale_stock`, vezi
+        `_uportho_availability`).
+
+        `sudo`: listele de pret nu sunt neaparat citibile de un utilizator portal, la
+        fel ca lista Ortho Club (vezi `_current_club_pricelist`)."""
+        Pricelist = self.env['product.pricelist'].sudo()
+        if flag not in Pricelist._fields:
+            return Pricelist.browse()
+        return Pricelist.search([(flag, '=', True)], limit=1)
+
+    def _uportho_site_pricelists(self):
+        """Listele de pret pe care magazinul le arata pe pagina de produs, in ordinea
+        de acolo: intai cea publica, apoi cea de comparatie.
+
+        Selectia e cea din `terrabit_prime_extension/models/product_template.py`
+        ("Show first Public PL if found", apoi "Show first Compare PL if found"), doar
+        ca noi o facem direct, nu prin `_get_combination_info`: pe serverul clientului
+        acel apel randeaza inauntrul lui un template QWeb de website al temei
+        (`droggol_theme_common` -> `theme_prime.product_extra_fields`), care are nevoie
+        de un context complet de randare de website. Un request JSON nu are asa ceva,
+        deci apelul arunca de fiecare data si `other_bulk_prices` nu se poate citi
+        niciodata de acolo.
+
+        O lista marcata cu ambele campuri apare o singura data: doua tabele identice
+        unul sub altul n-ar spune nimic in plus (codul lor ar adauga-o de doua ori)."""
+        self.ensure_one()
+        # Acumulatorul porneste in sudo: reuniunea de recordseturi pastreaza mediul
+        # celui din stanga, deci un `browse()` obisnuit aici ar sterge tacut sudo-ul
+        # listelor gasite si citirea lor ar putea pica pe drepturi de portal.
+        pricelists = self.env['product.pricelist'].sudo().browse()
+        for flag in ('is_public_pricelist', 'is_compare_pricelist'):
+            pricelists |= self._uportho_site_pricelist_for(flag)
+        return pricelists
+
+    def _uportho_site_price_tables(self, pricelists, partner, fiscal_position=None, variant=None):
+        """Tabelele de pret ale paginii, cate unul per lista din `pricelists`.
+
+        Titlul e numele listei (pe productie, al doilea e un nume de campanie, imposibil
+        de ghicit din aplicatie - de aceea titlurile vin mereu de la server), nota e
+        campul HTML `bulk_info` de pe lista, trecut prin aceeasi conversie ca descrierea
+        produsului (`_uportho_html_blocks`) - niciodata HTML catre aplicatie.
+
+        Pragurile si preturile trec pe calea proprie modulului (`_uportho_price_tiers`
+        -> `_uportho_price_amounts_for` -> `pricelist._compute_price_rule` + taxe):
+        pragurile sunt `min_quantity`-urile regulilor aplicabile, normalizate cu
+        `max(1, int(...))` - exact normalizarea din codul clientului - iar preturile le
+        da Odoo, nu le calculam noi.
+
+        `pricelists` se primeste ca parametru (nu se cauta aici) ca selectia si
+        construirea sa fie testabile separat: campurile dupa care se face selectia nu
+        exista pe baza locala, pragurile si preturile insa da."""
+        self.ensure_one()
+        tables = []
+        for pricelist in pricelists:
+            entries = self._uportho_price_tiers(
+                pricelist, partner, fiscal_position=fiscal_position, variant=variant)
+            if not entries:
+                continue
+            tables.append({
+                'title': (pricelist.name or '').strip() or None,
+                'note': self._uportho_pricelist_note(pricelist),
+                'entries': entries,
+            })
+        return tables
+
+    def _uportho_pricelist_note(self, pricelist):
+        """Nota de sub tabel: campul HTML `bulk_info` de pe lista de pret, adaugat tot
+        de modulul clientului. Trece prin aceeasi conversie ca descrierea produsului -
+        blocuri, niciodata HTML, aplicatia nu are motor HTML.
+
+        Citit cu `getattr`, nu prin `_fields`: aici e o simpla citire de camp (nu un
+        domeniu de cautare, ca la campurile de selectie), iar lipsa campului inseamna
+        exact acelasi lucru ca lipsa modulului - nota goala, niciodata o eroare."""
+        return _uportho_html_blocks(getattr(pricelist, 'bulk_info', None))
 
     def _uportho_price_tiers(self, pricelist, partner, fiscal_position=None, variant=None):
         """Pragurile de cantitate pentru acest produs pe `pricelist`. Pretul de la

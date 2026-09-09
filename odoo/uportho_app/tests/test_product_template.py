@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -409,3 +411,144 @@ class TestProductPriceTablesFromTheme(TransactionCase):
             ]},
         ]), self.currency)
         self.assertEqual([e['label'] for e in tables[0]['entries']], ['3+'])
+
+
+@tagged('post_install', '-at_install')
+class TestProductSitePriceTables(TransactionCase):
+    """`_uportho_site_pricelists()` + `_uportho_site_price_tables()`: tabelele de pret
+    ale magazinului, calculate DIRECT din listele lui de pret, fara sa treaca prin
+    `_get_combination_info`.
+
+    De ce direct: pe serverul clientului, `_get_combination_info` randeaza inauntrul
+    lui un template QWeb de website al temei (`theme_prime.product_extra_fields`), care
+    are nevoie de un context complet de randare de website - un request JSON nu are asa
+    ceva, deci apelul arunca de fiecare data. Tabelele lor nu se pot citi de acolo.
+
+    Selectia e cea din `terrabit_prime_extension/models/product_template.py`: prima
+    lista activa cu `is_public_pricelist`, apoi prima cu `is_compare_pricelist`; pentru
+    fiecare, pragurile sunt `min_quantity`-urile regulilor aplicabile, normalizate cu
+    `max(1, int(...))` (exact ce face deja `_uportho_price_tiers`).
+
+    Cele trei campuri (`is_public_pricelist`, `is_compare_pricelist`, `bulk_info`) sunt
+    ale modulelor clientului si NU exista pe baza locala. De aceea testele de aici sunt
+    impartite in doua:
+    - selectia (`_uportho_site_pricelists`) se verifica pe ramura reala de aici -
+      campurile lipsesc, deci nu se alege nicio lista si se cade pe tabelele proprii;
+    - construirea tabelelor (`_uportho_site_price_tables`) primeste listele explicit,
+      ca recordset, deci se exerseaza cu liste de pret adevarate, reguli adevarate si
+      preturi cerute de la Odoo, fara sa simuleze nimic."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Template = cls.env['product.template']
+        cls.Pricelist = cls.env['product.pricelist']
+        cls.Item = cls.env['product.pricelist.item']
+        cls.currency = cls.env.company.currency_id
+        cls.partner = cls.env['res.partner'].create({'name': 'Client test tabele site'})
+        cls.product = cls.Template.create({
+            'name': 'Produs tabele site test', 'list_price': 200.0, 'taxes_id': [(6, 0, [])]})
+        cls.public_pricelist = cls.Pricelist.create({
+            'name': 'Pret public test site', 'currency_id': cls.currency.id})
+        cls.compare_pricelist = cls.Pricelist.create({
+            'name': 'Campanie Toamna test site', 'currency_id': cls.currency.id})
+        for min_qty, pret in ((1, 200.0), (5, 150.0)):
+            cls.Item.create({
+                'pricelist_id': cls.public_pricelist.id, 'applied_on': '1_product',
+                'product_tmpl_id': cls.product.id, 'min_quantity': min_qty,
+                'compute_price': 'fixed', 'fixed_price': pret})
+        cls.Item.create({
+            'pricelist_id': cls.compare_pricelist.id, 'applied_on': '1_product',
+            'product_tmpl_id': cls.product.id, 'min_quantity': 1,
+            'compute_price': 'fixed', 'fixed_price': 180.0})
+
+    # --- selectia listelor ----------------------------------------------------
+
+    def test_local_database_has_no_client_pricelist_flags(self):
+        # Premisa tuturor testelor de mai jos: campurile clientului chiar lipsesc aici.
+        # Daca modulele lor ar ajunge vreodata pe baza locala, testul de fallback de
+        # mai jos ar deveni degenerat fara sa se vada - asa se vede.
+        for flag in ('is_public_pricelist', 'is_compare_pricelist', 'bulk_info'):
+            self.assertNotIn(flag, self.Pricelist._fields)
+
+    def test_no_pricelist_is_selected_without_the_client_fields(self):
+        # Ramura reala a bazei locale: fara campurile clientului nu se cauta nimic
+        # (o cautare pe un camp inexistent ar fi o eroare), deci apelantul cade pe
+        # tabelele calculate de modul.
+        self.assertFalse(self.product._uportho_site_pricelists())
+
+    def test_selection_takes_the_public_list_first_then_the_compare_one(self):
+        # Ordinea de pe site: intai lista publica, apoi cea de comparatie. Campurile
+        # dupa care se aleg nu exista aici, asa ca se inlocuieste doar cautarea per
+        # camp (`_uportho_site_pricelist_for`) - restul selectiei, inclusiv ordinea si
+        # deduplicarea, ruleaza codul adevarat.
+        by_flag = {
+            'is_public_pricelist': self.public_pricelist,
+            'is_compare_pricelist': self.compare_pricelist,
+        }
+        with patch.object(
+                type(self.product), '_uportho_site_pricelist_for',
+                lambda inner_self, flag: by_flag.get(flag, self.Pricelist.browse())):
+            selected = self.product._uportho_site_pricelists()
+        self.assertEqual(selected.ids, [self.public_pricelist.id, self.compare_pricelist.id])
+
+    def test_selected_pricelists_are_read_in_sudo(self):
+        # Listele de pret nu sunt neaparat citibile de un utilizator portal (aceeasi
+        # regula ca la lista Ortho Club). Reuniunea de recordseturi pastreaza mediul
+        # celui din STANGA, deci un acumulator obisnuit ar sterge tacut sudo-ul
+        # listelor gasite si citirea numelui ar putea pica pe drepturi.
+        with patch.object(
+                type(self.product), '_uportho_site_pricelist_for',
+                lambda inner_self, flag: self.public_pricelist
+                if flag == 'is_public_pricelist' else self.Pricelist.browse()):
+            selected = self.product._uportho_site_pricelists()
+        self.assertTrue(selected.env.su)
+
+    def test_one_pricelist_marked_with_both_flags_appears_once(self):
+        with patch.object(
+                type(self.product), '_uportho_site_pricelist_for',
+                lambda inner_self, flag: self.public_pricelist):
+            selected = self.product._uportho_site_pricelists()
+        self.assertEqual(selected.ids, [self.public_pricelist.id])
+
+    # --- construirea tabelelor ------------------------------------------------
+
+    def test_each_pricelist_becomes_a_table_titled_with_its_own_name(self):
+        tables = self.product._uportho_site_price_tables(
+            self.public_pricelist | self.compare_pricelist, self.partner)
+        self.assertEqual([table['title'] for table in tables],
+                         ['Pret public test site', 'Campanie Toamna test site'])
+
+    def test_thresholds_and_prices_come_from_the_pricelist_rules(self):
+        [public_table, compare_table] = self.product._uportho_site_price_tables(
+            self.public_pricelist | self.compare_pricelist, self.partner)
+        self.assertEqual([entry['min_qty'] for entry in public_table['entries']], [1, 5])
+        self.assertEqual([entry['label'] for entry in public_table['entries']], ['1+', '5+'])
+        self.assertAlmostEqual(public_table['entries'][0]['price']['amount'], 200.0, places=2)
+        self.assertAlmostEqual(public_table['entries'][1]['price']['amount'], 150.0, places=2)
+        self.assertAlmostEqual(compare_table['entries'][0]['price']['amount'], 180.0, places=2)
+
+    def test_prices_are_formatted_by_the_module_never_html(self):
+        [table] = self.product._uportho_site_price_tables(self.public_pricelist, self.partner)
+        for entry in table['entries']:
+            self.assertNotIn('<', entry['price']['formatted'])
+            self.assertTrue(entry['price']['with_vat'])
+
+    def test_note_is_empty_without_the_bulk_info_field(self):
+        [table] = self.product._uportho_site_price_tables(self.public_pricelist, self.partner)
+        self.assertEqual(table['note'], [])
+
+    def test_note_comes_from_bulk_info_as_blocks_never_html(self):
+        # `bulk_info` e un camp HTML pe care il adauga modulul clientului; aici i se
+        # simuleaza doar valoarea, ca sa se exerseze conversia adevarata prin
+        # `_uportho_html_blocks` (aceeasi cale ca descrierea produsului).
+        with patch.object(type(self.public_pricelist), 'bulk_info',
+                          '<p>Pretul <strong>fara</strong> abonament.</p>', create=True):
+            [table] = self.product._uportho_site_price_tables(self.public_pricelist, self.partner)
+        self.assertEqual([block['type'] for block in table['note']], ['paragraph'])
+        self.assertEqual(''.join(span['text'] for span in table['note'][0]['spans']),
+                         'Pretul fara abonament.')
+
+    def test_no_pricelists_gives_no_tables(self):
+        self.assertEqual(
+            self.product._uportho_site_price_tables(self.Pricelist.browse(), self.partner), [])
