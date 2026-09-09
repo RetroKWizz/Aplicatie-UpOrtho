@@ -1,4 +1,5 @@
 import base64
+from unittest.mock import patch
 
 from odoo.tests.common import tagged
 
@@ -534,6 +535,109 @@ class TestControllersProductDetail(AppHttpCase):
         self.api_login()
         self.assertNotIn('out_of_stock_message', self.env['product.template']._fields)
         self.assertIsNone(self._detail().json()['availability'])
+
+    # --- context de website si override-uri de tema ---------------------------
+
+    def _combination_info_raising(self, message="'NoneType' object is not callable"):
+        """Un `_get_combination_info` care cade, ca override-ul de tema de pe staging.
+
+        Tema magazinului (`droggol_theme_common`) randeaza un template QWeb de website
+        in interiorul lui `_get_combination_info`; pe rutele noastre, care nu sunt
+        rute de website, randarea aceea a cazut cu `TypeError: 'NoneType' object is
+        not callable` si a facut din pagina de produs un 500. Temele nu sunt instalate
+        pe baza locala, deci esecul se simuleaza."""
+        def raising(_self, *args, **kwargs):
+            raise TypeError(message)
+        return patch.object(type(self.env['product.template']), '_get_combination_info', raising)
+
+    def test_website_context_is_bound_before_asking_odoo_for_the_combination(self):
+        # `_get_combination_info` (si orice override de tema din el) intreaba
+        # `self.env['website'].get_current_website()`. Rutele noastre sunt `type='http'`
+        # simple: fara `website_id` in context, Odoo rezolva website-ul din header-ul
+        # `Host` si poate nimeri altul decat magazinul. Legarea contextului e chiar
+        # mecanismul pe care `get_current_website()` il citeste.
+        website = self.env['website'].create({'name': 'Site context combinatie test'})
+        self.env['ir.config_parameter'].sudo().set_param('uportho_app.website_id', str(website.id))
+        self.api_login()
+
+        Template = type(self.env['product.template'])
+        original = Template._get_combination_info
+        seen = []
+
+        def spy(inner_self, *args, **kwargs):
+            seen.append(inner_self.env.context.get('website_id'))
+            return original(inner_self, *args, **kwargs)
+
+        with patch.object(Template, '_get_combination_info', spy):
+            response = self._detail()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(seen, [website.id])
+
+    def test_failing_combination_info_still_renders_the_product(self):
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        normal = self._detail().json()
+        with self._combination_info_raising(), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product',
+                                level='ERROR') as captured:
+            response = self._detail()
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn(body['variant_id'], self.product.product_variant_ids.ids)
+        self.assertEqual(body['name'], self.product.name)
+        self.assertGreater(body['price']['amount'], 0)
+        self.assertTrue(body['price']['formatted'])
+        self.assertIsNotNone(body['variants'])
+        # Datele pe care le calculeaza modulul singur sunt aceleasi ca fara esec;
+        # doar eventualele adaugiri ale temei ar lipsi.
+        for key in ('id', 'name', 'variant_id', 'default_code', 'price', 'variants'):
+            self.assertEqual(body[key], normal[key], key)
+        # Esecul nu se inghite: apare in loguri, cu id-ul produsului.
+        logged = '\n'.join(captured.output)
+        self.assertIn(str(self.product.id), logged)
+        self.assertIn('TypeError', logged)
+
+    def test_failing_combination_info_keeps_the_requested_variant(self):
+        # Cu `variant_id`, varianta ceruta ramane cea intoarsa (si pretul ei), chiar
+        # daca `_get_combination_info` cade.
+        self.api_login()
+        expensive = self._variant('Mare detaliu', 'Argintiu detaliu')
+        expensive.default_code = 'DET-MARE'
+        with self._combination_info_raising(), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
+            body = self._detail(variant_id=expensive.id).json()
+
+        self.assertEqual(body['variant_id'], expensive.id)
+        self.assertEqual(body['default_code'], 'DET-MARE')
+        self.assertEqual(sorted(body['variants']['selected']),
+                         sorted(expensive.product_template_attribute_value_ids.ids))
+
+    def test_failing_combination_info_keeps_the_requested_values(self):
+        # Cu `values`, combinatia ceruta se rezolva local (`_get_closest_possible_
+        # combination` + `_get_variant_for_combination`), fara `_get_combination_info`.
+        self.api_login()
+        wanted = [self.ptav['Mic detaliu'].id, self.ptav['Argintiu detaliu'].id]
+        with self._combination_info_raising(), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
+            body = self._detail(values=','.join(str(i) for i in wanted)).json()
+
+        self.assertEqual(body['variant_id'], self._variant('Mic detaliu', 'Argintiu detaliu').id)
+        self.assertEqual(sorted(body['variants']['selected']), sorted(wanted))
+
+    def test_failing_combination_info_on_a_product_without_variants(self):
+        self.api_login()
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        with self._combination_info_raising(), \
+                self.assertLogs('odoo.addons.uportho_app.controllers.product', level='ERROR'):
+            response = self._detail(self.product_bare)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body['variant_id'], self.product_bare.product_variant_id.id)
+        self.assertIsNone(body['variants'])
+        self.assertAlmostEqual(body['price']['amount'], 10.0, places=2)
 
     def test_html_message_is_cleaned_to_plain_text(self):
         # Calea "exista mesaj" nu poate fi exersata local (vezi testul de mai sus),
