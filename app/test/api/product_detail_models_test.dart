@@ -181,6 +181,33 @@ void main() {
     expect(blocks[0].type, DescriptionBlockType.paragraph);
   });
 
+  test('brandul: nume, descriere in blocuri si URL de logo', () {
+    final brand = ProductDetail.fromJson(detailFixture()).brand;
+    expect(brand, isNotNull);
+    expect(brand!.name, 'DB Orthodontics');
+    expect(brand.logoUrl, '/api/app/v1/products/101/brand/logo?unique=7e2b4c1');
+    expect(brand.description.single.type, DescriptionBlockType.paragraph);
+    expect(brand.description.single.spans.single.text,
+        'Producator britanic de produse ortodontice.');
+  });
+
+  test('un produs fara brand decodeaza cu brand null', () {
+    final json = detailFixture()..['brand'] = null;
+    expect(ProductDetail.fromJson(json).brand, isNull);
+
+    // Server mai vechi, care nici nu trimite campul.
+    expect(ProductDetail.fromJson(detailFixture()..remove('brand')).brand, isNull);
+  });
+
+  test('un brand fara logo si fara descriere decodeaza fara eroare', () {
+    final json = detailFixture()
+      ..['brand'] = {'name': 'Ixion', 'description': <dynamic>[], 'logo_url': null};
+    final brand = ProductDetail.fromJson(json).brand!;
+    expect(brand.name, 'Ixion');
+    expect(brand.logoUrl, isNull);
+    expect(brand.description, isEmpty);
+  });
+
   test('documentele: nume, nume de fisier si URL-ul standard Odoo al fisierului', () {
     final document = ProductDetail.fromJson(detailFixture()).documents.single;
     expect(document.id, 4821);

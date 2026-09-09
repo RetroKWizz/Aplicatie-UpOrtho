@@ -38,6 +38,19 @@ UPORTHO_DOCUMENT_FIELDS = ('product_document_ids', 'dr_document_ids')
 # decizie explicita a userului, nu o scapare.
 UPORTHO_DOCUMENT_URL = '/web/content/%s?download=true'
 
+# Campurile din care se citeste blocul de brand aratat pe pagina de produs a site-ului
+# (logo + nume + descriere). Toate sunt ale modulelor magazinului si NU exista pe o
+# baza fara ele; prezenta fiecaruia se verifica, nu se presupune.
+#
+# Brandul e o `product.attribute.value` (pe baza reala, brandul E un atribut - de aceea
+# apare si in tabelul de specificatii, si acolo ramane): `dr_brand_value_id` de pe
+# `product.template` arata catre ea, iar valoarea poarta logoul (`dr_image`) si textul
+# (`dr_brand_description`, HTML). `brand_name` e numele gata calculat de ei pe produs.
+UPORTHO_BRAND_VALUE_FIELD = 'dr_brand_value_id'
+UPORTHO_BRAND_NAME_FIELD = 'brand_name'
+UPORTHO_BRAND_DESCRIPTION_FIELD = 'dr_brand_description'
+UPORTHO_BRAND_LOGO_FIELD = 'dr_image'
+
 
 def _uportho_filter_romanian_sections(root):
     """Elimina din `root` orice element cu atributul `data-visibility-value-lang`
@@ -225,6 +238,60 @@ class ProductTemplate(models.Model):
             {'name': line.attribute_id.name, 'value': ', '.join(line.value_ids.mapped('name'))}
             for line in self.attribute_line_ids
         ]
+
+    def _uportho_brand_value(self):
+        """Valoarea de atribut care poarta brandul produsului (`dr_brand_value_id`),
+        sau un recordset gol.
+
+        Prezenta campului se VERIFICA, nu se presupune: e al modulelor magazinului si
+        lipseste pe o baza fara ele (dezvoltare locala, teste), unde citirea lui ar fi
+        o eroare. Se verifica si tipul a ce s-a citit: daca vreodata campul ar arata
+        catre alt model, blocul de brand dispare in loc sa produca o eroare.
+
+        `sudo`: valorile de atribut nu sunt neaparat citibile de un utilizator portal.
+
+        Metoda exista separat si ca sa fie punctul unic in care se poate simula, in
+        teste, prezenta campului."""
+        self.ensure_one()
+        Value = self.env['product.attribute.value']
+        if UPORTHO_BRAND_VALUE_FIELD not in self._fields:
+            return Value.browse()
+        value = self.sudo()[UPORTHO_BRAND_VALUE_FIELD]
+        if getattr(value, '_name', None) != Value._name:
+            return Value.browse()
+        return value
+
+    def _uportho_brand(self):
+        """Blocul de brand al paginii de produs (nume + descriere + valoarea care
+        poarta logoul), sau None cand produsul n-are brand ori campurile nu exista.
+
+        Numele: `brand_name` de pe produs cand exista (asa il calculeaza magazinul),
+        altfel numele valorii de atribut. Fara nume nu exista bloc - un chenar cu un
+        logo si nimic altceva n-ar spune nimic.
+
+        Descrierea e HTML pe `dr_brand_description` si trece prin aceeasi conversie ca
+        descrierea produsului (`_uportho_html_blocks`) - blocuri, niciodata HTML,
+        aplicatia nu are motor HTML. Citita cu `getattr`, ca `bulk_info`-ul listelor de
+        pret: lipsa campului inseamna exact acelasi lucru ca lipsa textului.
+
+        Brandul ramane si in tabelul de specificatii (`_uportho_specs`, unde intra ca
+        atribut): site-ul il arata in amandoua locurile.
+
+        `value` din raspuns e inregistrarea din care controllerul construieste URL-ul
+        logoului - are nevoie si de `write_date`-ul ei, pentru `?unique=`."""
+        self.ensure_one()
+        value = self._uportho_brand_value()
+        if not value:
+            return None
+        name = (getattr(self.sudo(), UPORTHO_BRAND_NAME_FIELD, None) or value.name or '').strip()
+        if not name:
+            return None
+        return {
+            'value': value,
+            'name': name,
+            'description': _uportho_html_blocks(
+                getattr(value, UPORTHO_BRAND_DESCRIPTION_FIELD, None)),
+        }
 
     def _uportho_document_records(self, field_name):
         """Documentele produsului dintr-un camp de documente, in sudo, sau un recordset

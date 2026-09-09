@@ -114,6 +114,9 @@ _ProductDetail _$ProductDetailFromJson(Map<String, dynamic> json) =>
               ?.map((e) => ProductSpec.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      brand: json['brand'] == null
+          ? null
+          : ProductBrand.fromJson(json['brand'] as Map<String, dynamic>),
       documents:
           (json['documents'] as List<dynamic>?)
               ?.map((e) => ProductDocument.fromJson(e as Map<String, dynamic>))
@@ -164,6 +167,7 @@ Map<String, dynamic> _$ProductDetailToJson(_ProductDetail instance) =>
       'variant_rows': instance.variantRows,
       'variant_total': instance.variantTotal,
       'specs': instance.specs,
+      'brand': instance.brand,
       'documents': instance.documents,
       'description': instance.description,
       'availability': instance.availability,

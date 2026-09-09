@@ -6,6 +6,7 @@ from odoo.addons.website_sale.models.product_template import (
 )
 from odoo.http import request
 
+from ..models.product_template import UPORTHO_BRAND_LOGO_FIELD
 from ..pricing import serialize_price
 from .base import API_PREFIX, ApiError, app_route, json_ok, read_json_body
 from .catalog import (
@@ -419,6 +420,27 @@ def _serialize_gallery(template, variant):
     return images
 
 
+def _serialize_brand(template):
+    """Blocul de brand al paginii de produs: logo, nume, descriere. None cand produsul
+    n-are brand sau cand campurile magazinului nu exista pe baza asta.
+
+    Logoul e o ruta de imagine autentificata, ca toate imaginile modulului - el chiar
+    se deseneaza in aplicatie, spre deosebire de documente, care se deschid in
+    exterior. Existenta pozei se afla din `ir.attachment`, ca la pozele de produs
+    (`_ids_with_image`), fara sa se citeasca campul binar; pe o baza fara modulele lor
+    campul nici nu exista, deci nu exista nici atasamentul si raspunsul e natural
+    None."""
+    brand = template._uportho_brand()
+    if brand is None:
+        return None
+    value = brand['value']
+    logo_url = None
+    if value.id in _ids_with_image(value, field_name=UPORTHO_BRAND_LOGO_FIELD):
+        logo_url = (f'{API_PREFIX}/products/{template.id}/brand/logo'
+                    f'?unique={image_unique(value)}')
+    return {'name': brand['name'], 'description': brand['description'], 'logo_url': logo_url}
+
+
 def _similar_templates(template, website):
     """Produsele similare: `alternative_product_ids` daca sunt setate (485 din 619
     produse reale le au), altfel produsele din aceleasi categorii publice. In ambele
@@ -552,6 +574,10 @@ class AppProduct(http.Controller):
             'variant_total': (template._uportho_zero_amount(pricelist.currency_id)
                               if variant_rows else None),
             'specs': template._uportho_specs(),
+            # Chenarul de brand de pe site (logo + nume + descriere). Brandul ramane
+            # si in `specs`, unde intra ca atribut: site-ul il arata in amandoua
+            # locurile. Null cand produsul n-are brand - atunci sectiunea lipseste.
+            'brand': _serialize_brand(template),
             # Tabul "Documente" al site-ului: fise tehnice, certificate, cataloage.
             # URL-urile sunt cele standard ale Odoo (`/web/content/...`), pentru ca
             # documentul se deschide in afara aplicatiei - vezi `_uportho_documents`.
@@ -649,3 +675,18 @@ class AppProduct(http.Controller):
         if not image or (image.product_tmpl_id | image.product_variant_id.product_tmpl_id) != template.sudo():
             raise ApiError(404, 'not_found', 'Imaginea nu exista.')
         return _image_response(request.env['product.image'].browse(image.id), 'image_1920')
+
+    @app_route('/products/<int:product_id>/brand/logo', methods=['GET'])
+    def product_brand_logo(self, product_id, **kw):
+        """Logoul de brand, autentificat ca si celelalte rute de imagine. Vizibilitatea
+        produsului se verifica intai (404 pentru produs nepublicat sau de pe alt
+        website), apoi se ia brandul CHIAR de pe acel produs - nu se accepta un id de
+        valoare de atribut din cerere, deci nu se poate scoate logoul altui brand.
+
+        Lipsa campului de logo (baza fara modulele magazinului) e tot 404: nicio poza
+        de aratat, nu o eroare."""
+        _website, template = _visible_product(product_id)
+        value = template._uportho_brand_value()
+        if not value or UPORTHO_BRAND_LOGO_FIELD not in value._fields:
+            raise ApiError(404, 'not_found', 'Imaginea nu exista.')
+        return _image_response(value, UPORTHO_BRAND_LOGO_FIELD)

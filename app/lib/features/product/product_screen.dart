@@ -7,6 +7,7 @@ import '../../api/models/product_detail.dart';
 import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/typography.dart';
+import '../../design_system/widgets/brand_card.dart';
 import '../../design_system/widgets/description_view.dart';
 import '../../design_system/widgets/document_list.dart';
 import '../../design_system/widgets/image_gallery.dart';
@@ -102,6 +103,11 @@ class _ProductBody extends ConsumerWidget {
         ),
     ];
 
+    // Logoul de brand e o ruta autentificata, ca toate imaginile modulului: URL
+    // absolut plus cookie-ul de sesiune, altfel intoarce 401.
+    final brand = detail.brand;
+    final brandLogoUrl = brand?.logoUrl == null ? null : api.absoluteUrl(brand!.logoUrl!);
+
     final documentItems = [
       for (final document in detail.documents)
         DocumentItem(
@@ -141,6 +147,16 @@ class _ProductBody extends ConsumerWidget {
       if (availabilityMessage != null && availabilityMessage.isNotEmpty)
         _Availability(message: availabilityMessage, inStock: detail.availability!.inStock),
       const _CartButton(),
+      // Chenarul de brand si beneficiile stau deasupra descrierii, ca pe site.
+      if (brand != null)
+        BrandCard(
+          name: brand.name,
+          description: [for (final block in brand.description) _describe(block)],
+          logoUrl: brandLogoUrl,
+          httpHeaders: brandLogoUrl == null
+              ? null
+              : imageHeadersFor(brandLogoUrl, apiBaseUrl: api.baseUrl, headers: imageHeaders),
+        ),
       if (detail.benefits.isNotEmpty) _Benefits(benefits: detail.benefits),
       if (detail.defaultCode != null && detail.defaultCode!.isNotEmpty)
         Text('Cod: ${detail.defaultCode}', style: AppTypography.caption),

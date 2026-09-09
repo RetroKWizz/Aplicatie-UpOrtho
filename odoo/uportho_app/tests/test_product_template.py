@@ -700,3 +700,111 @@ class TestProductDocuments(TransactionCase):
         with self._with_theme_documents(self.shown):
             documents = self.product._uportho_documents()
         self.assertEqual(self._names(documents), ['Fisa tehnica.pdf'])
+
+
+@tagged('post_install', '-at_install')
+class TestProductBrand(TransactionCase):
+    """`_uportho_brand()`: chenarul de brand de pe pagina de produs (logo + nume +
+    descriere).
+
+    Toate campurile din care se citeste (`dr_brand_value_id`, `brand_name`,
+    `dr_brand_description`, `dr_image`) sunt ale modulelor magazinului si NU exista pe
+    baza locala. De aceea testele sunt impartite in doua, ca la bifele de pricelist:
+    - ramura reala a bazei locale: campurile chiar lipsesc (se si verifica, altfel
+      testele care se sprijina pe lipsa lor ar deveni degenerate fara sa se vada) si
+      raspunsul e None;
+    - ramura in care campurile exista: se simuleaza doar citirea lor, pe o valoare de
+      atribut ADEVARATA, iar restul - numele, conversia descrierii - ruleaza codul
+      adevarat."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Template = cls.env['product.template']
+        cls.Value = cls.env['product.attribute.value']
+        cls.attribute = cls.env['product.attribute'].create(
+            {'name': 'Brand test bloc', 'create_variant': 'no_variant'})
+        cls.value = cls.Value.create(
+            {'name': 'DB Orthodontics', 'attribute_id': cls.attribute.id})
+        cls.product = cls.Template.create({'name': 'Produs brand test'})
+
+    def _with_brand(self, value=None, description=None, brand_name=None):
+        """Prezenta campurilor magazinului, simulata: se inlocuieste citirea valorii de
+        brand (`_uportho_brand_value`) si, dupa caz, se pun pe clase campurile lor de
+        text. Valoarea de atribut e adevarata, deci numele si conversia descrierii
+        raman ale codului adevarat."""
+        patches = [patch.object(
+            type(self.product), '_uportho_brand_value',
+            lambda inner_self: value if value is not None else self.value)]
+        if description is not None:
+            patches.append(patch.object(
+                type(self.value), 'dr_brand_description', description, create=True))
+        if brand_name is not None:
+            patches.append(patch.object(
+                type(self.product), 'brand_name', brand_name, create=True))
+        return patches
+
+    def _brand(self, **kwargs):
+        patches = self._with_brand(**kwargs)
+        for entered in patches:
+            entered.start()
+            self.addCleanup(entered.stop)
+        return self.product._uportho_brand()
+
+    # --- ramura reala a bazei locale ------------------------------------------
+
+    def test_local_database_has_no_brand_fields(self):
+        # Premisa testelor de mai jos: campurile magazinului chiar lipsesc aici.
+        self.assertNotIn('dr_brand_value_id', self.Template._fields)
+        self.assertNotIn('brand_name', self.Template._fields)
+        self.assertNotIn('dr_brand_description', self.Value._fields)
+        self.assertNotIn('dr_image', self.Value._fields)
+
+    def test_brand_value_is_empty_without_the_field(self):
+        self.assertFalse(self.product._uportho_brand_value())
+
+    def test_brand_is_none_without_the_fields(self):
+        self.assertIsNone(self.product._uportho_brand())
+
+    # --- ramura in care campurile exista --------------------------------------
+
+    def test_brand_name_falls_back_to_the_attribute_value_name(self):
+        brand = self._brand()
+        self.assertEqual(brand['name'], 'DB Orthodontics')
+        self.assertEqual(brand['value'], self.value)
+
+    def test_brand_name_field_wins_over_the_value_name(self):
+        # Asa il calculeaza magazinul; daca il are, il folosim pe al lui.
+        self.assertEqual(self._brand(brand_name='DB Orthodontics Ltd.')['name'],
+                         'DB Orthodontics Ltd.')
+
+    def test_description_becomes_blocks_never_html(self):
+        # Aceeasi conversie ca descrierea produsului: aplicatia nu are motor HTML.
+        brand = self._brand(description='<p>Producator <strong>britanic</strong>.</p>')
+        self.assertEqual([block['type'] for block in brand['description']], ['paragraph'])
+        self.assertEqual(''.join(span['text'] for span in brand['description'][0]['spans']),
+                         'Producator britanic.')
+        self.assertNotIn('<strong>', str(brand['description']))
+
+    def test_description_is_empty_without_the_description_field(self):
+        self.assertEqual(self._brand()['description'], [])
+
+    def test_no_brand_value_means_no_block(self):
+        self.assertIsNone(self._brand(value=self.Value.browse()))
+
+    def test_a_brand_without_a_name_is_no_block(self):
+        nameless = self.Value.create({'name': ' ', 'attribute_id': self.attribute.id})
+        self.assertIsNone(self._brand(value=nameless))
+
+    # --- brandul ramane si in specificatii ------------------------------------
+
+    def test_brand_stays_in_the_specifications_table(self):
+        # Site-ul arata brandul in amandoua locurile: si in chenarul lui, si in tabelul
+        # de specificatii (unde intra ca atribut, ca orice alta caracteristica).
+        product = self.Template.create({
+            'name': 'Produs brand si specificatii test',
+            'attribute_line_ids': [(0, 0, {
+                'attribute_id': self.attribute.id, 'value_ids': [(6, 0, [self.value.id])]})],
+        })
+        self.assertIn({'name': 'Brand test bloc', 'value': 'DB Orthodontics'},
+                      product._uportho_specs())

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/api_client.dart';
 import 'package:uportho_app/api/api_transport.dart';
 import 'package:uportho_app/api/session_store.dart';
+import 'package:uportho_app/design_system/widgets/brand_card.dart';
 import 'package:uportho_app/design_system/widgets/description_view.dart';
 import 'package:uportho_app/design_system/widgets/document_list.dart';
 import 'package:uportho_app/design_system/widgets/image_gallery.dart';
@@ -144,6 +145,7 @@ void main() {
     expect(find.byType(PriceTierTable), findsNothing);
     expect(find.byType(VariantPicker), findsNothing);
     expect(find.byType(DescriptionView), findsNothing);
+    expect(find.byType(BrandCard), findsNothing);
     expect(find.byType(ProductCard), findsNothing);
     for (final title in const [
       'Pret pe cantitate',
@@ -265,10 +267,12 @@ void main() {
       'variante': top(find.byType(VariantOrderTable)),
       'disponibilitate': top(find.text('Precomanda. Livrare incepand cu 1 August')),
       'buton cos': top(find.widgetWithText(FilledButton, 'Adauga in cos')),
+      'brand': top(find.byType(BrandCard)),
       'beneficii': top(find.text('Livrare gratuita')),
       'cod produs': top(find.text('Cod: IX954')),
       'descriere': top(find.text('Descriere')),
       'specificatii': top(find.text('Specificatii')),
+      'documente': top(find.text('Documente')),
       'recenzii': top(find.text('Recenzii')),
       'similare': top(find.text('Produse similare')),
     };
@@ -287,7 +291,8 @@ void main() {
     expect(find.text('Taxe incluse'), findsOneWidget);
     // Descrierea si specificatiile chiar au continut, nu doar titluri.
     expect(find.text('Cleste Tie Back pentru arcuri groase'), findsOneWidget);
-    expect(find.text('DB Orthodontics'), findsOneWidget);
+    // Brandul apare de doua ori, ca pe site: in chenarul lui si in specificatii.
+    expect(find.text('DB Orthodontics'), findsNWidgets(2));
     expect(find.text('Cleste Tie Back mic Ixion'), findsOneWidget);
   });
 
@@ -596,5 +601,48 @@ void main() {
     final reviews = tester.getTopLeft(find.text('Recenzii')).dy;
     expect(documents, greaterThan(specs));
     expect(reviews, greaterThan(documents));
+  });
+
+  testWidgets('chenarul de brand arata numele si descrierea, deasupra descrierii produsului',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.byType(BrandCard), findsOneWidget);
+    final card = tester.widget<BrandCard>(find.byType(BrandCard));
+    expect(card.name, 'DB Orthodontics');
+    expect(card.description.single.spans.single.text,
+        'Producator britanic de produse ortodontice.');
+    // Logoul e o ruta autentificata: URL absolut plus headerele de imagine.
+    expect(card.logoUrl, 'http://x/api/app/v1/products/101/brand/logo?unique=7e2b4c1');
+
+    expect(tester.getTopLeft(find.text('Descriere')).dy,
+        greaterThan(tester.getTopLeft(find.byType(BrandCard)).dy));
+  });
+
+  testWidgets('brandul ramane si in tabelul de specificatii', (tester) async {
+    // Site-ul il arata in amandoua locurile.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.text('Specificatii'), findsOneWidget);
+    expect(find.text('DB Orthodontics'), findsNWidgets(2),
+        reason: 'o data in chenarul de brand, o data in specificatii');
+  });
+
+  testWidgets('fara brand, chenarul lipseste complet', (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: {...fullProductJson(), 'brand': null}));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    expect(find.byType(BrandCard), findsNothing);
   });
 }

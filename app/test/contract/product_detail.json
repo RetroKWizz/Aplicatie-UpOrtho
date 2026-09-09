@@ -67,6 +67,13 @@
   "variant_total": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
                      "list_amount": null, "list_formatted": null, "discount_pct": null },
   "specs": [ { "name": "Brand", "value": "DB Orthodontics" } ],
+  "brand": {
+    "name": "DB Orthodontics",
+    "description": [
+      { "type": "paragraph", "spans": [ { "text": "Producator britanic de produse ortodontice.", "bold": false, "italic": false } ] }
+    ],
+    "logo_url": "/api/app/v1/products/101/brand/logo?unique=7e2b4c1"
+  },
   "documents": [
     { "id": 4821, "name": "Fisa tehnica.pdf", "file_name": "Fisa tehnica.pdf",
       "url": "/web/content/4821?download=true" }
