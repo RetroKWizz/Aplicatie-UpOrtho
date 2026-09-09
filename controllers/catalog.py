@@ -11,25 +11,55 @@ from .home import _current_website, _image_response, image_unique
 _logger = logging.getLogger(__name__)
 
 CLUB_PRICELIST_PARAM = 'uportho_app.club_pricelist_id'
+CLUB_PRICELIST_FLAG = 'is_compare_pricelist'
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
 
 
-def _current_club_pricelist():
-    """Pricelist-ul Ortho Club, pentru al doilea bloc de pret aratat alaturi de cel al
-    clientului ('Pret membri Ortho Club' pe site). Identificat printr-un parametru de
-    sistem, la fel ca `uportho_app.website_id` in home.py - niciodata printr-un id fix
-    in cod: lista se redenumeste in fiecare an ("Ortho Club 2026", anul trecut alt
-    nume), deci identitatea ei e configurare de deploy, nu cod. Fara parametru sau cu
-    un id care nu (mai) exista -> None, cu warning; niciodata eroare - catalogul tot
-    trebuie sa functioneze fara pretul de club."""
+def _flagged_club_pricelist():
+    """Lista Ortho Club asa cum o marcheaza clientul: prima lista de preturi activa
+    bifata `is_compare_pricelist`, camp adaugat de modulul lor
+    (`terrabit_prime_extension`) pe `product.pricelist`.
+
+    E chiar cautarea dupa care se construieste al doilea tabel de pret al paginii de
+    produs (`product.template._uportho_site_pricelist_for`) - se cheama acea metoda, nu
+    se rescrie cautarea aici: doua cautari separate ar putea sa nu fie de acord. Exact
+    asta s-a scos din modul - pretul de club venea dintr-un parametru de sistem, iar
+    tabelul din bifa; la trecerea pe lista anului urmator, cine uita parametrul obtinea
+    tabelul listei noi langa pretul celei vechi, fara nicio eroare.
+
+    Doua rezultate diferite, deliberat:
+    - `None` = mecanismul clientului nu exista pe baza asta (campul lipseste - cazul
+      bazei locale de dezvoltare, care n-are modulele lor). Apelantul cade atunci pe
+      parametrul de sistem. Prezenta campului se VERIFICA, nu se presupune: o cautare
+      pe un camp inexistent ar fi eroare (aceeasi regula ca in `_uportho_availability`).
+    - recordset gol = mecanismul exista, dar nicio lista nu e bifata. Aici NU se cade pe
+      parametru: pe o instanta reala bifa e singura sursa de adevar, iar o rezerva
+      tacuta ar reintroduce a doua sursa care poate sa nu fie de acord cu ea.
+
+    `sudo`: listele de pret nu sunt neaparat citibile de un utilizator portal."""
+    Pricelist = request.env['product.pricelist'].sudo()
+    if CLUB_PRICELIST_FLAG not in Pricelist._fields:
+        return None
+    return request.env['product.template'].sudo()._uportho_site_pricelist_for(CLUB_PRICELIST_FLAG)
+
+
+def _club_pricelist_from_param():
+    """Rezerva pentru bazele fara modulele clientului (dezvoltare locala, teste): lista
+    de club data prin parametrul de sistem `uportho_app.club_pricelist_id`, la fel ca
+    `uportho_app.website_id` in home.py. Niciodata un id fix in cod - lista se
+    redenumeste in fiecare an ("Ortho Club 2026", anul trecut alt nume).
+
+    Warning-ul spune explicit ca s-a consultat parametrul, ca o configurare gresita sa
+    se poata diagnostica din log."""
     Pricelist = request.env['product.pricelist'].sudo()
     raw = request.env['ir.config_parameter'].sudo().get_param(CLUB_PRICELIST_PARAM)
     if not raw:
         _logger.warning(
-            'Parametrul de sistem %s nu e setat; club_price va fi null pentru toate '
-            'produsele. Seteaza-l la id-ul listei de preturi Ortho Club curente.',
-            CLUB_PRICELIST_PARAM)
+            'Campul %s nu exista pe product.pricelist (baza fara modulele clientului), '
+            'iar parametrul de sistem de rezerva %s nu e setat; club_price va fi null '
+            'pentru toate produsele. Seteaza-l la id-ul listei de preturi Ortho Club '
+            'curente.', CLUB_PRICELIST_FLAG, CLUB_PRICELIST_PARAM)
         return Pricelist.browse()
     try:
         pricelist = Pricelist.browse(int(raw)).exists().filtered('active')
@@ -37,10 +67,40 @@ def _current_club_pricelist():
         pricelist = Pricelist.browse()
     if not pricelist:
         _logger.warning(
-            'Parametrul de sistem %s = %r nu indica o lista de preturi existenta si activa; '
+            'Parametrul de sistem de rezerva %s = %r (consultat pentru ca %s nu exista pe '
+            'product.pricelist) nu indica o lista de preturi existenta si activa; '
             'club_price va fi null pentru toate produsele. Odoo nu filtreaza liniile de '
             'pricelist arhivate la calculul pretului, deci o lista arhivata ar da un pret '
-            'invechit, nu o eroare.', CLUB_PRICELIST_PARAM, raw)
+            'invechit, nu o eroare.', CLUB_PRICELIST_PARAM, raw, CLUB_PRICELIST_FLAG)
+    return pricelist
+
+
+def _current_club_pricelist():
+    """Pricelist-ul Ortho Club, pentru al doilea bloc de pret aratat alaturi de cel al
+    clientului ('Pret membri Ortho Club' pe site).
+
+    O SINGURA sursa de adevar: bifa clientului `is_compare_pricelist`, aceeasi dupa
+    care magazinul isi alege lista de comparatie pe pagina de produs. Parametrul de
+    sistem ramane doar acolo unde bifa nu exista deloc (baza locala de dezvoltare,
+    testele) - altfel pretul de club si tabelul de club ar putea arata liste diferite,
+    tacut, la fiecare schimbare anuala de lista.
+
+    Niciodata eroare: lipsa configurarii, o lista stearsa sau una arhivata dau recordset
+    gol (deci `club_price` null) plus un warning care spune ce mecanism s-a consultat -
+    catalogul trebuie sa functioneze si fara pretul de club. Listele arhivate se
+    filtreaza explicit: Odoo nu exclude liniile de pricelist arhivate la calculul
+    pretului, deci o lista arhivata ar da preturi invechite, nu o eroare vizibila."""
+    flagged = _flagged_club_pricelist()
+    if flagged is None:
+        return _club_pricelist_from_param()
+    pricelist = flagged.exists().filtered('active')
+    if not pricelist:
+        _logger.warning(
+            'Nicio lista de preturi activa nu e bifata %s (bifa clientului, sursa unica '
+            'pentru lista Ortho Club); club_price va fi null pentru toate produsele. '
+            'Bifeaza lista Ortho Club curenta - parametrul de sistem %s nu se mai '
+            'consulta pe o baza care are campul clientului.',
+            CLUB_PRICELIST_FLAG, CLUB_PRICELIST_PARAM)
     return pricelist
 
 

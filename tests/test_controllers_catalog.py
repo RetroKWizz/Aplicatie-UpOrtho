@@ -1,6 +1,8 @@
 import base64
 from unittest.mock import patch
 
+from odoo.addons.uportho_app.controllers import catalog as catalog_controller
+from odoo.http import request
 from odoo.tests.common import tagged
 
 from .common import AppHttpCase
@@ -275,8 +277,9 @@ class TestControllersProducts(AppHttpCase):
 @tagged('post_install', '-at_install')
 class TestControllersProductPricing(AppHttpCase):
     """Testeaza inima acestei felii: pretul clientului (pe pricelist-ul lui, cu taxe
-    incluse), reducerea aratata (list_amount/discount_pct), pretul Ortho Club (pe un
-    parametru de sistem, niciodata pe un id fix) si eticheta."""
+    incluse), reducerea aratata (list_amount/discount_pct), pretul Ortho Club (dupa bifa
+    clientului `is_compare_pricelist`, cu parametrul de sistem doar ca rezerva pe o baza
+    fara modulele lor - niciodata un id fix in cod) si eticheta."""
 
     CLUB_PARAM = 'uportho_app.club_pricelist_id'
 
@@ -459,6 +462,99 @@ class TestControllersProductPricing(AppHttpCase):
         self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, str(club_pricelist.id))
         product = self._product('Produs fara reducere test pret')
         self.assertIsNone(product['club_price'])
+
+    # --- de unde se ia lista de club: bifa clientului, parametrul doar ca rezerva ---
+
+    def test_local_database_has_no_client_club_flag(self):
+        # Premisa tuturor testelor de mai sus: campul clientului chiar lipseste pe baza
+        # locala, deci ele exerseaza pe bune ramura de rezerva (parametrul de sistem).
+        # Daca modulele clientului ar ajunge vreodata aici, testele acelea ar deveni
+        # degenerate fara sa se vada - asa se vede.
+        self.assertNotIn('is_compare_pricelist', self.env['product.pricelist']._fields)
+
+    def _client_flags(self, pricelist=None):
+        """Simuleaza prezenta bifei clientului (`is_compare_pricelist`), camp care nu
+        exista pe baza locala. Se inlocuieste DOAR cautarea dupa bifa; restul -
+        filtrarea listelor arhivate, warning-urile, comparatia de valuta, calculul
+        pretului - ruleaza codul adevarat. Recordset-ul se re-obtine in mediul cererii
+        (nu se trece cel din test), ca sa fie exact ce ar da cautarea reala."""
+        pricelist_id = pricelist.id if pricelist else None
+
+        def flagged():
+            Pricelist = request.env['product.pricelist'].sudo()
+            return Pricelist.browse(pricelist_id) if pricelist_id else Pricelist.browse()
+
+        return patch.object(catalog_controller, '_flagged_club_pricelist', flagged)
+
+    def test_club_pricelist_comes_from_the_client_flag_not_from_the_parameter(self):
+        # Motivul intregii schimbari: pana acum lista de club venea din parametrul de
+        # sistem, iar tabelul de club de pe pagina de produs din bifa clientului. La
+        # trecerea la lista anului urmator cele doua puteau ramane pe liste diferite,
+        # fara nicio eroare. Aici sunt puse DELIBERAT in dezacord: bifa (-10% -> 108)
+        # si parametrul (-25% -> 90). Trebuie sa castige bifa.
+        flagged_pricelist = self.env['product.pricelist'].create({
+            'name': 'Ortho Club bifata test pret', 'currency_id': self.currency.id})
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': flagged_pricelist.id, 'applied_on': '3_global',
+            'compute_price': 'percentage', 'percent_price': 10})
+        stale_pricelist = self.env['product.pricelist'].create({
+            'name': 'Ortho Club veche din parametru test pret', 'currency_id': self.currency.id})
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': stale_pricelist.id, 'applied_on': '3_global',
+            'compute_price': 'percentage', 'percent_price': 25})
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, str(stale_pricelist.id))
+
+        with self._client_flags(flagged_pricelist):
+            product = self._product('Produs fara reducere test pret')
+        self.assertIsNotNone(product['club_price'])
+        self.assertAlmostEqual(product['club_price']['amount'], 108.0, places=2)
+
+    def test_club_price_null_and_warns_when_no_pricelist_carries_the_flag(self):
+        # Baza are mecanismul clientului, dar nicio lista nu e bifata: NU se cade
+        # inapoi pe parametrul de sistem (asta ar reintroduce a doua sursa de adevar,
+        # exact ce s-a scos), ci club_price e null si warning-ul spune ce bifa lipseste.
+        # Parametrul e setat pe o lista valida tocmai ca sa se vada ca nu e consultat.
+        param_pricelist = self.env['product.pricelist'].create({
+            'name': 'Ortho Club ignorata test pret', 'currency_id': self.currency.id})
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': param_pricelist.id, 'applied_on': '3_global',
+            'compute_price': 'percentage', 'percent_price': 25})
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, str(param_pricelist.id))
+
+        with self._client_flags(None):
+            with self.assertLogs(
+                    'odoo.addons.uportho_app.controllers.catalog', level='WARNING') as captured:
+                product = self._product('Produs fara reducere test pret')
+        self.assertIsNone(product['club_price'])
+        self.assertTrue(any('is_compare_pricelist' in message for message in captured.output))
+
+    def test_club_price_null_and_warns_when_flagged_pricelist_is_archived(self):
+        # Acelasi cap de rollover anual ca la parametru, dar pe ramura bifei: Odoo NU
+        # filtreaza liniile de pricelist arhivate la calculul pretului, deci o lista
+        # arhivata ramasa bifata ar da tacut preturi vechi, nu o eroare.
+        archived_pricelist = self.env['product.pricelist'].create({
+            'name': 'Ortho Club bifata arhivata test pret', 'currency_id': self.currency.id,
+            'active': False})
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': archived_pricelist.id, 'applied_on': '3_global',
+            'compute_price': 'percentage', 'percent_price': 10})
+
+        with self._client_flags(archived_pricelist):
+            with self.assertLogs(
+                    'odoo.addons.uportho_app.controllers.catalog', level='WARNING') as captured:
+                product = self._product('Produs fara reducere test pret')
+        self.assertIsNone(product['club_price'])
+        self.assertTrue(any('is_compare_pricelist' in message for message in captured.output))
+
+    def test_fallback_warning_names_the_system_parameter(self):
+        # Warning-ul trebuie sa spuna PE CE mecanism s-a cazut, ca o configurare gresita
+        # sa se diagnosticheze din log, fara sa umble nimeni prin cod.
+        self.env['ir.config_parameter'].sudo().set_param(self.CLUB_PARAM, '')
+        with self.assertLogs(
+                'odoo.addons.uportho_app.controllers.catalog', level='WARNING') as captured:
+            product = self._product('Produs fara reducere test pret')
+        self.assertIsNone(product['club_price'])
+        self.assertTrue(any(self.CLUB_PARAM in message for message in captured.output))
 
     def test_tax_display_warning_when_website_not_tax_included(self):
         # I9: spec-ul si site-ul presupun TVA inclus ('Taxe incluse'); daca website-ul
