@@ -1,6 +1,7 @@
 import base64
 from unittest.mock import patch
 
+from odoo.addons.uportho_app.controllers import product as product_controller
 from odoo.tests.common import tagged
 
 from .common import AppHttpCase
@@ -111,6 +112,12 @@ class TestControllersProductDetail(AppHttpCase):
         # ir.config_parameter e citit prin ormcache; rollback-ul tranzactiei de test
         # nu curata cache-ul (acelasi fix ca in TestControllersProductPricing).
         self.addCleanup(self.registry.clear_cache)
+        # Memoria "am scris deja traceback-ul pentru produsul asta" traieste la nivel
+        # de proces, nu de tranzactie: fara golire, al doilea test care face
+        # `_get_combination_info` sa cada ar vedea doar avertizarea scurta si ar depinde
+        # de ordinea testelor.
+        product_controller._COMBINATION_INFO_LOGGED.clear()
+        self.addCleanup(product_controller._COMBINATION_INFO_LOGGED.clear)
 
     def _detail(self, product=None, **params):
         product = product or self.product
@@ -890,6 +897,41 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertEqual(body['variant_id'], self.product_bare.product_variant_id.id)
         self.assertIsNone(body['variants'])
         self.assertAlmostEqual(body['price']['amount'], 10.0, places=2)
+
+    def test_failing_combination_info_logs_the_traceback_only_once_per_product(self):
+        # Pe serverul clientului apelul cade la FIECARE cerere de produs, mereu cu
+        # acelasi traceback. Scris de fiecare data, ar face logurile de productie
+        # nefolosibile: prima aparitie ramane intreaga, urmatoarele sunt o linie scurta.
+        self.api_login()
+        logger = 'odoo.addons.uportho_app.controllers.product'
+        with self._combination_info_raising(), self.assertLogs(logger, level='WARNING') as captured:
+            self.assertEqual(self._detail().status_code, 200)
+            self.assertEqual(self._detail().status_code, 200)
+            self.assertEqual(self._detail().status_code, 200)
+
+        records = [record for record in captured.records
+                   if str(self.product.id) in record.getMessage()]
+        self.assertEqual(len(records), 3)
+        self.assertEqual(records[0].levelname, 'ERROR')
+        self.assertIsNotNone(records[0].exc_info)
+        for record in records[1:]:
+            self.assertEqual(record.levelname, 'WARNING')
+            # Fara traceback, dar tot cu id-ul produsului: se vede ca mai pica.
+            self.assertIsNone(record.exc_info)
+            self.assertIn(str(self.product.id), record.getMessage())
+
+    def test_each_product_gets_its_own_first_traceback(self):
+        # Memoria e per produs, nu una singura pe tot procesul: un al doilea produs
+        # care cade isi scrie si el traceback-ul, altfel prima cadere a unui produs
+        # nou ar ramane fara nicio explicatie in loguri.
+        self.api_login()
+        logger = 'odoo.addons.uportho_app.controllers.product'
+        with self._combination_info_raising(), self.assertLogs(logger, level='WARNING') as captured:
+            self._detail()
+            self._detail(self.product_bare)
+
+        with_traceback = [record for record in captured.records if record.exc_info]
+        self.assertEqual(len(with_traceback), 2)
 
     def test_html_message_is_cleaned_to_plain_text(self):
         # Calea "exista mesaj" nu poate fi exersata local (vezi testul de mai sus),

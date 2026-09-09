@@ -22,6 +22,15 @@ _logger = logging.getLogger(__name__)
 
 MAX_SIMILAR = 10
 MAX_REVIEWS = 20
+# Produsele pentru care s-a scris deja traceback-ul complet al unui
+# `_get_combination_info` cazut, in acest proces. Pe serverul clientului apelul cade
+# la FIECARE cerere de produs (tema randeaza inauntrul lui un template QWeb de
+# website), deci un traceback per cerere ar inunda logurile productiei fara sa adauge
+# nimic: e mereu acelasi traceback. Primul esec al unui produs il scrie intreg,
+# urmatoarele doar o linie scurta de avertizare. Multimea creste cel mult cu numarul
+# de produse din catalog si se goleste la repornirea procesului - adica un deploy sau
+# o repornire aduce din nou traceback-ul, daca problema mai exista.
+_COMBINATION_INFO_LOGGED = set()
 # Cate linii accepta `POST /products/<id>/prices` intr-o cerere. Tabelul are cate un
 # rand per varianta si cel mai variat produs real are cateva zeci; plafonul e doar ca
 # o cerere absurda sa nu ceara mii de pretuiri.
@@ -146,6 +155,29 @@ def _fallback_combination(template, variant, combination):
     return combination, variant, {}
 
 
+def _log_combination_info_failure(template_id):
+    """Scrie in loguri esecul lui `_get_combination_info` pentru produsul asta: prima
+    data cu traceback complet, apoi doar cu o linie scurta.
+
+    Motivul e volumul, nu discretia: pe serverul clientului apelul cade la fiecare
+    cerere de produs, mereu cu acelasi traceback, iar un traceback complet per cerere
+    ar face logurile de productie nefolosibile. Prima aparitie ramane intreaga (acolo
+    se vede ce tema si ce template au picat), urmatoarele spun doar ca se mai intampla
+    si pentru care produs."""
+    if template_id in _COMBINATION_INFO_LOGGED:
+        _logger.warning(
+            'product_detail: _get_combination_info a esuat din nou pentru produsul %s '
+            '(traceback-ul complet a fost deja scris o data in acest proces). Raspund '
+            'cu datele pe care le calculeaza modulul singur.', template_id)
+        return
+    _COMBINATION_INFO_LOGGED.add(template_id)
+    _logger.exception(
+        'product_detail: _get_combination_info a esuat pentru produsul %s '
+        '(probabil un override dintr-un modul de tema). Raspund cu datele pe care '
+        'le calculeaza modulul singur (varianta, pret, nume, cod); pot lipsi doar '
+        'adaugirile temei.', template_id)
+
+
 def _resolve_combination(template, variant, values=None):
     """Combinatia curenta si varianta ei, cerute de la Odoo prin `_get_combination_info`
     - acelasi API pe care il foloseste pagina de produs de pe site. Fara `variant_id`
@@ -184,14 +216,9 @@ def _resolve_combination(template, variant, values=None):
                 product_id=variant.id if variant else False)
     except Exception:
         # Deliberat larg: nu stim ce arunca un override de tema (pe staging a fost un
-        # TypeError dintr-un template QWeb). Nu se inghite nimic tacut - `exception`
-        # scrie si traceback-ul complet in loguri, cu id-ul produsului, ca sa se vada
-        # ce tema si ce template au picat.
-        _logger.exception(
-            'product_detail: _get_combination_info a esuat pentru produsul %s '
-            '(probabil un override dintr-un modul de tema). Raspund cu datele pe care '
-            'le calculeaza modulul singur (varianta, pret, nume, cod); pot lipsi doar '
-            'adaugirile temei.', template.id)
+        # TypeError dintr-un template QWeb). Nu se inghite nimic tacut - se scrie in
+        # loguri, cu id-ul produsului, ca sa se vada ce tema si ce template au picat.
+        _log_combination_info_failure(template.id)
         return _fallback_combination(template, variant, combination)
     resolved_id = combination_info.get('product_id')
     if resolved_id:
