@@ -160,6 +160,33 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response.json()['error']['code'], 'validation_error')
 
+    def test_values_of_another_product_is_422_not_500(self):
+        # Un id de valoare care exista, dar apartine altui produs: cerere gresita,
+        # nu eroare interna.
+        other = self.env['product.template'].create({
+            'name': 'Produs Values Strain Test', 'is_published': True, 'list_price': 10.0,
+            'attribute_line_ids': [(0, 0, {
+                'attribute_id': self.attr_size.id,
+                'value_ids': [(6, 0, self.attr_size.value_ids.ids)]})],
+        })
+        foreign = other.attribute_line_ids.product_template_value_ids[0]
+        self.api_login()
+        response = self._detail(values=foreign.id)
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()['error']['code'], 'validation_error')
+
+    def test_values_with_unknown_id_is_422_not_500(self):
+        self.api_login()
+        response = self._detail(values=999999)
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()['error']['code'], 'validation_error')
+
+    def test_values_garbage_is_422(self):
+        self.api_login()
+        response = self._detail(values='abc')
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()['error']['code'], 'validation_error')
+
     # --- forma raspunsului ----------------------------------------------------
 
     def test_shape_matches_contract(self):
@@ -271,6 +298,93 @@ class TestControllersProductDetail(AppHttpCase):
         # pretul vine de la Odoo pentru varianta ceruta, nu de pe template.
         self.assertAlmostEqual(
             expensive_body['price']['amount'] - cheap_body['price']['amount'], 60.0, places=2)
+
+    # --- combinatia ceruta prin `values` --------------------------------------
+
+    def test_values_select_the_combination_and_change_the_price(self):
+        # Aplicatia are in mana doar id-uri de valoare de atribut; `values` e singura
+        # cale prin care poate cere o alta varianta. Fara el, fiecare apasare pe o
+        # marime ar da 422 pe date reale.
+        self.api_login()
+        cheap = [self.ptav['Mic detaliu'].id, self.ptav['Argintiu detaliu'].id]
+        expensive = [self.ptav['Mare detaliu'].id, self.ptav['Argintiu detaliu'].id]
+
+        cheap_body = self._detail(values=','.join(str(i) for i in cheap)).json()
+        expensive_body = self._detail(values=','.join(str(i) for i in expensive)).json()
+
+        self.assertEqual(cheap_body['variant_id'], self._variant('Mic detaliu', 'Argintiu detaliu').id)
+        self.assertEqual(
+            expensive_body['variant_id'], self._variant('Mare detaliu', 'Argintiu detaliu').id)
+        # price_extra 50 pe "Mare detaliu" + TVA 20% din fixture.
+        self.assertAlmostEqual(
+            expensive_body['price']['amount'] - cheap_body['price']['amount'], 60.0, places=2)
+
+    def test_values_report_the_selected_combination(self):
+        # Dupa o re-cerere aplicatia trebuie sa poata desena din nou starea de
+        # selectie fara sa deduca nimic: raspunsul spune ce combinatie e activa.
+        self.api_login()
+        wanted = [self.ptav['Mic detaliu'].id, self.ptav['Argintiu detaliu'].id]
+        body = self._detail(values=','.join(str(i) for i in wanted)).json()
+        self.assertEqual(sorted(body['variants']['selected']), sorted(wanted))
+        selected = {value['name'] for attr in body['variants']['attributes']
+                    for value in attr['values'] if value['selected']}
+        self.assertEqual(selected, {'Mic detaliu', 'Argintiu detaliu'})
+
+    def test_every_value_carries_the_combination_to_send_for_it(self):
+        # Nicio intrare din selector nu are voie sa ceara aplicatiei sa inventeze
+        # id-uri: fiecare valoare vine cu combinatia completa de trimis la apasare.
+        self.api_login()
+        body = self._detail(values=str(self.ptav['Mic detaliu'].id)).json()
+        lines = len(body['variants']['attributes'])
+        for attribute in body['variants']['attributes']:
+            for value in attribute['values']:
+                self.assertIn(value['id'], value['combination'], value['name'])
+                self.assertEqual(len(value['combination']), lines, value['name'])
+
+        # Si combinatia trimisa inapoi chiar selecteaza acea valoare. (Doar pentru o
+        # valoare disponibila: una indisponibila e dezactivata in ecran si oricum
+        # cade pe cea mai apropiata combinatie posibila.)
+        other = next(value for attr in body['variants']['attributes']
+                     for value in attr['values']
+                     if value['available'] and not value['selected'])
+        again = self._detail(values=','.join(str(i) for i in other['combination'])).json()
+        chosen = {value['id'] for attr in again['variants']['attributes']
+                  for value in attr['values'] if value['selected']}
+        self.assertIn(other['id'], chosen)
+        self.assertEqual(sorted(again['variants']['selected']), sorted(other['combination']))
+
+    def test_partial_values_resolve_to_a_complete_combination(self):
+        # O singura valoare (utilizatorul a ales doar marimea): Odoo completeaza
+        # combinatia, nu e o eroare.
+        self.api_login()
+        body = self._detail(values=str(self.ptav['Mare detaliu'].id)).json()
+        self.assertIn(body['variant_id'], self.product.product_variant_ids.ids)
+        self.assertIn(self.ptav['Mare detaliu'].id, body['variants']['selected'])
+        self.assertEqual(len(body['variants']['selected']), 2)
+
+    def test_empty_values_resolve_to_the_default_combination(self):
+        self.api_login()
+        body = self._detail(values='').json()
+        default_body = self._detail().json()
+        self.assertIn(body['variant_id'], self.product.product_variant_ids.ids)
+        self.assertEqual(body['variant_id'], default_body['variant_id'])
+
+    def test_values_win_over_variant_id(self):
+        self.api_login()
+        expensive = self._variant('Mare detaliu', 'Argintiu detaliu')
+        wanted = [self.ptav['Mic detaliu'].id, self.ptav['Argintiu detaliu'].id]
+        body = self._detail(
+            variant_id=expensive.id, values=','.join(str(i) for i in wanted)).json()
+        self.assertEqual(body['variant_id'], self._variant('Mic detaliu', 'Argintiu detaliu').id)
+
+    def test_impossible_values_fall_back_to_the_closest_possible_combination(self):
+        # (Mic detaliu, Auriu detaliu) e exclus in fixture. Nu e 500 si nu e 422:
+        # Odoo intoarce cea mai apropiata combinatie posibila, ca pe site.
+        self.api_login()
+        impossible = [self.ptav['Mic detaliu'].id, self.ptav['Auriu detaliu'].id]
+        response = self._detail(values=','.join(str(i) for i in impossible))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.json()['variant_id'], self.product.product_variant_ids.ids)
 
     def test_tiers_follow_the_selected_variant(self):
         # Tabelul de praguri trebuie sa arate pretul variantei alese; altfel randul

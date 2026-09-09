@@ -25,11 +25,12 @@
     { "min_qty": 1, "label": "1+", "price": { "formatted": "1.120,00 lei", "amount": 1120.0, "currency": "RON", "with_vat": true, "list_amount": null, "list_formatted": null, "discount_pct": null } }
   ],
   "variants": {
+    "selected": [1357],
     "attributes": [
       { "id": 7, "name": "Marime",
         "values": [
-          { "id": 1357, "name": "Mare", "selected": true, "available": true },
-          { "id": 1358, "name": "Mic", "selected": false, "available": true }
+          { "id": 1357, "name": "Mare", "selected": true, "available": true, "combination": [1357] },
+          { "id": 1358, "name": "Mic", "selected": false, "available": true, "combination": [1358] }
         ] }
     ]
   },

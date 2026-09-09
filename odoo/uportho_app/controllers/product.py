@@ -54,16 +54,60 @@ def _parse_variant(template, raw):
     return request.env['product.product'].browse(variant.id)
 
 
-def _resolve_combination(template, variant):
+def _parse_values(template, raw):
+    """Combinatia ceruta prin `values`: id-uri de `product.template.attribute.value`
+    separate prin virgula, exact ca selectorul de pe site. Aplicatia are in mana doar
+    id-uri de valoare (asta trimite `_uportho_variants`), deci asta e singurul mod in
+    care poate cere o alta varianta.
+
+    Intoarce None cand parametrul lipseste cu totul (atunci decide `variant_id`), sau
+    un recordset - eventual gol - cand e prezent. Un id care nu exista sau care e al
+    altui produs e o cerere gresita: 422, aceeasi forma ca la `variant_id`, niciodata
+    500. Verificarea de apartenenta se face in sudo, ca o valoare a unui produs
+    nepublicat sa dea tot 422, nu 403 din regulile de acces."""
+    Ptav = request.env['product.template.attribute.value']
+    if raw is None:
+        return None
+    ids = []
+    for part in raw.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            ids.append(int(part))
+        except (TypeError, ValueError):
+            raise ApiError(
+                422, 'validation_error',
+                'values trebuie sa fie id-uri numerice separate prin virgula.')
+    if not ids:
+        return Ptav.browse()
+    values = Ptav.sudo().browse(ids).exists()
+    if len(values) != len(set(ids)) or any(v.product_tmpl_id != template.sudo() for v in values):
+        raise ApiError(422, 'validation_error', 'values nu apartin acestui produs.')
+    return Ptav.browse(values.ids)
+
+
+def _resolve_combination(template, variant, values=None):
     """Combinatia curenta si varianta ei, cerute de la Odoo prin `_get_combination_info`
     - acelasi API pe care il foloseste pagina de produs de pe site. Fara `variant_id`
     Odoo alege singur prima combinatie posibila (nu o alegem noi); cu `variant_id`,
     combinatia e cea a variantei cerute.
 
+    Cu `values` (combinatia ceruta de aplicatie) intrebam intai
+    `_get_closest_possible_combination`, tot ca site-ul: o lista partiala (utilizatorul
+    a apasat doar pe marime) e completata de Odoo, iar una imposibila (exclusa prin
+    `exclude_for`) e adusa la cea mai apropiata combinatie posibila. Asa nu ajunge
+    niciodata sa fie o eroare ceva ce pe site e doar o alta selectie.
+
     Din raspunsul lui folosim doar combinatia si varianta: preturile lui vin de pe
     `website.pricelist_id` (lista rezolvata din sesiune/geoip), nu de pe lista
     clientului si a Ortho Club, care sunt cele doua de care are nevoie aplicatia."""
-    combination_info = template._get_combination_info(product_id=variant.id if variant else False)
+    if values is not None:
+        combination_info = template._get_combination_info(
+            combination=template._get_closest_possible_combination(values))
+    else:
+        combination_info = template._get_combination_info(
+            product_id=variant.id if variant else False)
     resolved_id = combination_info.get('product_id')
     if resolved_id:
         variant = request.env['product.product'].browse(resolved_id)
@@ -181,8 +225,12 @@ class AppProduct(http.Controller):
     @app_route('/products/<int:product_id>', methods=['GET'])
     def product_detail(self, product_id, **kw):
         website, template = _visible_product(product_id)
-        variant = _parse_variant(template, kw.get('variant_id'))
-        combination, variant = _resolve_combination(template, variant)
+        # `values` bate `variant_id`: aplicatia trimite combinatia, iar `variant_id`
+        # ramane doar pentru cine il foloseste deja (si pentru rutele de galerie).
+        values = _parse_values(template, kw.get('values'))
+        variant = (request.env['product.product'].browse() if values is not None
+                   else _parse_variant(template, kw.get('variant_id')))
+        combination, variant = _resolve_combination(template, variant, values=values)
 
         partner = request.env.user.partner_id
         pricelist = _customer_pricelist(partner)
