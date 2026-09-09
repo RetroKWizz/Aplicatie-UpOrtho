@@ -2,4 +2,5 @@
 <odoo>
     <menuitem id="menu_app_root" name="Aplicatie mobila" parent="website.menu_website_configuration" sequence="60"/>
     <menuitem id="menu_app_banner" name="Bannere" parent="menu_app_root" action="action_app_banner" sequence="10"/>
+    <menuitem id="menu_app_benefit" name="Beneficii" parent="menu_app_root" action="action_app_benefit" sequence="20"/>
 </odoo>
