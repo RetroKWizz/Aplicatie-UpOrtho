@@ -584,10 +584,11 @@ void main() {
 
     expect(find.text('Fisa tehnica.pdf'), findsOneWidget);
 
-    // URL-ul e absolut: documentul se deschide in afara aplicatiei, unde o cale
-    // relativa n-ar insemna nimic. E ruta standard a Odoo pentru fisier.
+    // URL-ul e absolut: si cererea de descarcare, si o eventuala deschidere
+    // externa au nevoie de host, nu de o cale relativa. E ruta autentificata a
+    // modulului, nu `/web/content/...` al Odoo.
     final list = tester.widget<DocumentList>(find.byType(DocumentList));
-    expect(list.items.single.url, 'http://x/web/content/4821?download=true');
+    expect(list.items.single.url, 'http://x/api/app/v1/products/101/documents/4821');
   });
 
   testWidgets('filele sunt in ordinea de pe site: Descriere, Specificatii, Documente, Recenzii',

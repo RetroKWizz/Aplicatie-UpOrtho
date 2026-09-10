@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from odoo.addons.uportho_app.controllers.base import API_PREFIX
+from odoo.addons.uportho_app.models.product_template import UPORTHO_DOCUMENT_URL
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -624,8 +626,10 @@ class TestProductDocuments(TransactionCase):
       (`_uportho_document_records`), restul - filtrarea, deduplicarea, numele, URL-ul -
       ruleaza codul adevarat, pe documente adevarate.
 
-    URL-ul e ruta standard a Odoo pentru atasament, nu una a modulului: documentul se
-    deschide in afara aplicatiei, deci accesul il decide Odoo."""
+    URL-ul e o ruta AUTENTIFICATA a modulului, ca la imagini. Ruta standard a Odoo
+    (`/web/content/<id>?download=true`) a fost incercata si s-a dovedit ca nu merge:
+    deschis in exterior, browserul nu duce cookie-ul de sesiune, vizitatorul e public,
+    atasamentul nu e public si Odoo raspunde "Not Found" - verificat pe telefon."""
 
     @classmethod
     def setUpClass(cls):
@@ -673,13 +677,54 @@ class TestProductDocuments(TransactionCase):
         # n-are ecran de administrare.
         self.assertEqual(self._names(self.product._uportho_documents()), ['Fisa tehnica.pdf'])
 
-    def test_document_carries_display_name_file_name_and_odoo_url(self):
+    def test_document_carries_display_name_file_name_and_module_url(self):
         [document] = self.product._uportho_documents()
         attachment = self.shown.ir_attachment_id
         self.assertEqual(document['name'], 'Fisa tehnica.pdf')
         self.assertEqual(document['file_name'], 'Fisa tehnica.pdf')
         self.assertEqual(document['id'], attachment.id)
-        self.assertEqual(document['url'], f'/web/content/{attachment.id}?download=true')
+        self.assertEqual(
+            document['url'],
+            f'/api/app/v1/products/{self.product.id}/documents/{attachment.id}')
+
+    def test_document_url_is_a_route_of_this_module(self):
+        # Sablonul URL-ului de document poarta prefixul API al modulului. Constanta e
+        # scrisa in model (modelele nu importa controllere), deci fara acest test o
+        # schimbare de prefix in `controllers/base.py` ar lasa tacut URL-uri care nu
+        # duc nicaieri.
+        self.assertTrue(UPORTHO_DOCUMENT_URL.startswith(API_PREFIX + '/'))
+
+    # --- atasamentul cerut de ruta de descarcare ------------------------------
+
+    def test_attachment_by_id_finds_a_listed_document(self):
+        attachment = self.shown.ir_attachment_id
+        self.assertEqual(
+            self.product._uportho_document_attachment_by_id(attachment.id), attachment)
+
+    def test_attachment_by_id_refuses_a_document_hidden_on_the_product_page(self):
+        # Acelasi filtru ca lista: un document nepublicat pe pagina de produs nu are
+        # voie sa devina accesibil prin ruta doar pentru ca i se stie id-ul.
+        self.assertFalse(
+            self.product._uportho_document_attachment_by_id(self.hidden.ir_attachment_id.id))
+
+    def test_attachment_by_id_refuses_a_document_of_another_product(self):
+        foreign = self._make_document(self.other_product, 'Al altui produs ruta.pdf')
+        self.assertFalse(
+            self.product._uportho_document_attachment_by_id(foreign.ir_attachment_id.id))
+
+    def test_attachment_by_id_refuses_an_unknown_id(self):
+        self.assertFalse(self.product._uportho_document_attachment_by_id(999999))
+
+    def test_attachment_by_id_never_reads_the_file_itself(self):
+        # Ca si lista: existenta fisierului o stabileste Odoo cand il serveste
+        # (`ir.binary`), nu o citire a campului binar.
+        attachment = self.shown.ir_attachment_id
+        touched = []
+        with patch.object(type(attachment), 'raw',
+                          property(lambda inner_self: touched.append(inner_self.id))):
+            found = self.product._uportho_document_attachment_by_id(attachment.id)
+        self.assertEqual(found, attachment)
+        self.assertFalse(touched, 'cautarea atasamentului a citit fisierul')
 
     def test_link_document_is_listed_too(self):
         # Site-ul arata in acelasi tab si documentele care sunt doar un link

@@ -20,8 +20,9 @@ class DocumentItem {
   /// `name` — atunci nu se scrie de doua ori.
   final String? fileName;
 
-  /// URL absolut. E ruta standard a Odoo pentru fisier, nu una a modulului nostru:
-  /// documentul se deschide in afara aplicatiei.
+  /// URL absolut. E o ruta AUTENTIFICATA a modulului nostru
+  /// (`/api/app/v1/products/<id>/documents/<id>`), nu `/web/content/...` al Odoo:
+  /// fisierul se da doar cererilor care poarta sesiunea aplicatiei.
   final String url;
 
   @override
@@ -39,6 +40,15 @@ class DocumentItem {
 /// fiecare. Apasarea deschide fisierul in exterior (browser sau vizualizatorul de
 /// sistem) — nu exista vizualizator in aplicatie si nu se adauga niciun pachet
 /// pentru asta, exact ca la elementele video din galerie.
+///
+/// **Neterminat, decizie la user.** URL-ul e acum o ruta autentificata a modulului,
+/// pentru ca ruta publica a Odoo raspundea "Not Found" pe telefon (browserul extern
+/// nu duce cookie-ul de sesiune). Aruncat tot in browser, URL-ul nou raspunde 401 din
+/// acelasi motiv: aplicatia trebuie sa aduca ea fisierul (cu sesiunea pe cerere) si
+/// abia apoi sa-l dea sistemului sa-l deschida. `url_launcher` NU poate deschide o
+/// cale locala pe iOS/Android — schema `file:` e documentata doar pentru desktop —
+/// deci pasul acela cere fie un pachet nou, fie cod nativ propriu. Nu s-a ales nimic
+/// fara acordul userului, deci deschiderea a ramas cum era.
 ///
 /// Lista goala = niciun pixel desenat: pe ecranul de produs fiecare sectiune fara
 /// date dispare complet.

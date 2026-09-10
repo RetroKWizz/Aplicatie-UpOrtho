@@ -208,13 +208,15 @@ void main() {
     expect(brand.description, isEmpty);
   });
 
-  test('documentele: nume, nume de fisier si URL-ul standard Odoo al fisierului', () {
+  test('documentele: nume, nume de fisier si ruta autentificata a modulului', () {
     final document = ProductDetail.fromJson(detailFixture()).documents.single;
     expect(document.id, 4821);
     expect(document.name, 'Fisa tehnica.pdf');
     expect(document.fileName, 'Fisa tehnica.pdf');
-    // Ruta Odoo, nu una a modulului: documentul se deschide in afara aplicatiei.
-    expect(document.url, '/web/content/4821?download=true');
+    // Ruta modulului, autentificata, ca la imagini. Ruta standard a Odoo
+    // (`/web/content/...`) a fost incercata si nu merge: deschisa in browserul
+    // extern, cererea nu poarta sesiunea si Odoo raspunde "Not Found".
+    expect(document.url, '/api/app/v1/products/101/documents/4821');
   });
 
   test('un raspuns fara `documents` decodeaza cu lista goala', () {

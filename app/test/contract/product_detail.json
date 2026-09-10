@@ -76,7 +76,7 @@
   },
   "documents": [
     { "id": 4821, "name": "Fisa tehnica.pdf", "file_name": "Fisa tehnica.pdf",
-      "url": "/web/content/4821?download=true" }
+      "url": "/api/app/v1/products/101/documents/4821" }
   ],
   "description": [
     { "type": "heading", "spans": [ { "text": "Cleste Tie Back pentru arcuri groase", "bold": true, "italic": false } ] },
