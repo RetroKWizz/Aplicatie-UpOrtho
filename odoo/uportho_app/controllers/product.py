@@ -269,14 +269,28 @@ def _resolve_combination(template, variant, values=None):
 
     `_get_combination_info` e insa punctul in care intra cod strain: pe instanta
     reala, tema magazinului il suprascrie si randeaza in interiorul lui un template
-    QWeb de website. Cauza verificata pe serverul lor: `droggol_theme_common` pune in
+    QWeb de website. `droggol_theme_common` pune in
     `combination_info['tp_extra_fields']` randarea lui `theme_prime.product_extra_fields`,
-    iar acel sablon contine
-    `t-value="product_variant.all_product_tag_ids.filtered(lambda x: x.visible_on_ecommerce)"`
-    - un `lambda` pe care QWeb nu-l poate evalua, deci randarea arunca
-    `TypeError: 'NoneType' object is not callable`. Se intampla la FIECARE cerere si
-    pentru ORICE produs (verificat pe staging si cu, si fara etichete de ecommerce);
-    `uportho_app.website_id` pus in contextul mediului nu are nicio legatura si nu ajuta.
+    iar acel sablon cheama `is_view_active('website_sale.product_tags')`.
+
+    Cauza (verificata pe serverul lor si REPRODUSA local, vezi CLAUDE.md gotcha 7):
+    `is_view_active` nu e o functie globala de QWeb - `website/models/ir_qweb.py` o
+    pune in valorile de randare din `_prepare_frontend_environment`, iar
+    `http_routing/models/ir_qweb.py` intra pe acea metoda doar cand
+    `request.is_frontend` e adevarat. Rutele astea sunt `type='http'` simple, deci
+    `ir_http._match` le pune `is_frontend = False`: numele iese `None` din context,
+    apelul devine `None(...)` si arunca `TypeError: 'NoneType' object is not callable`.
+    Se intampla la FIECARE cerere si pentru ORICE produs; `uportho_app.website_id` pus
+    in contextul mediului n-are nicio legatura si nu ajuta.
+
+    Explicatia care statea aici inainte - "QWeb nu poate evalua `lambda`" - era
+    gresita: in acelasi sablon `filtered('visible_on_ecommerce')`, `slug(...)` si
+    `any([...])` merg. Nu o reintroduce.
+
+    Marcarea cererii ca frontend ar repara-o, dar cere si `request.website`, iar acela
+    schimba lista de preturi a clientului (`website_sale` o filtreaza prin
+    `_is_available_on_website`) - deci schimba preturile. Blocat pana la o verificare
+    pe serverul lor; detalii si patch-ul complet in CLAUDE.md gotcha 7.
 
     O tema nu are voie sa doboare API-ul, deci esecul se prinde. Ce se raspunde in loc
     NU mai e o reconstructie de-a noastra: se cheama direct implementarea din

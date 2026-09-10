@@ -158,12 +158,44 @@ de pe site.
    facea baza nereproductibila.)
 7. **Pe instanta reala, `product.template._get_combination_info` arunca la fiecare apel,
    pentru orice produs.** Tema magazinului (`droggol_theme_common`) randeaza in
-   interiorul ei sablonul `theme_prime.product_extra_fields`, iar acolo sta
-   `t-value="product_variant.all_product_tag_ids.filtered(lambda x: x.visible_on_ecommerce)"`
-   — QWeb nu poate evalua `lambda`, deci randarea pica cu
-   `TypeError: 'NoneType' object is not callable`. **Nu e o problema de context**:
-   verificat pe staging cu website-ul real dat explicit in `values`, cu `website_id`
-   in context si pe produse cu si fara etichete de ecommerce — pica identic.
+   interiorul ei sablonul `theme_prime.product_extra_fields`.
+
+   **Cauza (verificata, reprodusa local):** acel sablon cheama
+   `is_view_active('website_sale.product_tags')`. `is_view_active` **nu** e o functie
+   globala de QWeb: `website/models/ir_qweb.py` o pune in valorile de randare
+   (`is_view_active=lazy(lambda: current_website.is_view_active)`) din
+   `_prepare_frontend_environment`, iar `http_routing/models/ir_qweb.py` intra pe acea
+   metoda **doar daca `request.is_frontend` e adevarat**. Rutele acestui modul sunt
+   `type='http'` simple, deci `ir_http._match` le pune `is_frontend = False`: numele
+   iese `None` din context si apelul devine `None(...)` →
+   `TypeError: 'NoneType' object is not callable`.
+
+   **Explicatia veche — "QWeb nu poate evalua `lambda`" — era gresita.** Pe staging,
+   in acelasi sablon, `slug(...)`, `filtered('visible_on_ecommerce')`, `any([...])` si
+   toate citirile de campuri merg; lipseste exact un ajutor. Reprodus local (Odoo 18
+   din container, fara tema instalata): un sablon QWeb care cheama `is_view_active`,
+   randat dintr-un `_get_combination_info` chemat de pe ruta noastra, da fix acel
+   `TypeError`.
+
+   **Reparatia evidenta e blocata deocamdata, si nu din intamplare.** Ca sablonul sa
+   randeze e nevoie de *doua* lucruri pe request, nu de unul: `is_frontend = True`
+   **si** `request.website` (mediul de frontend din `website` face
+   `current_website = request.website`; doar cu flagul, randarea da
+   `AttributeError: 'Request' object has no attribute 'website'` — verificat local).
+   Iar `request.website` schimba **preturile**: `website_sale` suprascrie
+   `product.pricelist._get_partner_pricelist_multi_filter_hook` si filtreaza lista
+   clientului prin `_is_available_on_website(request.website)`, deci
+   `partner.property_product_pricelist` se rezolva altfel cat timp atributul e pus.
+   Local, cu ea pusa, lista clientului dispare si ruta raspunde 503
+   `pricelist_unavailable` (`controllers/catalog._customer_pricelist`). Scurgerea in
+   afara ferestrei se poate opri cu `invalidate_model(['property_product_pricelist'])`,
+   dar **inauntrul** ferestrei tema tot calculeaza `other_bulk_prices` pe lista
+   filtrata — adica exact datele pentru care se face schimbarea. Daca listele
+   clientului de pe serverul lor sunt disponibile pe website (`website_id` potrivit,
+   sau `selectable`/`code`), nu se schimba nimic; daca nu, se schimba preturile.
+   **Se verifica pe serverul lor inainte de a merge mai departe.** Lucrarea completa
+   (implementare + teste, 300/300 verde local) e pastrata in
+   `.superpowers/faza2-frontend-flag.patch`.
 
    **Ce face ruta de produs azi:** prinde exceptia si cheama direct implementarea
    standard din Odoo, `website_sale.models.product_template.ProductTemplate.
