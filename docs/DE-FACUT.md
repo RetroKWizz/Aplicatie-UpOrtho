@@ -101,9 +101,11 @@ dezvoltare, ci doua pachete noi cu urmari de vazut inainte de publicare.
   - `open_filex` isi aduce propriul `FileProvider` in manifestul Android **si trei
     permisiuni**: `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO` (plus
     `READ_EXTERNAL_STORAGE` pana la SDK 32). Ele se contopesc in manifestul aplicatiei, deci
-    apar in fisa de permisiuni din Google Play desi aplicatia nu citeste galeria. De
-    verificat inainte de publicarea pe Android: fie se justifica, fie se scot cu
-    `tools:node="remove"` din manifestul aplicatiei si se testeaza ca deschiderea inca merge.
+    apar in fisa de permisiuni din Google Play desi aplicatia nu citeste galeria.
+    **DECIS de Mihai (10 sept 2026): raman asa, nu se scot.** Nu mai e un punct deschis
+    pentru review-ul de dinainte de lansare; daca vreodata Google le contesta la
+    publicare, solutia e `tools:node="remove"` in manifestul aplicatiei, urmata de un
+    test ca deschiderea documentelor inca merge.
   - Pe iOS nu cere nicio cheie in `Info.plist` si nicio permisiune.
   - Documentele se scriu in dosarul **temporar** al aplicatiei
     (`uportho_documente/<calea rutei>/<nume fisier>`), pe care sistemul are voie sa-l
