@@ -43,13 +43,44 @@ void main() {
     expect(find.text('fisa.pdf'), findsOneWidget);
   });
 
-  testWidgets('apasarea trimite URL-ul documentului mai departe', (tester) async {
-    final opened = <String>[];
+  testWidgets('apasarea trimite documentul mai departe', (tester) async {
+    final opened = <DocumentItem>[];
     await tester.pumpWidget(sized(DocumentList(items: documents, onOpen: opened.add)));
 
     await tester.tap(find.text('Certificat CE'));
     await tester.pump();
 
-    expect(opened, [documents[1].url]);
+    // Elementul intreg, nu doar URL-ul: cine descarca are nevoie si de numele
+    // fisierului, ca sa-l scrie pe disc cu extensia lui.
+    expect(opened, [documents[1]]);
+  });
+
+  testWidgets('documentul care se descarca arata ca lucreaza si nu mai raspunde la apasari',
+      (tester) async {
+    final opened = <DocumentItem>[];
+    await tester.pumpWidget(sized(DocumentList(
+      items: [documents[0].copyWith(busy: true), documents[1]],
+      onOpen: opened.add,
+    )));
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.tap(find.text('Fisa tehnica'));
+    await tester.pump();
+    expect(opened, isEmpty, reason: 'randul ocupat nu mai porneste inca o descarcare');
+
+    // Restul listei ramane folosibil cat timp unul se descarca.
+    await tester.tap(find.text('Certificat CE'));
+    await tester.pump();
+    expect(opened, [documents[1]]);
+  });
+
+  testWidgets('mesajul de eroare apare sub lista', (tester) async {
+    await tester.pumpWidget(sized(DocumentList(
+      items: documents,
+      onOpen: (_) {},
+      error: 'Nu s-a putut descarca documentul. Incearca din nou.',
+    )));
+
+    expect(find.text('Nu s-a putut descarca documentul. Incearca din nou.'), findsOneWidget);
   });
 }

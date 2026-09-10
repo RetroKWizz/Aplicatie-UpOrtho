@@ -88,6 +88,10 @@ class PendingTransport implements ApiTransport {
     pending.add(completer);
     return completer.future;
   }
+
+  @override
+  Future<ApiResponse> download(String url, String savePath) =>
+      throw UnimplementedError('produsul nu descarca fisiere prin acest transport');
 }
 
 void main() {

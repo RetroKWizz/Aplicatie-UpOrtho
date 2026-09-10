@@ -226,8 +226,13 @@ de pe site.
    sa-l execute — de doua ori a inghitit tacut un deploy intreg. Dupa orice comanda
    de desfasurare se verifica **rezultatul pe disc** (`grep` intr-un fisier nou), nu
    se presupune din ce s-a tastat.
-10. **Acest Flutter foloseste Swift Package Manager pe iOS, nu CocoaPods** — nu exista
-   `ios/Podfile`; nu cauta/instala pods.
+10. **Pe iOS proiectul a pornit pe Swift Package Manager, dar are din nou si CocoaPods.**
+   `open_filex` (adaugat pentru documentele de produs) nu are suport SPM, asa ca
+   `flutter pub get` a generat `app/ios/Podfile` si a bagat Pods in workspace; buildul
+   ruleaza `pod install` singur si trece. Flutter avertizeaza la fiecare build
+   ("plugins do not support Swift Package Manager ... will become an error in a future
+   version of Flutter") — daca pachetul nu adopta SPM, la o versiune viitoare de Flutter
+   trebuie inlocuit. `Podfile` si `Podfile.lock` sunt versionate, `Pods/` nu.
 
 ## Comenzi utile
 

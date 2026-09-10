@@ -29,9 +29,13 @@ void main() {
   late InMemorySessionStore store;
   late DioTransport transport;
 
+  /// Dosar propriu pentru fisierele descarcate in teste, sters la final.
+  late Directory downloadDir;
+
   /// Ce raspunde serverul la urmatoarea cerere.
   late int responseStatus;
   late Object? responseBody;
+  late List<int>? responseBytes;
   late List<String> responseCookies;
 
   setUp(() async {
@@ -39,6 +43,7 @@ void main() {
     store = InMemorySessionStore();
     responseStatus = 200;
     responseBody = {'ok': true};
+    responseBytes = null;
     responseCookies = [];
 
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -53,7 +58,12 @@ void main() {
       for (final cookie in responseCookies) {
         response.headers.add('set-cookie', cookie);
       }
-      if (responseBody != null) {
+      if (responseBytes != null) {
+        // Corp binar (un document de produs), nu JSON: exact ce serveste ruta
+        // `/products/<id>/documents/<id>`.
+        response.headers.contentType = ContentType('application', 'pdf');
+        response.add(responseBytes!);
+      } else if (responseBody != null) {
         response.headers.contentType = ContentType.json;
         response.write(jsonEncode(responseBody));
       }
@@ -61,9 +71,14 @@ void main() {
     });
 
     transport = DioTransport('http://127.0.0.1:${server.port}', store);
+
+    downloadDir = Directory.systemTemp.createTempSync('uportho-download-test');
   });
 
-  tearDown(() async => server.close(force: true));
+  tearDown(() async {
+    await server.close(force: true);
+    if (downloadDir.existsSync()) downloadDir.deleteSync(recursive: true);
+  });
 
   group('header-ul de aplicatie', () {
     test('X-UpOrtho-App: 1 pleaca pe orice cerere, indiferent de metoda', () async {
@@ -161,6 +176,55 @@ void main() {
       final response = await transport.send('DELETE', '/api/app/v1/devices/tok');
       expect(response.status, 204);
       expect(response.json, isNull);
+    });
+
+    test('descarcarea unui document duce sesiunea si header-ul de aplicatie pe fir',
+        () async {
+      // Motivul intregii rute: browserul telefonului nu duce cookie-ul de sesiune,
+      // deci fisierul trebuie adus de aplicatie, cu aceleasi headere ca orice alta
+      // cerere autentificata.
+      await store.write('8f2c4a1b');
+      responseBytes = const [37, 80, 68, 70, 45, 49, 46, 55]; // "%PDF-1.7"
+      final file = File('${downloadDir.path}/fisa.pdf');
+
+      final response =
+          await transport.download('/api/app/v1/products/101/documents/4821', file.path);
+
+      expect(response.status, 200);
+      expect(received.single.header('cookie'), 'session_id=8f2c4a1b');
+      expect(received.single.header('x-uportho-app'), '1');
+      expect(received.single.path, '/api/app/v1/products/101/documents/4821');
+      expect(file.readAsBytesSync(), responseBytes);
+    });
+
+    test('un cod de eroare nu ajunge niciodata pe disc ca fisier', () async {
+      // Un 401 salvat ca "document" s-ar deschide in vizualizator ca un fisier
+      // corupt de cateva zeci de octeti - mai rau decat un mesaj de eroare.
+      responseStatus = 401;
+      responseBody = {
+        'error': {'code': 'unauthorized', 'message': 'Trebuie sa te autentifici.', 'details': {}}
+      };
+      final file = File('${downloadDir.path}/refuzat.pdf');
+
+      final response =
+          await transport.download('/api/app/v1/products/101/documents/4821', file.path);
+
+      expect(response.status, 401);
+      expect(response.json?['error']['code'], 'unauthorized');
+      expect(file.existsSync(), isFalse);
+    });
+
+    test('fara server la capat, o descarcare da tot ApiException(network_error)', () async {
+      final port = server.port;
+      await server.close(force: true);
+      final orphan = DioTransport('http://127.0.0.1:$port', store);
+      await expectLater(
+        orphan.download('/api/app/v1/products/101/documents/4821',
+            '${downloadDir.path}/nimic.pdf'),
+        throwsA(isA<ApiException>()
+            .having((e) => e.status, 'status', 0)
+            .having((e) => e.code, 'code', 'network_error')),
+      );
     });
 
     test('fara server la capat, iese ApiException(network_error) cu status 0', () async {

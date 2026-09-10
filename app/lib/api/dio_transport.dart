@@ -50,6 +50,43 @@ class DioTransport implements ApiTransport {
     }
   }
 
+  @override
+  Future<ApiResponse> download(String url, String savePath) async {
+    final sessionId = await _sessions.read();
+    try {
+      final response = await _dio.download(
+        url,
+        savePath,
+        options: Options(
+          headers: {if (sessionId != null) 'Cookie': 'session_id=$sessionId'},
+          // BaseOptions accepta orice cod HTTP fiindca ApiClient le interpreteaza el.
+          // La descarcare insa codul trebuie stiut INAINTE ca ceva sa ajunga pe disc:
+          // doar 2xx trece, restul iese pe ramura de exceptie (unde Dio decodeaza
+          // corpul de eroare si nu creeaza fisierul).
+          validateStatus: (status) => status != null && status >= 200 && status < 300,
+        ),
+      );
+      return ApiResponse(
+        status: response.statusCode ?? 0,
+        sessionCookie: _extractSessionId(response.headers['set-cookie']),
+      );
+    } on DioException catch (e) {
+      final response = e.response;
+      if (response != null) {
+        final data = response.data;
+        return ApiResponse(
+          status: response.statusCode ?? 0,
+          json: (data is Map<String, dynamic> || data is List) ? data : null,
+        );
+      }
+      throw const ApiException(
+        status: 0,
+        code: 'network_error',
+        message: 'Nu s-a putut contacta serverul. Verifica conexiunea.',
+      );
+    }
+  }
+
   ApiResponse _toApiResponse(Response<dynamic> response) {
     // Corpul poate fi un obiect JSON (majoritatea endpointurilor) sau un array JSON
     // la nivelul radacinii (`GET /categories`) - orice altceva (text simplu, gol)

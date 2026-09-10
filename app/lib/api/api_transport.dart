@@ -15,4 +15,15 @@ class ApiResponse {
 /// testele folosesc un fake.
 abstract class ApiTransport {
   Future<ApiResponse> send(String method, String path, {Map<String, dynamic>? body});
+
+  /// Aduce corpul unei rute GET direct in fisierul `savePath`, cu exact aceleasi
+  /// headere ca `send` (cookie de sesiune + X-UpOrtho-App). Pentru documentele de
+  /// produs: sunt rute autentificate si fisiere de cativa megaocteti, deci corpul
+  /// se scurge pe disc pe masura ce vine, nu se aduna in memorie si nu se intoarce
+  /// prin `ApiResponse`.
+  ///
+  /// La un cod de eroare, `json` poarta corpul de eroare al contractului si
+  /// **fisierul nu se scrie** — un 401 salvat ca "document" s-ar deschide in
+  /// vizualizator ca fisier corupt.
+  Future<ApiResponse> download(String url, String savePath);
 }

@@ -19,6 +19,7 @@ import '../../design_system/widgets/variant_order_table.dart';
 import '../../design_system/widgets/variant_picker.dart';
 import '../../providers.dart';
 import '../product_badge_palette.dart';
+import 'document_controller.dart';
 import 'product_controller.dart';
 
 /// Pagina de produs. Ordinea sectiunilor e cea de pe uportho.ro (plan Faza 2,
@@ -132,15 +133,6 @@ class _ProductBody extends ConsumerWidget {
         ? null
         : imageHeadersFor(firstBenefitImageUrl, apiBaseUrl: api.baseUrl, headers: imageHeaders);
 
-    final documentItems = [
-      for (final document in detail.documents)
-        DocumentItem(
-          name: document.name,
-          fileName: document.fileName,
-          url: api.absoluteUrl(document.url),
-        ),
-    ];
-
     final descriptionBlocks = [for (final block in detail.description) _describe(block)];
     final availabilityMessage = detail.availability?.message;
 
@@ -155,8 +147,11 @@ class _ProductBody extends ConsumerWidget {
             label: 'Descriere', content: DescriptionView(blocks: descriptionBlocks)),
       if (detail.specs.isNotEmpty)
         ProductTabItem(label: 'Specificatii', content: _SpecTable(specs: detail.specs)),
-      if (documentItems.isNotEmpty)
-        ProductTabItem(label: 'Documente', content: DocumentList(items: documentItems)),
+      if (detail.documents.isNotEmpty)
+        ProductTabItem(
+          label: 'Documente',
+          content: _DocumentsSection(productId: productId, documents: detail.documents),
+        ),
       if (detail.reviews.isNotEmpty)
         ProductTabItem(label: 'Recenzii', content: _Reviews(reviews: detail.reviews)),
     ];
@@ -527,6 +522,50 @@ class _CartButton extends StatelessWidget {
         Text('Disponibil la pasul urmator',
             style: AppTypography.caption, textAlign: TextAlign.center),
       ],
+    );
+  }
+}
+
+/// Fila "Documente". Sectiune separata, cu providerul ei, ca starea de descarcare
+/// (randul care lucreaza, mesajul de eroare) sa reconstruiasca doar lista de
+/// documente, nu toata pagina de produs — altfel o apasare pe o fisa tehnica ar
+/// reconstrui galeria si tabelele de pret.
+///
+/// Aici se face si maparea model -> element de design system: `DocumentList` nu
+/// cunoaste modelele API.
+class _DocumentsSection extends ConsumerWidget {
+  const _DocumentsSection({required this.productId, required this.documents});
+
+  final int productId;
+  final List<ProductDocument> documents;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final api = ref.watch(apiClientProvider);
+    final state = ref.watch(documentsControllerProvider(productId));
+
+    final items = [
+      for (final document in documents)
+        () {
+          // URL absolut: cererea de descarcare are nevoie de host, nu de o cale
+          // relativa. E ruta autentificata a modulului, deci fisierul vine prin
+          // ApiClient, cu cookie-ul de sesiune — nu prin browserul telefonului.
+          final url = api.absoluteUrl(document.url);
+          return DocumentItem(
+            name: document.name,
+            fileName: document.fileName,
+            url: url,
+            busy: state.isBusy(url),
+          );
+        }(),
+    ];
+
+    return DocumentList(
+      items: items,
+      error: state.error,
+      onOpen: (item) => ref
+          .read(documentsControllerProvider(productId).notifier)
+          .open(url: item.url, fileName: item.fileName ?? item.name),
     );
   }
 }

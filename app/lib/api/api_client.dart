@@ -62,6 +62,23 @@ class ApiClient {
 
   Future<bool> hasSession() async => (await _sessions.read()) != null;
 
+  /// Descarca in `savePath` continutul unei rute de fisier a contractului
+  /// (documentele de produs). `url` e URL-ul complet primit de la server — el
+  /// contine deja prefixul `/api/app/v1`, deci nu se mai adauga aici.
+  ///
+  /// Trece prin acelasi transport ca restul cererilor, deci poarta cookie-ul de
+  /// sesiune si header-ul de aplicatie; un 401 stinge sesiunea si anunta expirarea
+  /// exact ca pe orice alt endpoint. Fisierul ramane pe disc, nu in memorie.
+  Future<void> downloadTo(String url, String savePath) async {
+    final response = await _transport.download(url, savePath);
+    if (response.status == 401) {
+      await _sessions.clear();
+      onUnauthorized?.call();
+    }
+    if (response.status >= 200 && response.status < 300) return;
+    _throwError(response);
+  }
+
   String absoluteUrl(String path) => path.startsWith('http') ? path : '$baseUrl$path';
 
   Future<Map<String, dynamic>> _request(String method, String path, {Map<String, dynamic>? body}) async {

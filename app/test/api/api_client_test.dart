@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/api_client.dart';
 import 'package:uportho_app/api/api_exception.dart';
@@ -105,5 +107,51 @@ void main() {
 
   test('absoluteUrl joins base and relative path', () {
     expect(client.absoluteUrl('/api/app/v1/banners/1/image'), 'https://example.test/api/app/v1/banners/1/image');
+  });
+
+  group('downloadTo', () {
+    const url = 'https://example.test/api/app/v1/products/101/documents/4821';
+
+    test('cere transportului exact URL-ul si fisierul primite', () async {
+      transport.whenDownload(url, bytes: const [37, 80, 68, 70]);
+
+      final file = File('${Directory.systemTemp.path}/uportho-test-${DateTime.now().microsecondsSinceEpoch}.pdf');
+      addTearDown(() => file.existsSync() ? file.deleteSync() : null);
+      await client.downloadTo(url, file.path);
+
+      expect(transport.downloads.single.url, url);
+      expect(transport.downloads.single.savePath, file.path);
+      // Documentul e pe disc, nu in memoria clientului: downloadTo nu intoarce octeti.
+      expect(file.readAsBytesSync(), [37, 80, 68, 70]);
+    });
+
+    test('un 401 sterge sesiunea si anunta expirarea, ca orice alta cerere', () async {
+      await store.write('abc');
+      var expired = false;
+      final watched = ApiClient(transport, store,
+          baseUrl: 'https://example.test', onUnauthorized: () => expired = true);
+      transport.whenDownload(url,
+          response: const ApiResponse(status: 401, json: {
+            'error': {'code': 'unauthorized', 'message': 'Trebuie sa te autentifici.', 'details': {}}
+          }));
+
+      await expectLater(watched.downloadTo(url, '/nu/conteaza'), throwsA(isA<ApiException>()));
+      expect(await store.read(), isNull);
+      expect(expired, isTrue);
+    });
+
+    test('un cod de eroare devine ApiException cu mesajul serverului', () async {
+      transport.whenDownload(url,
+          response: const ApiResponse(status: 404, json: {
+            'error': {'code': 'not_found', 'message': 'Documentul nu exista.', 'details': {}}
+          }));
+
+      await expectLater(
+        client.downloadTo(url, '/nu/conteaza'),
+        throwsA(isA<ApiException>()
+            .having((e) => e.status, 'status', 404)
+            .having((e) => e.message, 'message', 'Documentul nu exista.')),
+      );
+    });
   });
 }

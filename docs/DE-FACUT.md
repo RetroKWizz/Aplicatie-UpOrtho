@@ -10,8 +10,9 @@ Fiecare intrare spune: **ce este**, **unde traieste**, **de ce a fost amanat**.
 
 ## De scos inainte de lansare
 
-Toate cele de mai jos sunt setari de dezvoltare. Niciuna nu e un bug acum; fiecare
-devine o problema reala in ziua in care aplicatia ajunge in magazin.
+Primele sase sunt setari de dezvoltare. Niciuna nu e un bug acum; fiecare devine o
+problema reala in ziua in care aplicatia ajunge in magazin. A saptea nu e o setare de
+dezvoltare, ci doua pachete noi cu urmari de vazut inainte de publicare.
 
 ### 1. `android:usesCleartextTraffic="true"` (nescopat)
 
@@ -83,6 +84,31 @@ devine o problema reala in ziua in care aplicatia ajunge in magazin.
   le decide userul, si intra oricum in Faza 5 (iconite, screenshots, descriere store).
 - **Cum se scoate**: `android:label="UpOrtho"`, `CFBundleDisplayName` = `UpOrtho`, descriere
   reala in `pubspec.yaml`, README care descrie aplicatia si comenzile ei.
+
+### 7. Doua pachete noi pentru documentele de produs: `open_filex` si `path_provider`
+
+- **Unde**: `app/pubspec.yaml` (`open_filex: ^4.7.0`, `path_provider: ^2.1.6`), folosite
+  doar in `app/lib/features/product/document_files.dart`.
+- **De ce au fost adaugate** (decizie explicita a userului, care intoarce regula
+  "fara pachete noi" din planul Fazei 2): documentele de produs se servesc pe o ruta
+  **autentificata** a modulului. Aruncat in browserul telefonului, URL-ul raspunde 401 —
+  browserul nu duce cookie-ul de sesiune al aplicatiei. Deci fisierul trebuie adus de
+  aplicatie (prin `ApiClient`, cu sesiunea pe cerere), scris pe disc si abia apoi dat
+  vizualizatorului de sistem. `url_launcher`, deja in proiect, **nu** poate deschide o cale
+  locala pe iOS/Android (schema `file:` e documentata doar pentru desktop), iar dosarul
+  scriibil al aplicatiei se afla doar prin `path_provider`.
+- **Ce trebuie vazut la review-ul de dinainte de lansare**:
+  - `open_filex` isi aduce propriul `FileProvider` in manifestul Android **si trei
+    permisiuni**: `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO` (plus
+    `READ_EXTERNAL_STORAGE` pana la SDK 32). Ele se contopesc in manifestul aplicatiei, deci
+    apar in fisa de permisiuni din Google Play desi aplicatia nu citeste galeria. De
+    verificat inainte de publicarea pe Android: fie se justifica, fie se scot cu
+    `tools:node="remove"` din manifestul aplicatiei si se testeaza ca deschiderea inca merge.
+  - Pe iOS nu cere nicio cheie in `Info.plist` si nicio permisiune.
+  - Documentele se scriu in dosarul **temporar** al aplicatiei
+    (`uportho_documente/<calea rutei>/<nume fisier>`), pe care sistemul are voie sa-l
+    curete. Nu exista curatare proprie: daca la Faza 5 se constata ca fisierele se aduna,
+    se sterge dosarul la pornire.
 
 ---
 

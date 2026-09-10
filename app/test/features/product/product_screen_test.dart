@@ -18,6 +18,8 @@ import 'package:uportho_app/design_system/widgets/product_card.dart';
 import 'package:uportho_app/design_system/widgets/product_tabs.dart';
 import 'package:uportho_app/design_system/widgets/variant_order_table.dart';
 import 'package:uportho_app/design_system/widgets/variant_picker.dart';
+import 'package:uportho_app/features/product/document_controller.dart';
+import 'package:uportho_app/features/product/document_files.dart';
 import 'package:uportho_app/features/product/product_controller.dart';
 import 'package:uportho_app/features/product/product_screen.dart';
 import 'package:uportho_app/providers.dart';
@@ -29,6 +31,8 @@ import '../../api/fake_transport.dart';
 class HeldTransport implements ApiTransport {
   final List<RecordedCall> calls = [];
   final List<Completer<ApiResponse>> pending = [];
+  final List<RecordedDownload> downloads = [];
+  final List<Completer<ApiResponse>> pendingDownloads = [];
 
   @override
   Future<ApiResponse> send(String method, String path, {Map<String, dynamic>? body}) {
@@ -36,6 +40,39 @@ class HeldTransport implements ApiTransport {
     final completer = Completer<ApiResponse>();
     pending.add(completer);
     return completer.future;
+  }
+
+  @override
+  Future<ApiResponse> download(String url, String savePath) {
+    downloads.add(RecordedDownload(url, savePath));
+    final completer = Completer<ApiResponse>();
+    pendingDownloads.add(completer);
+    return completer.future;
+  }
+}
+
+/// Depozitul, inlocuit cu unul care doar compune calea. Testele de widget ruleaza
+/// intr-o zona de timp fals, unde un `Directory.create` real nu s-ar termina
+/// niciodata; calculul adevarat al caii (nume curatat, dosar per document) e
+/// verificat in document_controller_test.dart, pe cai reale.
+class _PathOnlyStorage implements DocumentStorage {
+  _PathOnlyStorage(this.root);
+
+  final Directory root;
+
+  @override
+  Future<File> fileFor({required String url, required String fileName}) async =>
+      File('${root.path}/$fileName');
+}
+
+/// Vizualizatorul de sistem, inlocuit: retine calea si nu atinge platforma.
+class _RecordingOpener implements DocumentOpener {
+  final List<String> opened = [];
+
+  @override
+  Future<DocumentOpenOutcome> open(String path) async {
+    opened.add(path);
+    return DocumentOpenOutcome.opened;
   }
 }
 
@@ -589,6 +626,93 @@ void main() {
     // modulului, nu `/web/content/...` al Odoo.
     final list = tester.widget<DocumentList>(find.byType(DocumentList));
     expect(list.items.single.url, 'http://x/api/app/v1/products/101/documents/4821');
+  });
+
+  group('apasarea pe un document', () {
+    /// Ecran de produs cu descarcarea tinuta in loc (`HeldTransport`), depozitul in
+    /// dosarul temporar al testului si vizualizatorul inlocuit — nimic nu atinge
+    /// platforma, dar drumul e cel real: ecran -> controller -> ApiClient.
+    Future<HeldTransport> pumpWithDocuments(
+      WidgetTester tester, {
+      required Directory tempRoot,
+      required DocumentOpener opener,
+    }) async {
+      final transport = HeldTransport();
+      tester.view.physicalSize = const Size(500, 4000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final container = ProviderContainer(overrides: [
+        apiClientProvider.overrideWithValue(
+            ApiClient(transport, InMemorySessionStore(), baseUrl: 'http://x')),
+        documentStorageProvider.overrideWithValue(_PathOnlyStorage(tempRoot)),
+        documentOpenerProvider.overrideWithValue(opener),
+      ]);
+      addTearDown(container.dispose);
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: ProductScreen(productId: 101)),
+      ));
+      transport.pending.last.complete(ApiResponse(status: 200, json: fullProductJson()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Documente'));
+      await tester.pumpAndSettle();
+      return transport;
+    }
+
+    late Directory tempRoot;
+
+    setUp(() => tempRoot = Directory.systemTemp.createTempSync('uportho-screen-docs'));
+    tearDown(() {
+      if (tempRoot.existsSync()) tempRoot.deleteSync(recursive: true);
+    });
+
+    testWidgets('randul arata ca lucreaza, iar restul paginii ramane folosibil',
+        (tester) async {
+      final opener = _RecordingOpener();
+      final transport = await pumpWithDocuments(tester, tempRoot: tempRoot, opener: opener);
+
+      await tester.tap(find.text('Fisa tehnica.pdf'));
+      // pump, nu pumpAndSettle: indicatorul de progres se invarte la nesfarsit.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Cererea a plecat prin clientul aplicatiei, catre ruta autentificata.
+      expect(transport.downloads.single.url,
+          'http://x/api/app/v1/products/101/documents/4821');
+      expect(find.descendant(
+        of: find.byType(DocumentList),
+        matching: find.byType(CircularProgressIndicator),
+      ), findsOneWidget);
+
+      // Pagina nu s-a blocat: filele raspund in continuare.
+      await tester.tap(find.text('Specificatii'));
+      await tester.pump();
+      expect(find.text('Fisa tehnica.pdf'), findsNothing);
+
+      transport.pendingDownloads.single.complete(const ApiResponse(status: 200));
+      await tester.pumpAndSettle();
+      // Si documentul ajunge la vizualizator chiar daca intre timp userul s-a uitat
+      // la alta fila: descarcarea ceruta de el nu se pierde in tacere.
+      expect(opener.opened, hasLength(1), reason: 'documentul ajunge la vizualizator');
+    });
+
+    testWidgets('o descarcare esuata lasa un mesaj sub lista, nu o apasare in gol',
+        (tester) async {
+      final transport =
+          await pumpWithDocuments(tester, tempRoot: tempRoot, opener: _RecordingOpener());
+
+      await tester.tap(find.text('Fisa tehnica.pdf'));
+      await tester.pump();
+      transport.pendingDownloads.single.complete(const ApiResponse(status: 404, json: {
+        'error': {'code': 'not_found', 'message': 'Documentul nu exista.', 'details': {}}
+      }));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Documentul nu exista.'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      // Documentul e tot in lista, gata de o noua incercare.
+      expect(find.text('Fisa tehnica.pdf'), findsOneWidget);
+    });
   });
 
   testWidgets('filele sunt in ordinea de pe site: Descriere, Specificatii, Documente, Recenzii',
