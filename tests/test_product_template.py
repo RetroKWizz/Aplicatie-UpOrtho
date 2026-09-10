@@ -18,6 +18,42 @@ class TestProductDescriptionBlocks(TransactionCase):
         product = self.Template.create({'name': 'P', 'website_description': False})
         self.assertEqual(product._uportho_description_blocks(), [])
 
+    def test_plain_text_without_block_tags_becomes_one_paragraph(self):
+        # Regresie de pe staging: `dr_brand_description` (textul de sub numele
+        # brandului) e text simplu, nu `<p>` ca `website_description`, pe care il
+        # compune editorul de site. Fara plasa asta, chenarul de brand aparea pe
+        # telefon cu sigla si numele, si fara nicio descriere.
+        product = self.Template.create({
+            'name': 'P', 'website_description': 'DynaFlex are peste 50 de ani de experienta.'})
+        blocks = product._uportho_description_blocks()
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0]['type'], 'paragraph')
+        self.assertEqual(
+            blocks[0]['spans'],
+            [{'text': 'DynaFlex are peste 50 de ani de experienta.', 'bold': False, 'italic': False}])
+
+    def test_text_wrapped_only_in_div_or_span_becomes_one_paragraph(self):
+        product = self.Template.create({
+            'name': 'P',
+            'website_description': '<div><span>Text</span> si <strong>ingrosat</strong></div>'})
+        blocks = product._uportho_description_blocks()
+        self.assertEqual([b['type'] for b in blocks], ['paragraph'])
+        self.assertEqual(
+            [(s['text'], s['bold']) for s in blocks[0]['spans']],
+            [('Text si ', False), ('ingrosat', True)])
+
+    def test_plain_text_fallback_does_not_duplicate_recognised_blocks(self):
+        # Plasa se intinde DOAR cand nu s-a recunoscut niciun bloc; altfel acelasi
+        # text ar aparea de doua ori, o data ca paragraf si o data aplatizat.
+        product = self.Template.create({
+            'name': 'P', 'website_description': '<p>Unu</p><p>Doi</p>'})
+        blocks = product._uportho_description_blocks()
+        self.assertEqual([b['type'] for b in blocks], ['paragraph', 'paragraph'])
+
+    def test_html_with_only_whitespace_stays_empty(self):
+        product = self.Template.create({'name': 'P', 'website_description': '<div>   </div>'})
+        self.assertEqual(product._uportho_description_blocks(), [])
+
     def test_heading_tags_become_heading_blocks(self):
         product = self.Template.create({
             'name': 'P', 'website_description': '<h2>Titlu sectiune</h2>'})

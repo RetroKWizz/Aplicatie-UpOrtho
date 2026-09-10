@@ -134,36 +134,41 @@ def _uportho_html_blocks(html_value):
     _uportho_filter_romanian_sections(root)
 
     blocks = []
-    consumed = set()
 
-    def is_inside_consumed(el):
-        node = el.getparent()
-        while node is not None:
-            if id(node) in consumed:
-                return True
-            node = node.getparent()
-        return False
+    def collect(container):
+        """Parcurge structura in adancime, oprindu-se la primul bloc recunoscut de pe
+        fiecare ramura; invelisurile (div, section...) se traverseaza mai departe.
 
-    for el in root.iter():
-        if el is root or not isinstance(el.tag, str) or is_inside_consumed(el):
-            continue
-        if el.tag in _HEADING_TAGS:
-            spans = _uportho_spans(el)
-            if spans:
-                blocks.append({'type': 'heading', 'spans': spans})
-            consumed.add(id(el))
-        elif el.tag == 'p':
-            spans = _uportho_spans(el)
-            if spans:
-                blocks.append({'type': 'paragraph', 'spans': spans})
-            consumed.add(id(el))
-        elif el.tag in _LIST_TAGS:
-            items = [{'spans': item_spans}
-                     for li in el.findall('li')
-                     for item_spans in [_uportho_spans(li)] if item_spans]
-            if items:
-                blocks.append({'type': 'bullets', 'items': items})
-            consumed.add(id(el))
+        Fara multimi de elemente "deja consumate": lxml creeaza obiectele de element
+        temporar, iar `id()`-ul lor se poate REFOLOSI dupa ce primul e eliberat, asa
+        ca al doilea paragraf parea deja procesat si disparea. Efectul se vedea in
+        aplicatie ca descriere trunchiata la primul paragraf."""
+        for el in container:
+            if not isinstance(el.tag, str):
+                continue
+            if el.tag in _HEADING_TAGS:
+                spans = _uportho_spans(el)
+                if spans:
+                    blocks.append({'type': 'heading', 'spans': spans})
+            elif el.tag == 'p':
+                spans = _uportho_spans(el)
+                if spans:
+                    blocks.append({'type': 'paragraph', 'spans': spans})
+            elif el.tag in _LIST_TAGS:
+                items = [{'spans': item_spans}
+                         for li in el.findall('li')
+                         for item_spans in [_uportho_spans(li)] if item_spans]
+                if items:
+                    blocks.append({'type': 'bullets', 'items': items})
+            else:
+                collect(el)
+
+    collect(root)
+
+    if not blocks:
+        spans = _uportho_spans(root)
+        if spans:
+            blocks.append({'type': 'paragraph', 'spans': spans})
     return blocks
 
 
