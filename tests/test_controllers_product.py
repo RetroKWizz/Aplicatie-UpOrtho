@@ -1244,12 +1244,19 @@ class TestControllersProductGallery(AppHttpCase):
 
 @tagged('post_install', '-at_install')
 class TestControllersProductDocuments(AppHttpCase):
-    """Tabul "Documente" al paginii de produs, in `GET /products/<id>`.
+    """Tabul "Documente" al paginii de produs (`GET /products/<id>`) si ruta care
+    serveste chiar fisierul (`GET /products/<id>/documents/<attachment_id>`).
 
-    Modulul NU serveste el fisierele: URL-ul e ruta standard a Odoo pentru atasament
-    (`/web/content/<id>?download=true`). Documentul se deschide in afara aplicatiei,
-    unde cookie-ul de sesiune nu ajunge, deci decizia daca fisierul se descarca ramane
-    a Odoo si a regulilor lui de acces - alegere explicita a userului.
+    Fisierul e servit de modul, pe o ruta AUTENTIFICATA, exact ca imaginile. Forma
+    anterioara - ruta standard a Odoo, `/web/content/<id>?download=true` - a fost
+    incercata si s-a dovedit ca nu merge: deschisa in browserul extern, cererea nu
+    poarta cookie-ul de sesiune, vizitatorul e public, atasamentul nu e public si Odoo
+    raspunde "Not Found". Pe ruta modulului decide sesiunea aplicatiei, nu faptul ca
+    fisierul ar fi citibil de oricine.
+
+    Ruta nu are incredere in id-ul primit: intai se verifica vizibilitatea produsului,
+    apoi documentul se cauta PRINTRE documentele acelui produs, cu acelasi filtru
+    `shown_on_product_page` ca lista.
 
     Fiecare test isi creeaza singur produsele si documentele; baza locala are date
     ramase din verificari manuale si nu are voie sa influenteze rezultatul."""
@@ -1261,13 +1268,31 @@ class TestControllersProductDocuments(AppHttpCase):
             'name': 'Lista client test documente', 'currency_id': cls.env.company.currency_id.id})
         cls.portal_user.partner_id.property_product_pricelist = cls.pricelist.id
 
+        cls.other_website = cls.env['website'].create({'name': 'Alt site documente test'})
         cls.product = cls.env['product.template'].create({
             'name': 'Produs Documente Test', 'is_published': True, 'list_price': 10.0})
         cls.other_product = cls.env['product.template'].create({
             'name': 'Alt Produs Documente Test', 'is_published': True, 'list_price': 10.0})
+        cls.without_documents = cls.env['product.template'].create({
+            'name': 'Produs Fara Documente Test', 'is_published': True, 'list_price': 10.0})
+        cls.unpublished = cls.env['product.template'].create({
+            'name': 'Produs Documente Nepublicat Test', 'is_published': False, 'list_price': 10.0})
+        cls.product_other_website = cls.env['product.template'].create({
+            'name': 'Produs Documente Alt Site Test', 'is_published': True,
+            'website_id': cls.other_website.id, 'list_price': 10.0})
 
         cls.document = cls._make_document(cls.product, 'Fisa tehnica ruta.pdf')
         cls.hidden = cls._make_document(cls.product, 'Intern ruta.pdf', shown=False)
+        cls.foreign = cls._make_document(cls.other_product, 'Al altui produs ruta.pdf')
+        cls.unpublished_document = cls._make_document(cls.unpublished, 'Nepublicat ruta.pdf')
+        cls.other_website_document = cls._make_document(
+            cls.product_other_website, 'Alt site ruta.pdf')
+
+    def setUp(self):
+        super().setUp()
+        # ir.config_parameter e citit prin ormcache; rollback-ul tranzactiei de test
+        # nu curata cache-ul (acelasi fix ca in restul claselor de aici).
+        self.addCleanup(self.registry.clear_cache)
 
     @classmethod
     def _make_document(cls, product, name, shown=True):
@@ -1283,29 +1308,92 @@ class TestControllersProductDocuments(AppHttpCase):
     def _documents(self, product=None):
         return self.api_get(f'/products/{(product or self.product).id}').json()['documents']
 
+    def _download(self, product, document):
+        return self.api_get(
+            f'/products/{product.id}/documents/{document.ir_attachment_id.id}')
+
     def test_only_documents_published_on_the_product_page_are_listed(self):
         self.api_login()
         documents = self._documents()
         self.assertEqual([document['name'] for document in documents], ['Fisa tehnica ruta.pdf'])
         self.assertEqual(documents[0]['file_name'], 'Fisa tehnica ruta.pdf')
 
-    def test_document_url_is_the_standard_odoo_attachment_route(self):
+    def test_document_url_is_an_authenticated_route_of_this_module(self):
         self.api_login()
         [document] = self._documents()
         attachment = self.document.ir_attachment_id
         self.assertEqual(document['id'], attachment.id)
-        self.assertEqual(document['url'], f'/web/content/{attachment.id}?download=true')
-
-    def test_module_does_not_serve_documents_itself(self):
-        # Nu exista ruta proprie de documente: fisierul se ia de la Odoo, pe URL-ul lui.
-        self.api_login()
-        response = self.api_get(
-            f'/products/{self.product.id}/documents/standard/{self.document.id}')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            document['url'],
+            f'/api/app/v1/products/{self.product.id}/documents/{attachment.id}')
 
     def test_product_without_documents_has_an_empty_list(self):
         self.api_login()
-        self.assertEqual(self._documents(self.other_product), [])
+        self.assertEqual(self._documents(self.without_documents), [])
+
+    # --- ruta care serveste fisierul ------------------------------------------
+
+    def test_document_route_requires_login(self):
+        # Fara sesiune nu se descarca nimic: 401, nu fisierul.
+        self.assertEqual(self._download(self.product, self.document).status_code, 401)
+
+    def test_document_route_serves_the_file_as_a_download(self):
+        self.api_login()
+        response = self._download(self.product, self.document)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, PDF_BYTES)
+        self.assertTrue(response.headers['Content-Type'].startswith('application/pdf'))
+        disposition = response.headers['Content-Disposition']
+        self.assertTrue(disposition.startswith('attachment'), disposition)
+        self.assertIn('Fisa tehnica ruta.pdf', disposition)
+
+    def test_document_of_an_unpublished_product_is_404(self):
+        self.api_login()
+        response = self._download(self.unpublished, self.unpublished_document)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['error']['code'], 'not_found')
+
+    def test_document_of_a_product_from_another_website_is_404(self):
+        # Website-ul configurat e altul decat `other_website` (parametrul e setat
+        # explicit, ca sa nu depinda de ce rezolva get_current_website()).
+        website = self.env['website'].create({'name': 'Site configurat documente test'})
+        self.env['ir.config_parameter'].sudo().set_param('uportho_app.website_id', str(website.id))
+        self.api_login()
+        response = self._download(self.product_other_website, self.other_website_document)
+        self.assertEqual(response.status_code, 404)
+
+    def test_document_hidden_on_the_product_page_is_404(self):
+        # Ascuns pe site inseamna ascuns si aici: altfel aplicatia ar deveni portita
+        # catre documentele interne ale magazinului.
+        self.api_login()
+        response = self._download(self.product, self.hidden)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['error']['code'], 'not_found')
+
+    def test_document_of_another_product_cannot_be_fetched_through_this_product(self):
+        # Id-ul de atasament din cerere nu e crezut niciodata: documentul se cauta
+        # printre documentele produsului din URL.
+        self.api_login()
+        response = self._download(self.product, self.foreign)
+        self.assertEqual(response.status_code, 404)
+
+    def test_unknown_attachment_id_is_404(self):
+        self.api_login()
+        response = self.api_get(f'/products/{self.product.id}/documents/999999')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['error']['code'], 'not_found')
+
+    def test_an_arbitrary_attachment_cannot_be_fetched_through_the_route(self):
+        # Un atasament care nu e document de produs deloc (aici: o poza a unui alt
+        # produs) - tot 404, din acelasi motiv.
+        stranger = self.env['ir.attachment'].create({
+            'name': 'Atasament strain documente test.txt',
+            'raw': b'secret',
+            'mimetype': 'text/plain',
+        })
+        self.api_login()
+        response = self.api_get(f'/products/{self.product.id}/documents/{stranger.id}')
+        self.assertEqual(response.status_code, 404)
 
 
 @tagged('post_install', '-at_install')

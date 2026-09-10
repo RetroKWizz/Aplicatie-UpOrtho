@@ -29,14 +29,24 @@ _COLLAPSE_WHITESPACE = re.compile(r'\s+')
 #   (dezvoltare locala, teste); prezenta lui se verifica, nu se presupune.
 UPORTHO_DOCUMENT_FIELDS = ('product_document_ids', 'dr_document_ids')
 
-# URL-ul de descarcare al unui document: ruta standard a Odoo pentru un atasament.
+# URL-ul de descarcare al unui document: o ruta AUTENTIFICATA a acestui modul, ca la
+# imagini. Parametrii, in ordine: id-ul produsului, id-ul atasamentului.
 #
-# Deliberat NU o ruta a acestui modul, spre deosebire de imagini. Un document nu se
-# deseneaza in aplicatie, se deschide in exterior (browser/vizualizator de sistem), iar
-# acolo aplicatia nu poate atasa cookie-ul de sesiune. Deci il servim exact cum il
-# serveste Odoo si lasam regulile LUI de acces sa decida daca fisierul se descarca -
-# decizie explicita a userului, nu o scapare.
-UPORTHO_DOCUMENT_URL = '/web/content/%s?download=true'
+# Inainte era ruta standard a Odoo (`/web/content/<id>?download=true`), pe motivul ca
+# documentul se deschide in exterior, unde aplicatia oricum nu poate atasa cookie-ul de
+# sesiune. Verificat pe telefon, motivul acela se intoarce impotriva lui: browserul
+# extern chiar NU duce sesiunea, deci vizitatorul e public, atasamentul nu e public si
+# Odoo raspunde "Not Found". Documentele nu se puteau deschide deloc.
+#
+# Pe ruta modulului decide sesiunea aplicatiei, nu faptul ca fisierul ar trebui sa fie
+# citibil de oricine - aceeasi regula ca la poze. Ce se schimba in aplicatie: nu mai
+# poate arunca URL-ul in browser, trebuie sa aduca ea fisierul (cu sesiunea pe cerere)
+# si abia apoi sa-l dea sistemului sa-l deschida.
+#
+# Prefixul e scris aici, nu importat: modelele nu importa controllere (ar fi import
+# circular la incarcarea modulului). Ca sa nu ramana tacut in urma unei schimbari de
+# prefix, `tests/test_product_template.py` verifica sablonul contra `API_PREFIX`.
+UPORTHO_DOCUMENT_URL = '/api/app/v1/products/%s/documents/%s'
 
 # Campurile din care se citeste blocul de brand aratat pe pagina de produs a site-ului
 # (logo + nume + descriere). Toate sunt ale modulelor magazinului si NU exista pe o
@@ -317,30 +327,29 @@ class ProductTemplate(models.Model):
             return self.env['product.document'].browse()
         return self.sudo()[field_name]
 
-    def _uportho_documents(self):
-        """Documentele aratate in tabul "Documente" al paginii de produs, in ordinea de
-        acolo: intai cele standard, apoi cele ale temei (vezi `UPORTHO_DOCUMENT_FIELDS`).
+    def _uportho_shown_documents(self):
+        """Perechile (document, atasament) pe care le arata pagina de produs a
+        site-ului, in ordinea de acolo: intai cele standard, apoi cele ale temei (vezi
+        `UPORTHO_DOCUMENT_FIELDS`).
 
         Se trimite exact ce arata site-ul, nu mai mult: doar documentele publicate pe
         pagina de produs (`shown_on_product_page`, campul adaugat de `website_sale`,
         dupa care filtreaza si sablonul lui). Un document intern, nepublicat, nu are
         voie sa apara in aplicatie doar pentru ca ea nu are ecran de administrare.
 
-        URL-ul e ruta standard a Odoo pentru atasamentul din spatele documentului
-        (`/web/content/<id>?download=true`), nu una a acestui modul: documentul se
-        deschide in exterior, unde aplicatia nu poate atasa cookie-ul de sesiune, deci
-        decizia daca fisierul se descarca ramane a Odoo si a regulilor lui de acces.
-        Nu se citeste nici continutul, nici marimea: existenta fisierului o stabileste
-        tot Odoo, la deschidere.
+        Un document care apare in ambele campuri (acelasi atasament) apare o singura
+        data. Unul fara atasament de care sa se agate URL-ul e sarit - n-ar avea ce
+        deschide.
 
-        Un document care apare in ambele campuri (acelasi atasament) se trimite o
-        singura data. Unul fara atasament de care sa se agate URL-ul e sarit - n-ar
-        avea ce deschide.
+        Metoda e sursa unica si a listei (`_uportho_documents`), si a rutei care
+        serveste fisierul (`_uportho_document_attachment_by_id`). Asta e tot rostul ei:
+        filtrul de vizibilitate nu poate ajunge sa fie aplicat doar in lista, iar ruta
+        nu poate servi un document pe care site-ul il ascunde.
 
-        `id` e id-ul atasamentului, adica exact cel din URL: doua surse de documente
-        pot avea acelasi id de inregistrare, dar fisierul din spate e unul singur."""
+        Nu se citeste niciodata continutul fisierului: aici se afla doar CE documente
+        exista, iar existenta si marimea le stabileste `ir.binary`, la servire."""
         self.ensure_one()
-        documents = []
+        pairs = []
         seen_attachments = set()
         for field_name in UPORTHO_DOCUMENT_FIELDS:
             for record in self._uportho_document_records(field_name):
@@ -350,14 +359,45 @@ class ProductTemplate(models.Model):
                 if not attachment or attachment.id in seen_attachments:
                     continue
                 seen_attachments.add(attachment.id)
-                name = (getattr(record, 'name', None) or attachment.name or '').strip()
-                file_name = (attachment.name or name or '').strip()
-                documents.append({
-                    'id': attachment.id,
-                    'name': name or file_name,
-                    'file_name': file_name or name,
-                    'url': UPORTHO_DOCUMENT_URL % attachment.id,
-                })
+                pairs.append((record, attachment))
+        return pairs
+
+    def _uportho_document_attachment_by_id(self, attachment_id):
+        """Atasamentul unui document al ACESTUI produs, cerut dupa id, sau un recordset
+        gol.
+
+        Asa cere ruta de descarcare documentul: id-ul din cerere nu e crezut niciodata,
+        se cauta printre documentele produsului (`_uportho_shown_documents`). Deci nici
+        un atasament oarecare din baza, nici documentul altui produs, nici unul ascuns
+        pe pagina de produs nu pot fi scoase prin ruta - toate trei sunt "nu exista".
+
+        Apelantul a verificat deja ca produsul insusi e vizibil."""
+        self.ensure_one()
+        for _record, attachment in self._uportho_shown_documents():
+            if attachment.id == attachment_id:
+                return attachment
+        return self.env['ir.attachment'].browse()
+
+    def _uportho_documents(self):
+        """Documentele aratate in tabul "Documente" al paginii de produs.
+
+        URL-ul e o ruta autentificata a acestui modul, ca la imagini: aplicatia trebuie
+        sa aduca fisierul ea, cu sesiunea pe cerere. Vezi `UPORTHO_DOCUMENT_URL` pentru
+        de ce nu mai e ruta standard a Odoo. Nu se citeste nici continutul, nici
+        marimea: existenta fisierului o stabileste `ir.binary`, la descarcare.
+
+        `id` e id-ul atasamentului, adica exact cel din URL: doua surse de documente
+        pot avea acelasi id de inregistrare, dar fisierul din spate e unul singur."""
+        documents = []
+        for record, attachment in self._uportho_shown_documents():
+            name = (getattr(record, 'name', None) or attachment.name or '').strip()
+            file_name = (attachment.name or name or '').strip()
+            documents.append({
+                'id': attachment.id,
+                'name': name or file_name,
+                'file_name': file_name or name,
+                'url': UPORTHO_DOCUMENT_URL % (self.id, attachment.id),
+            })
         return documents
 
     def _uportho_variants(self, variant=None, combination=None):

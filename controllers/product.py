@@ -4,6 +4,7 @@ from odoo import http
 from odoo.addons.website_sale.models.product_template import (
     ProductTemplate as WebsiteSaleProductTemplate,
 )
+from odoo.exceptions import AccessError, MissingError
 from odoo.http import request
 
 from ..models.product_template import UPORTHO_BRAND_LOGO_FIELD
@@ -597,8 +598,9 @@ class AppProduct(http.Controller):
             # locurile. Null cand produsul n-are brand - atunci sectiunea lipseste.
             'brand': _serialize_brand(template),
             # Tabul "Documente" al site-ului: fise tehnice, certificate, cataloage.
-            # URL-urile sunt cele standard ale Odoo (`/web/content/...`), pentru ca
-            # documentul se deschide in afara aplicatiei - vezi `_uportho_documents`.
+            # URL-urile sunt rute autentificate ale modulului (`product_document`), ca
+            # la imagini: in browserul extern cererea nu poarta sesiunea, deci ruta
+            # standard a Odoo raspundea "Not Found" - vezi `UPORTHO_DOCUMENT_URL`.
             # Lista goala pentru produsele fara documente: atunci sectiunea lipseste
             # complet din ecran, ca toate celelalte.
             'documents': template._uportho_documents(),
@@ -700,6 +702,43 @@ class AppProduct(http.Controller):
         modulului (bannere, iconite de categorie). Beneficiile sunt citibile de portal,
         deci nu e nevoie de sudo; fara imagine incarcata, 404."""
         return _image_response(request.env['uportho.app.benefit'].browse(benefit_id), 'image')
+
+    @app_route('/products/<int:product_id>/documents/<int:attachment_id>', methods=['GET'])
+    def product_document(self, product_id, attachment_id, **kw):
+        """Fisierul unui document de produs, autentificat ca si rutele de imagine.
+
+        De ce exista ruta: inainte, lista de documente trimitea URL-ul standard al Odoo
+        (`/web/content/<id>?download=true`) si aplicatia il deschidea in browserul
+        extern. Verificat pe telefon, acolo cererea nu poarta cookie-ul de sesiune:
+        vizitatorul e public, atasamentul nu e public si Odoo raspunde "Not Found".
+        Documentele nu se puteau deschide deloc. Aici decide sesiunea aplicatiei, nu
+        faptul ca fisierul ar trebui sa fie citibil de oricine.
+
+        Ordinea verificarilor e cea de la logoul de brand si de la galerie: intai
+        vizibilitatea produsului (404 pentru produs nepublicat sau de pe alt website),
+        apoi documentul se ia CHIAR de pe acel produs. Id-ul de atasament din cerere nu
+        e crezut niciodata - se cauta printre documentele produsului, cu acelasi filtru
+        `shown_on_product_page` ca lista. Deci un atasament oarecare din baza, unul al
+        altui produs sau unul ascuns pe pagina de produs sunt toate 404.
+
+        Fisierul se serveste prin `ir.binary`, ca toate binarele modulului: pentru un
+        atasament din filestore, `Stream` lucreaza cu calea si `os.stat`, deci nici aici
+        nu se citeste tot fisierul in memorie doar ca sa se afle daca exista. Numele si
+        tipul real vin de pe atasament; `as_attachment=True` il trimite ca descarcare,
+        ca `?download=true` din URL-ul vechi.
+
+        Sudo: documentele de produs nu sunt citibile de un utilizator portal - nici
+        sablonul magazinului nu le citeste altfel. Dreptul de a lua fisierul l-a decis
+        deja verificarea de mai sus (produs vizibil + document aratat de site)."""
+        _website, template = _visible_product(product_id)
+        attachment = template._uportho_document_attachment_by_id(attachment_id)
+        if not attachment:
+            raise ApiError(404, 'not_found', 'Documentul nu exista.')
+        try:
+            stream = request.env['ir.binary']._get_stream_from(attachment.sudo())
+        except (AccessError, MissingError) as error:
+            raise ApiError(404, 'not_found', 'Documentul nu exista.') from error
+        return stream.get_response(as_attachment=True)
 
     @app_route('/products/<int:product_id>/brand/logo', methods=['GET'])
     def product_brand_logo(self, product_id, **kw):
