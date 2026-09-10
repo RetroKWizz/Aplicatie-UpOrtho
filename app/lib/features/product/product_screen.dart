@@ -18,6 +18,8 @@ import '../../design_system/widgets/product_tabs.dart';
 import '../../design_system/widgets/variant_order_table.dart';
 import '../../design_system/widgets/variant_picker.dart';
 import '../../providers.dart';
+import '../cart/cart_controller.dart';
+import '../description_blocks.dart';
 import '../product_badge_palette.dart';
 import 'document_controller.dart';
 import 'product_controller.dart';
@@ -133,7 +135,7 @@ class _ProductBody extends ConsumerWidget {
         ? null
         : imageHeadersFor(firstBenefitImageUrl, apiBaseUrl: api.baseUrl, headers: imageHeaders);
 
-    final descriptionBlocks = [for (final block in detail.description) _describe(block)];
+    final descriptionBlocks = [for (final block in detail.description) describeBlock(block)];
     final availabilityMessage = detail.availability?.message;
 
     // Filele de jos, in ordinea de pe site (Descriere | Specificatii | Documente |
@@ -142,7 +144,7 @@ class _ProductBody extends ConsumerWidget {
     // recenzii, documentele sunt rare, iar 14 produse n-au nici descriere. Cand
     // ramane o singura fila, `ProductTabs` ii arata doar continutul, fara bara.
     final tabs = <ProductTabItem>[
-      if (_hasText(descriptionBlocks))
+      if (hasBlockText(descriptionBlocks))
         ProductTabItem(
             label: 'Descriere', content: DescriptionView(blocks: descriptionBlocks)),
       if (detail.specs.isNotEmpty)
@@ -169,7 +171,7 @@ class _ProductBody extends ConsumerWidget {
       for (final table in detail.priceTables)
         PriceTierTable(
           title: table.title,
-          note: [for (final block in table.note) _describe(block)],
+          note: [for (final block in table.note) describeBlock(block)],
           entries: _tiers(table.entries),
         ),
       // Tabelul de comanda pe variante inlocuieste selectorul: cand fiecare varianta
@@ -182,12 +184,12 @@ class _ProductBody extends ConsumerWidget {
         _VariantSection(productId: productId, groups: variantGroups, state: state),
       if (availabilityMessage != null && availabilityMessage.isNotEmpty)
         _Availability(message: availabilityMessage, inStock: detail.availability!.inStock),
-      const _CartButton(),
+      _CartButton(state: state),
       // Chenarul de brand si beneficiile stau deasupra descrierii, ca pe site.
       if (brand != null)
         BrandCard(
           name: brand.name,
-          description: [for (final block in brand.description) _describe(block)],
+          description: [for (final block in brand.description) describeBlock(block)],
           logoUrl: brandLogoUrl,
           httpHeaders: brandLogoUrl == null
               ? null
@@ -218,27 +220,6 @@ class _ProductBody extends ConsumerWidget {
           PriceTierEntry(label: tier.label, priceFormatted: tier.price.formatted),
       ];
 
-  DescriptionBlockData _describe(DescriptionBlock block) => DescriptionBlockData(
-        style: switch (block.type) {
-          DescriptionBlockType.heading => DescriptionBlockStyle.heading,
-          DescriptionBlockType.paragraph => DescriptionBlockStyle.paragraph,
-          DescriptionBlockType.bullets => DescriptionBlockStyle.bullets,
-        },
-        spans: _spans(block.spans),
-        bullets: [for (final bullet in block.items) _spans(bullet.spans)],
-      );
-
-  List<DescriptionSpanData> _spans(List<DescriptionSpan> spans) => [
-        for (final span in spans)
-          DescriptionSpanData(text: span.text, bold: span.bold, italic: span.italic),
-      ];
-
-  /// `DescriptionView` ascunde singura blocurile fara text, dar titlul "Descriere"
-  /// e desenat de ecran — fara verificarea asta, o descriere formata doar din
-  /// blocuri goale ar lasa un titlu suspendat peste nimic.
-  bool _hasText(List<DescriptionBlockData> blocks) => blocks.any((block) =>
-      block.spans.any((span) => span.text.isNotEmpty) ||
-      block.bullets.any((bullet) => bullet.any((span) => span.text.isNotEmpty)));
 }
 
 /// Iconita desenata pentru fiecare valoare din lista fixa a Odoo. E rezerva: cand
@@ -506,21 +487,83 @@ class _Availability extends StatelessWidget {
   }
 }
 
-/// Butonul de cos, dezactivat pana la Faza 3 (cos + checkout). Textul de sub el
-/// spune de ce e dezactivat, ca sa nu para un buton stricat.
-class _CartButton extends StatelessWidget {
-  const _CartButton();
+/// Butonul de cos.
+///
+/// Cand produsul are tabel de variante, se adauga TOATE randurile cu cantitate mai
+/// mare ca zero, intr-o singura cerere - la fel ca pe site, unde tabelul se trimite
+/// dintr-o data. Pragurile de pret se aplica pe cantitatea cumulata a tabelului, deci
+/// randurile trimise separat ar putea fi pretuite altfel decat le-a vazut clientul.
+///
+/// Fara tabel (produs cu o singura varianta) se adauga o bucata din varianta curenta.
+class _CartButton extends ConsumerStatefulWidget {
+  const _CartButton({required this.state});
+
+  final ProductState state;
+
+  @override
+  ConsumerState<_CartButton> createState() => _CartButtonState();
+}
+
+class _CartButtonState extends ConsumerState<_CartButton> {
+  bool _sending = false;
+
+  /// Ce se trimite: randurile comandate din tabel, sau varianta curenta cu o bucata.
+  Map<int, int> get _lines {
+    final ordered = {
+      for (final entry in widget.state.quantities.entries)
+        if (entry.value > 0) entry.key: entry.value,
+    };
+    if (ordered.isNotEmpty) return ordered;
+    if (widget.state.detail.variantRows.isNotEmpty) return const {};
+    final variantId = widget.state.detail.variantId;
+    return variantId == null ? const {} : {variantId: 1};
+  }
+
+  Future<void> _add() async {
+    final lines = _lines;
+    if (lines.isEmpty) return;
+    setState(() => _sending = true);
+    try {
+      final warnings = await ref.read(cartControllerProvider.notifier).add(lines);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(warnings.isEmpty ? 'Adaugat in cos.' : warnings.join(' ')),
+        action: SnackBarAction(label: 'Vezi cosul', onPressed: () => context.go('/cart')),
+      ));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error is ApiException ? error.message : 'Nu s-a putut adauga in cos.'),
+      ));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final hasLines = _lines.isNotEmpty;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        FilledButton(onPressed: null, child: Text('Adauga in cos')),
-        SizedBox(height: 6),
-        Text('Disponibil la pasul urmator',
-            style: AppTypography.caption, textAlign: TextAlign.center),
+        FilledButton(
+          onPressed: hasLines && !_sending ? _add : null,
+          child: _sending
+              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Adauga in cos'),
+        ),
+        // Butonul dezactivat spune de ce e dezactivat, ca sa nu para stricat.
+        if (!hasLines) ...[
+          const SizedBox(height: 6),
+          Text(
+            widget.state.detail.variantRows.isNotEmpty
+                ? 'Alege cantitatea din tabel'
+                : 'Produsul nu se poate comanda acum',
+            style: AppTypography.caption,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ],
     );
   }

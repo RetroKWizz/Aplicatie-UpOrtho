@@ -1,0 +1,16 @@
+[
+  {
+    "id": 7001,
+    "name": "Cabinet Dentar Exemplu SRL",
+    "street": "Str. Exemplu 12",
+    "street2": null,
+    "city": "Cluj-Napoca",
+    "zip": "400001",
+    "state": "Cluj",
+    "country": "Romania",
+    "phone": "+40700000000",
+    "email": "cabinet@exemplu.ro",
+    "vat": "RO12345678",
+    "type": "contact"
+  }
+]

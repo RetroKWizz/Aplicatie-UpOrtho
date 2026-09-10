@@ -49,7 +49,12 @@ in app.
 Endpointuri curente: `POST /auth/login`, `POST /auth/logout`, `GET /me`, `GET /home`
 (banner + categorii rapide intr-un singur call), `GET /banners/<id>/image`,
 `GET /categories/<id>/icon` (rute de imagine autentificate), `POST /devices`,
-`DELETE /devices/<token>` (token FCM, pregatire push Faza 4).
+`DELETE /devices/<token>` (token FCM, pregatire push Faza 4), `GET /categories`,
+`GET /products`, `GET /products/<id>`, `POST /products/<id>/prices`, rutele de imagine
+si de document ale produsului, plus (Faza 3-4) `GET /cart`, `POST /cart/lines`,
+`GET /checkout`, `POST /checkout/address`, `POST /checkout/delivery`,
+`POST /checkout/confirm`, `GET /delivery-methods/<id>/logo`, `GET /orders`,
+`GET /orders/<id>`, `GET /invoices`, `GET /invoices/<id>/pdf`, `GET /addresses`.
 
 **Parametru de sistem, de setat la fiecare deploy**: `uportho_app.website_id`
 (Setari → Tehnic → Parametri de sistem) = id-ul website-ului magazinului
@@ -107,19 +112,68 @@ ghiceala): primary `#78449B`, secondary `#BA9FCC`, background `#F9FAFE`,
 text `#232F3E`. Accent `#F28C28` e o culoare functionala deliberata (oferte), nu vine
 de pe site.
 
-## Status curent — Faza 0-1 livrata
+## Cosul, checkout-ul si plata — cum sunt legate de Odoo
 
-- Modul Odoo `uportho_app`: 46 teste trecute.
-- Aplicatia Flutter: 80 teste trecute, `flutter analyze` curat. Login, restaurare
-  silentioasa a sesiunii la relansare, ecran Acasa (banner + categorii rapide din Odoo),
-  tab bar cu 4 taburi (doar Acasa e real in Faza 1).
+**Cosul aplicatiei E cosul magazinului.** Sesiunea aplicatiei e chiar sesiunea Odoo
+(acelasi cookie), iar modulul cheama `website.sale_get_order()` si
+`sale.order._cart_update()` — metodele prin care trece si `/shop/cart/update_json`.
+Ce adaugi in aplicatie apare in browser si invers. Nu exista un al doilea cos.
+
+**Nimic nu se recalculeaza in modul.** Curierii vin din
+`sale.order._get_delivery_methods()`, tariful din `carrier.rate_shipment()`, alegerea
+lui din `_set_delivery_method()`, metodele de plata din
+`payment.provider._get_compatible_providers()` + `payment.method._get_compatible_payment_methods()`.
+Asa trec automat si regulile clientului din `deltatech_website_delivery_and_payment`
+(providerii permisi de curier prin `acquirer_allowed_ids`, plafonul `value_limit`,
+restrictiile pe etichete de partener) si filtrul de greutate al curierilor.
+
+**Plata are doua drumuri**, dupa provider:
+- **offline** (`custom` = transfer bancar, `on_delivery` = ramburs): comanda se
+  incheie in aplicatie. Se creeaza tranzactia si se cheama
+  `_handle_notification_data(cod, {'reference': ...})` — exact ce fac rutele lor de
+  proces — apoi `tx._post_process()`. **Post-procesarea nu vine de la sine**: pe site o
+  declanseaza pagina `/payment/status`; fara ea comanda ramane ciorna si nimeni n-o
+  vede in Odoo.
+- **card** (Stripe): aplicatia deschide pagina de plata a magazinului
+  (`/shop/payment`) intr-un **WebView**, cu acelasi cookie de sesiune. In Odoo 18
+  formularul Stripe e **inline** (JavaScript in pagina), nu o redirectionare: nu exista
+  URL de plata care sa poata fi deschis altfel, iar datele cardului nu trec prin
+  aplicatie. WebView-ul se inchide cand URL-ul ajunge la `/shop/confirmation`.
+
+Ce provideri sunt "offline" se poate schimba fara release, prin parametrul de sistem
+`uportho_app.offline_payment_codes` (implicit `custom,on_delivery`).
+
+**Adrese noi nu se creeaza din aplicatie.** Formularul de adresa al magazinului e
+modificat de client (`terrabit_website_invoice_address`, `deltatech_website_city`: CUI
+validat, oras ca lista legata, nu text liber). Aplicatia alege dintre adresele
+existente ale contului; adaugarea unei adrese noi ramane in browser, ca sa nu existe
+doua validari care se pot contrazice.
+
+**Accesul B2B al temei inseamna "utilizator autentificat".**
+`website._dr_has_b2b_access()` din `droggol_theme_common` intoarce
+`not user.has_group('base.group_public')` cand B2B e pornit. Utilizatorii aplicatiei
+sunt mereu autentificati (`auth='user'`), deci au acces — la fel ca pe site. Atentie:
+acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
+
+## Status curent — Fazele 0-4 livrate (mai putin push-ul)
+
+- Modul Odoo `uportho_app`: 338 teste trecute.
+- Aplicatia Flutter: 312 teste trecute, `flutter analyze` curat. Login cu restaurare
+  silentioasa a sesiunii, Acasa, catalog cu cautare si paginare, pagina de produs
+  completa (galerie, tabele de pret, tabel de variante, brand, file, documente,
+  recenzii, produse similare), cos, checkout, plata, cont cu comenzi, facturi (PDF) si
+  adrese. Toate cele patru taburi sunt reale.
 - Contract JSON comun: `odoo/uportho_app/contract/*.json` e sursa de adevar, copiat in
   `app/test/contract/` prin `app/tool/sync_contract.sh` — o schimbare pe server care
   rupe aplicatia pica un test inainte de a ajunge in productie. Divergenta intre cele
   doua copii e prinsa de `app/test/contract_sync_test.dart` (compara byte cu byte);
   daca pica, ruleaza `app/tool/sync_contract.sh`.
-- Nu e facut inca: catalog/preturi (Faza 2), cos/checkout/plata (Faza 3), cont/comenzi/
-  facturi/push (Faza 4), lansare in store (Faza 5), migrare Odoo 19 (Faza 6).
+- Nu e facut inca: notificari push (partea de FCM din Faza 4 — modelul `uportho.app.device`
+  si rutele exista, trimiterea nu), lansare in store (Faza 5), migrare Odoo 19 (Faza 6).
+- Neverificat inca pe un Odoo real: **nicio comanda nu a fost trimisa pe staging sau pe
+  productie din aplicatie**. Tot ce e mai sus e verificat contra bazei locale Docker si
+  a codului clientului citit pe staging (read-only). O comanda de proba pe staging e
+  decizia lui Mihai, ceruta explicit de fiecare data.
 - Ramase, de decis doar de user: export Odoo Studio ca plasa de siguranta (plan Task 0.3),
   deploy pe odoo.sh (plan Task 1.9, sarit deliberat).
 - Ce a fost amanat constient (setari de dezvoltare de scos la lansare + datorie tehnica):

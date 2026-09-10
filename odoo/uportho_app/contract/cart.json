@@ -1,0 +1,104 @@
+{
+  "order_id": 5001,
+  "quantity": 11,
+  "lines": [
+    {
+      "id": 9001,
+      "product_id": 101,
+      "variant_id": 41868,
+      "name": "Bracket metalic Roth .022",
+      "variant_name": "Dinte: 11",
+      "default_code": "BR-ROTH-022",
+      "image_url": "/api/app/v1/products/101/image?unique=3a1f9c2",
+      "quantity": 4,
+      "unit_price": {
+        "amount": 70.00,
+        "currency": "RON",
+        "formatted": "70,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "subtotal": {
+        "amount": 280.00,
+        "currency": "RON",
+        "formatted": "280,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "warning": null
+    }
+  ],
+  "amounts": {
+    "untaxed": {
+      "amount": 235.29,
+      "currency": "RON",
+      "formatted": "235,29 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "tax": {
+      "amount": 44.71,
+      "currency": "RON",
+      "formatted": "44,71 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "delivery": {
+      "amount": 0.00,
+      "currency": "RON",
+      "formatted": "0,00 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "total": {
+      "amount": 280.00,
+      "currency": "RON",
+      "formatted": "280,00 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    }
+  },
+  "free_delivery": {
+    "free_over": {
+      "amount": 500.00,
+      "currency": "RON",
+      "formatted": "500,00 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "order_amount": {
+      "amount": 280.00,
+      "currency": "RON",
+      "formatted": "280,00 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "remaining": {
+      "amount": 220.00,
+      "currency": "RON",
+      "formatted": "220,00 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "reached": false
+  },
+  "warning": null
+}

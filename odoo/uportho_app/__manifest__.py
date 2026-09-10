@@ -4,7 +4,7 @@
     'summary': 'API JSON /api/app/v1 pentru aplicatia mobila UpOrtho (iOS + Android)',
     'category': 'Website/eCommerce',
     'license': 'LGPL-3',
-    'depends': ['website_sale', 'sale', 'product', 'portal'],
+    'depends': ['website_sale', 'sale', 'product', 'portal', 'delivery', 'payment_custom'],
     'data': [
         'security/ir.model.access.csv',
         'views/app_banner_views.xml',

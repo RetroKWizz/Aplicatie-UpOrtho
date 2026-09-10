@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'api/models/checkout.dart';
+import 'features/account/account_screen.dart';
+import 'features/account/invoices_screen.dart';
+import 'features/account/order_detail_screen.dart';
+import 'features/account/orders_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
+import 'features/cart/cart_screen.dart';
 import 'features/catalog/catalog_screen.dart';
+import 'features/checkout/checkout_screen.dart';
+import 'features/checkout/order_confirmed_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/product/product_screen.dart';
 import 'features/shell/shell_screen.dart';
@@ -62,8 +70,55 @@ final routerProvider = Provider<GoRouter>((ref) {
               ],
             ),
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: '/cart', builder: (_, _) => const PlaceholderScreen('Cos'))]),
-          StatefulShellBranch(routes: [GoRoute(path: '/account', builder: (_, _) => const PlaceholderScreen('Cont'))]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/cart',
+              builder: (_, _) => const CartScreen(),
+              routes: [
+                // Checkout-ul si confirmarea raman in tabul "Cos": butonul de inapoi
+                // duce la cos, nu la Acasa, iar bara de jos nu dispare.
+                GoRoute(path: 'checkout', builder: (_, _) => const CheckoutScreen()),
+                GoRoute(
+                  path: 'confirmed/:id',
+                  redirect: (_, state) =>
+                      int.tryParse(state.pathParameters['id'] ?? '') == null ? '/cart' : null,
+                  builder: (_, state) => OrderConfirmedScreen(
+                    orderId: int.parse(state.pathParameters['id']!),
+                    // `extra` poarta doar instructiunile de plata offline, care nu
+                    // sunt un camp al comenzii. Ecranul citeste comanda de la server,
+                    // deci un `extra` pierdut (deep link, reintrare) nu-l strica.
+                    confirmation: state.extra is CheckoutConfirmation
+                        ? state.extra! as CheckoutConfirmation
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/account',
+              builder: (_, _) => const AccountScreen(),
+              routes: [
+                GoRoute(
+                  path: 'orders',
+                  builder: (_, _) => const OrdersScreen(),
+                  routes: [
+                    GoRoute(
+                      path: ':id',
+                      redirect: (_, state) =>
+                          int.tryParse(state.pathParameters['id'] ?? '') == null
+                              ? '/account/orders'
+                              : null,
+                      builder: (_, state) =>
+                          OrderDetailScreen(orderId: int.parse(state.pathParameters['id']!)),
+                    ),
+                  ],
+                ),
+                GoRoute(path: 'invoices', builder: (_, _) => const InvoicesScreen()),
+              ],
+            ),
+          ]),
         ],
       ),
     ],

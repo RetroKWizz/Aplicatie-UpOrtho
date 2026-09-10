@@ -1,0 +1,36 @@
+{
+  "invoices": [
+    {
+      "id": 8001,
+      "name": "FACT/2026/0042",
+      "date": "2026-09-01",
+      "due_date": "2026-09-15",
+      "state": "posted",
+      "state_label": "Emisa",
+      "payment_state": "not_paid",
+      "payment_state_label": "Neplatita",
+      "total": {
+        "amount": 333.2,
+        "currency": "RON",
+        "formatted": "333,20 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "residual": {
+        "amount": 333.2,
+        "currency": "RON",
+        "formatted": "333,20 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "pdf_url": "/api/app/v1/invoices/8001/pdf"
+    }
+  ],
+  "total": 1,
+  "offset": 0,
+  "limit": 20
+}

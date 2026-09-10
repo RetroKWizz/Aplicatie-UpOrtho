@@ -135,6 +135,23 @@ Map<String, dynamic> priceTableJson({
 }) =>
     {'title': title, 'note': note, 'entries': entries};
 
+/// Raspunsul cosului, in forma de contract. Ecranul de produs nu il deseneaza; ii
+/// trebuie doar ca `POST /cart/lines` sa poata fi decodat.
+Map<String, dynamic> cartJson({int quantity = 0}) => {
+      'order_id': 5001,
+      'quantity': quantity,
+      'lines': <Map<String, dynamic>>[],
+      'amounts': {
+        'untaxed': priceJson(amount: 0, formatted: '0,00 lei'),
+        'tax': priceJson(amount: 0, formatted: '0,00 lei'),
+        'delivery': priceJson(amount: 0, formatted: '0,00 lei'),
+        'total': priceJson(amount: 0, formatted: '0,00 lei'),
+      },
+      'free_delivery': null,
+      'warning': null,
+      'warnings': <String>[],
+    };
+
 Map<String, dynamic> tierJson(int minQty, String label, Map<String, dynamic> price) =>
     {'min_qty': minQty, 'label': label, 'price': price};
 
@@ -334,15 +351,73 @@ void main() {
     expect(find.text('Cleste Tie Back mic Ixion'), findsOneWidget);
   });
 
-  testWidgets('butonul de cos e dezactivat si spune ca vine la pasul urmator', (tester) async {
+  testWidgets('fara varianta rezolvata, butonul de cos e dezactivat si spune de ce', (tester) async {
+    // Produsul din acest fixture vine cu `variant_id: null` - serverul n-a rezolvat
+    // nicio varianta, deci n-ar avea ce trimite in cos.
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/products/101', ApiResponse(status: 200, json: bareProductJson()));
 
     await pumpProduct(tester, transport: transport);
 
     final button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Adauga in cos'));
-    expect(button.onPressed, isNull, reason: 'cosul vine in Faza 3');
-    expect(find.text('Disponibil la pasul urmator'), findsOneWidget);
+    expect(button.onPressed, isNull);
+    expect(find.text('Produsul nu se poate comanda acum'), findsOneWidget);
+  });
+
+  testWidgets('cu o varianta rezolvata, butonul adauga o bucata in cos', (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: {...bareProductJson(), 'variant_id': 4242}));
+    transport.when('POST', '/api/app/v1/cart/lines',
+        ApiResponse(status: 200, json: cartJson(quantity: 1)));
+
+    await pumpProduct(tester, transport: transport);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Adauga in cos'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final call = transport.calls.firstWhere((c) => c.path == '/api/app/v1/cart/lines');
+    expect(call.body, {
+      'lines': [
+        {'variant_id': 4242, 'add_qty': 1}
+      ]
+    });
+  });
+
+  testWidgets('cu tabel de variante, butonul trimite toate randurile comandate deodata',
+      (tester) async {
+    // Pragurile de pret se aplica pe cantitatea CUMULATA a tabelului: randurile
+    // trimise in cereri separate s-ar putea pretui altfel decat le-a vazut clientul.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+    transport.when('POST', '/api/app/v1/products/101/prices',
+        ApiResponse(status: 200, json: {'lines': <Map<String, dynamic>>[], 'total': priceJson()}));
+    transport.when('POST', '/api/app/v1/cart/lines',
+        ApiResponse(status: 200, json: cartJson(quantity: 3)));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    // Doua bucati pe primul rand, una pe al doilea.
+    await tester.tap(find.byIcon(Icons.add).at(0));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.add).at(0));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.add).at(1));
+    await tester.pump(quantityDebounce + const Duration(milliseconds: 50));
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Adauga in cos'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final call = transport.calls.firstWhere((c) => c.path == '/api/app/v1/cart/lines');
+    expect(call.body, {
+      'lines': [
+        {'variant_id': 501, 'add_qty': 2},
+        {'variant_id': 502, 'add_qty': 1},
+      ]
+    });
   });
 
   testWidgets('galeria primeste URL-uri absolute si cookie-ul de sesiune', (tester) async {

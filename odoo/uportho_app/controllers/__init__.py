@@ -4,3 +4,6 @@ from . import home
 from . import devices
 from . import catalog
 from . import product
+from . import cart
+from . import checkout
+from . import account

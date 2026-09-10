@@ -1,0 +1,164 @@
+{
+  "id": 5001,
+  "name": "S12345",
+  "date": "2026-09-01",
+  "state": "sale",
+  "state_label": "Confirmata",
+  "total": {
+    "amount": 304.99,
+    "currency": "RON",
+    "formatted": "304,99 lei",
+    "with_vat": true,
+    "list_amount": null,
+    "list_formatted": null,
+    "discount_pct": null
+  },
+  "line_count": 2,
+  "delivery_method": "Fan Courier",
+  "invoice_count": 1,
+  "lines": [
+    {
+      "id": 9001,
+      "product_id": 101,
+      "variant_id": 41868,
+      "name": "Bracket metalic Roth .022",
+      "variant_name": "Dinte: 11",
+      "default_code": "BR-ROTH-022",
+      "image_url": "/api/app/v1/products/101/image?unique=3a1f9c2",
+      "quantity": 4,
+      "unit_price": {
+        "amount": 70.0,
+        "currency": "RON",
+        "formatted": "70,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "subtotal": {
+        "amount": 280.0,
+        "currency": "RON",
+        "formatted": "280,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "warning": null
+    }
+  ],
+  "amounts": {
+    "untaxed": {
+      "amount": 235.29,
+      "currency": "RON",
+      "formatted": "235,29 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "tax": {
+      "amount": 44.71,
+      "currency": "RON",
+      "formatted": "44,71 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "delivery": {
+      "amount": 0.0,
+      "currency": "RON",
+      "formatted": "0,00 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    },
+    "total": {
+      "amount": 280.0,
+      "currency": "RON",
+      "formatted": "280,00 lei",
+      "with_vat": true,
+      "list_amount": null,
+      "list_formatted": null,
+      "discount_pct": null
+    }
+  },
+  "delivery_address": {
+    "id": 7001,
+    "name": "Cabinet Dentar Exemplu SRL",
+    "street": "Str. Exemplu 12",
+    "street2": null,
+    "city": "Cluj-Napoca",
+    "zip": "400001",
+    "state": "Cluj",
+    "country": "Romania",
+    "phone": "+40700000000",
+    "email": "cabinet@exemplu.ro",
+    "vat": "RO12345678",
+    "type": "contact"
+  },
+  "invoice_address": {
+    "id": 7001,
+    "name": "Cabinet Dentar Exemplu SRL",
+    "street": "Str. Exemplu 12",
+    "street2": null,
+    "city": "Cluj-Napoca",
+    "zip": "400001",
+    "state": "Cluj",
+    "country": "Romania",
+    "phone": "+40700000000",
+    "email": "cabinet@exemplu.ro",
+    "vat": "RO12345678",
+    "type": "contact"
+  },
+  "client_order_ref": null,
+  "invoices": [
+    {
+      "id": 8001,
+      "name": "FACT/2026/0042",
+      "date": "2026-09-01",
+      "due_date": "2026-09-15",
+      "state": "posted",
+      "state_label": "Emisa",
+      "payment_state": "not_paid",
+      "payment_state_label": "Neplatita",
+      "total": {
+        "amount": 333.2,
+        "currency": "RON",
+        "formatted": "333,20 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "residual": {
+        "amount": 333.2,
+        "currency": "RON",
+        "formatted": "333,20 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "pdf_url": "/api/app/v1/invoices/8001/pdf"
+    }
+  ],
+  "payments": [
+    {
+      "reference": "S12345-1",
+      "provider": "Transfer bancar/OP",
+      "state": "pending",
+      "amount": {
+        "amount": 304.99,
+        "currency": "RON",
+        "formatted": "304,99 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      }
+    }
+  ]
+}

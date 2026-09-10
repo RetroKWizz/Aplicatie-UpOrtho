@@ -27,6 +27,8 @@ class FakeTransport implements ApiTransport {
   final Map<String, ApiResponse> _downloadResponses = {};
   final Map<String, List<int>> _downloadBytes = {};
   final Map<String, Completer<void>> _downloadGates = {};
+  final Set<String> _downloadsWithoutFile = {};
+  final Map<String, Completer<void>> _gates = {};
 
   /// Ce "serveste" transportul la o descarcare de pe `url`: codul HTTP (plus
   /// eventualul corp de eroare) si, la succes, octetii care ajung pe disc — exact
@@ -34,19 +36,33 @@ class FakeTransport implements ApiTransport {
   ///
   /// `gate`, cand e dat, tine descarcarea in aer pana e completat: asa poate un
   /// test sa apese a doua oara exact cat timp prima cerere inca nu a raspuns.
+  /// `writeFile: false` opreste scrierea pe disc. E necesar in testele de WIDGET:
+  /// ele ruleaza intr-o zona de timp fals, in care o operatie reala de fisier nu se
+  /// mai termina niciodata, iar testul ar astepta la infinit fara sa spuna de ce.
+  /// Testele obisnuite (`test()`) lasa scrierea pornita, ca sa verifice si calea.
   void whenDownload(
     String url, {
     ApiResponse response = const ApiResponse(status: 200),
     List<int> bytes = const [],
     Completer<void>? gate,
+    bool writeFile = true,
   }) {
     _downloadResponses[url] = response;
     _downloadBytes[url] = bytes;
     if (gate != null) _downloadGates[url] = gate;
+    if (!writeFile) _downloadsWithoutFile.add(url);
   }
 
   void when(String method, String path, ApiResponse response) {
     responses['$method $path'] = response;
+  }
+
+  /// Ca `when`, dar tine raspunsul in aer pana cand `gate` e completat: asa poate
+  /// un test sa se uite la ecran EXACT cat timp cererea inca nu a raspuns (butoane
+  /// inactive, indicator de lucru).
+  void whenDelayed(String method, String path, ApiResponse response, Completer<void> gate) {
+    responses['$method $path'] = response;
+    _gates['$method $path'] = gate;
   }
 
   /// Inregistreaza un esec pentru (metoda, cale): send() arunca `error` in loc
@@ -68,6 +84,8 @@ class FakeTransport implements ApiTransport {
     if (response == null) {
       throw StateError('Fara raspuns inregistrat pentru $method $path');
     }
+    final gate = _gates[key];
+    if (gate != null) await gate.future;
     return response;
   }
 
@@ -82,7 +100,7 @@ class FakeTransport implements ApiTransport {
     }
     final gate = _downloadGates[url];
     if (gate != null) await gate.future;
-    if (response.status >= 200 && response.status < 300) {
+    if (response.status >= 200 && response.status < 300 && !_downloadsWithoutFile.contains(url)) {
       // Fisierul chiar apare pe disc, ca la transportul real: testele verifica
       // apoi ca vizualizatorului i se da o cale existenta, nu un sir inventat.
       final file = File(savePath);

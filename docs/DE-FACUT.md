@@ -183,3 +183,44 @@ amanate mai mult, cu momentul potrivit notat la fiecare.
   plus stergerea explicita a cheii la prima pornire dupa instalare, marcata intr-un store
   care **nu** supravietuieste dezinstalarii (ex. `shared_preferences`, care ar trebui
   adaugat ca dependinta — acum nu e).
+
+### 8. Adresele noi se adauga doar de pe site, nu din aplicatie
+
+- **Unde**: `odoo/uportho_app/controllers/checkout.py` (`POST /checkout/address` accepta
+  doar `delivery_id` / `invoice_id` dintre adresele existente) si
+  `app/lib/features/checkout/checkout_screen.dart`.
+- **Ce este**: clientul poate alege intre adresele deja salvate pe contul lui, dar nu poate
+  adauga una noua din aplicatie. Textul de sub selector spune asta explicit.
+- **De ce a fost amanat**: formularul de adresa al magazinului e modificat de client
+  (`terrabit_website_invoice_address` — validare de CUI si adresa de facturare separata;
+  `deltatech_website_city` — orasul e camp legat, ales dintr-o lista, nu text liber). O a
+  doua validare, scrisa de noi, s-ar putea contrazice cu a lor exact la clientii pe care
+  contabilitatea ii verifica.
+- **Cand**: cand un client real se plange. Solutia corecta e sa chemam validarea lor
+  (`WebsiteSale._validate_address_values`), nu sa scriem alta.
+
+### 9. Plata cu cardul se face in pagina magazinului, nu nativ
+
+- **Unde**: `app/lib/features/checkout/payment_webview_screen.dart`, dependinta
+  `webview_flutter`.
+- **Ce este**: la plata cu cardul, aplicatia deschide `/shop/payment` intr-un WebView cu
+  aceeasi sesiune. Ecranul nu arata designul aplicatiei, ci al site-ului.
+- **De ce**: in Odoo 18 formularul Stripe e **inline** (JavaScript in pagina), nu o
+  redirectionare catre o adresa a providerului. Nu exista URL de plata care sa poata fi
+  deschis altfel, iar datele cardului nu au voie sa treaca prin aplicatie. Reprodus nativ,
+  ar insemna sa integram Stripe SDK separat si sa tinem doua integrari de plata in
+  paralel — exact ce evita tot modulul.
+- **Cand**: doar daca Apple/Google Pay intra in scope (spec 9, v1.1). Atunci se verifica
+  intai ce suporta providerul configurat.
+
+### 10. Idempotenta la trimiterea comenzii nu e implementata
+
+- **Unde**: `POST /checkout/confirm`.
+- **Ce este**: spec-ul initial cerea o cheie `idempotency_key` unica pe `sale.order`, ca a
+  doua apasare pe "Trimite comanda" sa intoarca aceeasi comanda in loc sa creeze alta.
+- **Ce exista in loc**: butonul e inactiv cat timp cererea e in aer, iar serverul refuza un
+  cos care nu mai e ciorna (409 `cart_not_editable`) si o comanda deja platita (verificarea
+  lui `_check_cart_is_ready_to_be_paid` plus `amount_paid`). Odoo insusi trateaza a doua
+  tranzactie pe aceeasi comanda.
+- **Cand**: daca apar comenzi duplicate reale in Odoo. Atunci se adauga campul si indexul
+  unic, nu inainte — un camp nou pe `sale.order` se propaga in baza clientului.

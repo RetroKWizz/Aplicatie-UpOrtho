@@ -9,3 +9,6 @@ from . import test_controllers_home
 from . import test_controllers_devices
 from . import test_controllers_catalog
 from . import test_controllers_product
+from . import test_controllers_cart
+from . import test_controllers_checkout
+from . import test_controllers_account

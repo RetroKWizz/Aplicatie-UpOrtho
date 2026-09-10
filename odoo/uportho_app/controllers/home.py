@@ -27,10 +27,24 @@ def _bind_website_context(website):
 
     `website_id` in context e chiar cheia pe care `get_current_website()` o citeste
     prima, dupa `force_website_id` din sesiune - de aceea legarea se face asa si nu
-    prin altceva."""
-    if website and request.env.context.get('website_id') != website.id:
+    prin altceva.
+
+    Inregistrarea intoarsa e RE-LEGATA la mediul nou (`with_env(request.env)`).
+    `request.update_context` construieste un `request.env` nou; recordul citit inainte
+    ramane insa pe mediul vechi, fara `website_id`. Cine primeste website-ul si cheama
+    mai departe cod Odoo pe `website.env` - `website.sale_get_order()`, care ajunge la
+    cautarea curierilor dupa `website_published` - ar lucra atunci intr-un context fara
+    website si ar vedea curierii publicati pe ORICE website al bazei. S-a intamplat:
+    checkout-ul aplicatiei arata si un curier al altui site."""
+    if not website:
+        return website
+    if request.env.context.get('website_id') != website.id:
         request.update_context(website_id=website.id)
-    return website
+    # `sudo` se pastreaza asa cum era: `with_env` schimba mediul cu totul, iar
+    # apelantii primesc website-ul in sudo (campurile lui nu sunt neaparat citibile
+    # de un utilizator portal). `su` nu schimba utilizatorul cererii, doar sare peste
+    # verificarile de acces - de aceea cosul creat mai jos ramane al clientului.
+    return website.with_env(request.env).sudo(website.env.su)
 
 
 def _current_website():

@@ -1,0 +1,26 @@
+{
+  "orders": [
+    {
+      "id": 5001,
+      "name": "S12345",
+      "date": "2026-09-01",
+      "state": "sale",
+      "state_label": "Confirmata",
+      "total": {
+        "amount": 304.99,
+        "currency": "RON",
+        "formatted": "304,99 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "line_count": 2,
+      "delivery_method": "Fan Courier",
+      "invoice_count": 1
+    }
+  ],
+  "total": 1,
+  "offset": 0,
+  "limit": 20
+}

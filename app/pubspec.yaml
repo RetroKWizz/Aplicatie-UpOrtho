@@ -44,6 +44,12 @@ dependencies:
   url_launcher: ^6.3.2
   open_filex: ^4.7.0
   path_provider: ^2.1.6
+  # Plata cu cardul se face in pagina de plata a magazinului, deschisa intr-un
+  # WebView cu aceeasi sesiune. In Odoo 18 formularul de card (Stripe) e inline -
+  # JavaScript in pagina, nu o redirectionare - deci nu exista URL de plata care
+  # sa poata fi deschis altfel, iar datele cardului nu au voie sa treaca prin
+  # aplicatie. Un browser extern nu ar avea sesiunea si ar arata un cos gol.
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:

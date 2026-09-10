@@ -1,0 +1,21 @@
+{
+  "order_id": 5001,
+  "order_ref": "S12345",
+  "payment": {
+    "kind": "offline",
+    "method": "Transfer bancar",
+    "instructions": [
+      {
+        "type": "paragraph",
+        "spans": [
+          {
+            "text": "Plata se face in contul RO00 XXXX.",
+            "bold": false,
+            "italic": false
+          }
+        ]
+      }
+    ],
+    "reference": "S12345-1"
+  }
+}
