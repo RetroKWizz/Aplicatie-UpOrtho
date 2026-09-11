@@ -305,6 +305,11 @@ odoo-update uportho_app                            # reporneste si actualizeaza 
 `uportho_app.tar.gz` din radacina repo-ului e chiar arhiva de desfasurare; se
 regenereaza cu `tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' uportho_app`.
 
+**Reteta completa de refacere — `docs/STAGING.md`**, sectiunea "Cum se reface, de la
+zero, dupa ce build-ul dispare": modul, parametri de sistem, contul de test si adresa
+lui, providerul de plata, reparatia din tema, verificarea rutelor si proba de comanda
+de la login pana la confirmare. Se citeste inainte de orice re-desfasurare.
+
 **Copia e temporara.** `~/src/user` e checkout-ul repo-ului lor; la primul build al
 ramurii de staging (adica la primul push facut de Terrabit) fisierele copiate manual
 dispar. Pentru ceva permanent, modulul trebuie sa intre in repo-ul lor.
