@@ -6,7 +6,7 @@ import '../../api/models/address_options.dart';
 import '../../design_system/colors.dart';
 import 'account_controller.dart';
 
-/// Adresa noua: livrare sau facturare.
+/// Adresa: una noua (livrare sau facturare) sau modificarea uneia existente.
 ///
 /// Ecranul nu decide singur ce e obligatoriu. Lista de campuri cerute vine de la
 /// server (`/addresses/options`), pentru ca acolo traiesc regulile magazinului si ale
@@ -15,10 +15,13 @@ import 'account_controller.dart';
 /// validarea o face tot serverul si intoarce lista campurilor gresite, pe care ecranul
 /// le marcheaza unul cate unul.
 class AddressFormScreen extends ConsumerStatefulWidget {
-  const AddressFormScreen({super.key, required this.kind});
+  const AddressFormScreen({super.key, required this.kind, this.addressId});
 
   /// `delivery` sau `invoice`.
   final String kind;
+
+  /// Adresa de modificat; null inseamna adresa noua.
+  final int? addressId;
 
   @override
   ConsumerState<AddressFormScreen> createState() => _AddressFormScreenState();
@@ -38,6 +41,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   };
 
   AddressOptions? _options;
+  AddressFormValues? _existing;
   int? _countryId;
   int? _stateId;
   int? _cityId;
@@ -46,7 +50,8 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   String? _error;
   Set<String> _badFields = {};
 
-  bool get _isInvoice => widget.kind == 'invoice';
+  bool get _isInvoice => (_existing?.kind ?? widget.kind) == 'invoice';
+  bool get _isEdit => widget.addressId != null;
 
   List<String> get _required => _options == null
       ? const []
@@ -55,7 +60,41 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(_loadOptions);
+    Future.microtask(_load);
+  }
+
+  /// La editare se cere intai adresa, ca listele de judete si orase sa fie aduse
+  /// pentru tara ei, nu pentru cea implicita.
+  Future<void> _load() async {
+    final id = widget.addressId;
+    if (id == null) {
+      await _loadOptions();
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final address = await ref.read(accountRepositoryProvider).fetchAddress(id);
+      if (!mounted) return;
+      _existing = address;
+      _controllers['name']!.text = address.name ?? '';
+      _controllers['street']!.text = address.street ?? '';
+      _controllers['street2']!.text = address.street2 ?? '';
+      _controllers['zip']!.text = address.zip ?? '';
+      _controllers['phone']!.text = address.phone ?? '';
+      _controllers['email']!.text = address.email ?? '';
+      _controllers['company_name']!.text = address.companyName ?? '';
+      _controllers['vat']!.text = address.vat ?? '';
+      _controllers['city']!.text = address.city ?? '';
+      await _loadOptions(countryId: address.countryId, stateId: address.stateId);
+      if (!mounted) return;
+      setState(() => _cityId = address.cityId);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error is ApiException ? error.message : 'Adresa nu s-a putut incarca.';
+      });
+    }
   }
 
   @override
@@ -107,9 +146,13 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
       if (_cityId != null) 'city_id': _cityId,
     };
     try {
-      await ref
-          .read(accountRepositoryProvider)
-          .createAddress(kind: widget.kind, values: values);
+      final repository = ref.read(accountRepositoryProvider);
+      final id = widget.addressId;
+      if (id == null) {
+        await repository.createAddress(kind: widget.kind, values: values);
+      } else {
+        await repository.updateAddress(id: id, values: values);
+      }
       // Lista de adrese e citita de mai multe ecrane (cont, checkout): se invalideaza,
       // nu se scrie peste, ca fiecare sa o ceara la urmatoarea afisare.
       ref.invalidate(addressesProvider);
@@ -136,12 +179,14 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isInvoice ? 'Adresa de facturare' : 'Adresa de livrare'),
+        title: Text(_isEdit
+            ? 'Modifica adresa'
+            : (_isInvoice ? 'Adresa de facturare' : 'Adresa de livrare')),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _options == null
-              ? _ErrorView(message: _error ?? 'Formularul nu s-a putut incarca.', onRetry: _loadOptions)
+              ? _ErrorView(message: _error ?? 'Formularul nu s-a putut incarca.', onRetry: _load)
               : _buildForm(),
     );
   }
@@ -151,12 +196,23 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _field('name', 'Nume'),
+        _field('name', 'Nume', locked: _existing?.canEditName == false),
         if (_isInvoice) ...[
           _field('company_name', 'Nume firma'),
           _field('vat', 'Cod fiscal (CUI)',
-              helper: 'Obligatoriu daca ai completat numele firmei.'),
+              helper: 'Obligatoriu daca ai completat numele firmei.',
+              locked: _existing?.canEditVat == false),
         ],
+        if (_existing case final AddressFormValues existing)
+          if (!existing.canEditName || !existing.canEditVat)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Numele si codul fiscal nu mai pot fi schimbate dupa emiterea '
+                'facturilor. Pentru o corectie, contacteaza-ne.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+            ),
         _field('street', 'Strada si numarul'),
         _field('street2', 'Detalii (bloc, scara, apartament)'),
         _countryPicker(options),
@@ -174,26 +230,27 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           onPressed: _saving ? null : _save,
           child: _saving
               ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Salveaza adresa'),
+              : Text(_isEdit ? 'Salveaza modificarile' : 'Salveaza adresa'),
         ),
       ],
     );
   }
 
   Widget _field(String name, String label,
-      {TextInputType? keyboard, String? helper}) {
+      {TextInputType? keyboard, String? helper, bool locked = false}) {
     final required = _required.contains(name);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: _controllers[name],
         keyboardType: keyboard,
+        enabled: !locked,
         decoration: InputDecoration(
           labelText: required ? '$label *' : label,
           helperText: helper,
           errorText: _badFields.contains(name) ? 'Verifica acest camp' : null,
           filled: true,
-          fillColor: AppColors.surface,
+          fillColor: locked ? AppColors.background : AppColors.surface,
           border: const OutlineInputBorder(),
         ),
       ),

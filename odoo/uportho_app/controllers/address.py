@@ -67,6 +67,59 @@ def _serialize_country(country):
     }
 
 
+def _editable_partner(partner_id):
+    """Adresa pe care contul chiar are voie sa o modifice, sau 404.
+
+    Multimea e aceeasi cu cea pe care aplicatia o afiseaza (`_account_addresses`):
+    partenerul comercial, copiii lui si partenerii cu `access_for_user_id`. Un id din
+    afara ei nu primeste 403, ci 404 - un client nu trebuie sa afle, incercand id-uri,
+    ca o adresa exista."""
+    partner = _account_addresses().filtered(lambda p: p.id == partner_id)
+    if not partner:
+        raise ApiError(404, 'not_found', 'Adresa nu exista.')
+    return partner
+
+
+def _address_kind(partner):
+    """Tipul adresei in vocabularul magazinului. Un contact de facturare e 'billing';
+    orice altceva (livrare, altul, chiar si partenerul principal) intra pe drumul de
+    'delivery' doar daca asa e marcat - partenerul principal e adresa de facturare a
+    contului, la fel ca in checkout-ul lor."""
+    return 'delivery' if partner.type == 'delivery' else 'billing'
+
+
+def serialize_address_values(partner):
+    """Adresa in forma ceruta de formular: id-uri, nu nume.
+
+    Ecranul de editare are nevoie de `state_id`, `country_id` si `city_id` ca sa
+    pre-selecteze listele; `serialize_address` da numele, bune de afisat, dar nu de
+    pus intr-un formular."""
+    partner = partner.sudo()
+    values = {
+        'id': partner.id,
+        'kind': 'invoice' if _address_kind(partner) == 'billing' else 'delivery',
+        'name': partner.name or None,
+        'street': partner.street or None,
+        'street2': partner.street2 or None,
+        'city': partner.city or None,
+        'city_id': None,
+        'zip': partner.zip or None,
+        'state_id': partner.state_id.id or None,
+        'country_id': partner.country_id.id or None,
+        'phone': partner.phone or None,
+        'email': partner.email or None,
+        'vat': partner.vat or None,
+        'company_name': partner.commercial_company_name or None,
+        # Numele si codul fiscal se blocheaza dupa emiterea documentelor contabile -
+        # chiar regulile magazinului, ca ecranul sa nu lase clientul sa scrie degeaba.
+        'can_edit_name': partner._can_edit_name(),
+        'can_edit_vat': partner.can_edit_vat(),
+    }
+    if 'city_id' in partner._fields and partner.city_id:
+        values['city_id'] = partner.city_id.id
+    return values
+
+
 class AppAddress(WebsiteSale):
     """Adresele contului: ce cere formularul si adaugarea unei adrese noi.
 
@@ -175,6 +228,52 @@ class AppAddress(WebsiteSale):
             'parent_id': commercial.id if commercial.active else False,
         })
         partner = Partner.with_context(tracking_disable=True).create(values)
+
+        return json_ok({
+            'address': serialize_address(partner),
+            'addresses': [serialize_address(p) for p in _account_addresses()],
+        })
+
+    @app_route('/addresses/<int:partner_id>', methods=['GET'])
+    def address(self, partner_id, **kw):
+        """O adresa a contului, cu id-urile de tara, judet si oras, pentru formular."""
+        return json_ok({'address': serialize_address_values(_editable_partner(partner_id))})
+
+    @app_route('/addresses/<int:partner_id>', methods=['POST'])
+    def update_address(self, partner_id, **kw):
+        """Modifica o adresa existenta: `{"values": {...}}`.
+
+        Acelasi drum ca la adaugare: validarea e a magazinului, chemata cu partenerul
+        existent ca al doilea argument - asa intra in joc si regulile pe care ei le au
+        doar la editare (numele nu se mai schimba dupa emiterea facturilor, emailul la
+        fel, CUI-ul blocat). `kind` nu se trimite: tipul adresei e cel pe care il are
+        deja inregistrarea, ca in magazin."""
+        body = read_json_body()
+        partner = _editable_partner(partner_id)
+        values = _parse_values(body.get('values'))
+        address_type = _address_kind(partner)
+        is_main_address = partner == _partner_of_account()
+
+        invalid, missing, messages = self._validate_address_values(
+            values,
+            partner.sudo(),
+            address_type,
+            False,
+            '',
+            is_main_address=is_main_address,
+        )
+        if messages:
+            raise ApiError(
+                422, 'invalid_address',
+                ' '.join(messages),
+                {'fields': sorted(set(invalid) | set(missing))})
+
+        write_values = dict(values)
+        # Ca in magazin: pe un contact-copil nu se scrie numele firmei, altfel legatura
+        # cu partenerul parinte dispare din interfata Odoo.
+        if partner.parent_id:
+            write_values.pop('company_name', None)
+        partner.sudo().write(write_values)
 
         return json_ok({
             'address': serialize_address(partner),

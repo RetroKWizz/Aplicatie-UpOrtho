@@ -8,6 +8,8 @@ import '../../design_system/colors.dart';
 import '../auth/auth_controller.dart';
 import 'account_controller.dart';
 import 'address_form_screen.dart';
+import 'favorites_screen.dart';
+import 'password_screen.dart';
 import 'profile_screen.dart';
 
 /// Ecranul "Contul meu": cine e conectat, comenzile recente, facturile si adresele.
@@ -37,6 +39,28 @@ class AccountScreen extends ConsumerWidget {
                   MaterialPageRoute(builder: (_) => const ProfileScreen()),
                 ),
               ),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.favorite_border, color: AppColors.primary),
+                    title: const Text('Favorite'),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.lock_outline, color: AppColors.primary),
+                    title: const Text('Schimba parola'),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PasswordScreen()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             _LoyaltyCards(),
             const SizedBox(height: 16),
@@ -286,14 +310,17 @@ class _Addresses extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 title: Text(address.name),
                 subtitle: address.oneLine.isEmpty ? null : Text(address.oneLine),
+                trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                onTap: () async {
+                  await Navigator.of(context).push<bool>(MaterialPageRoute(
+                    builder: (_) => AddressFormScreen(
+                      kind: address.type == 'invoice' ? 'invoice' : 'delivery',
+                      addressId: address.id,
+                    ),
+                  ));
+                  ref.invalidate(addressesProvider);
+                },
               ),
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text(
-                'Adresele existente se modifica din contul de pe uportho.ro.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-            ),
           ],
         ),
       ),

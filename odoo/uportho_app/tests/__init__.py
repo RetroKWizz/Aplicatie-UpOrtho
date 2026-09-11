@@ -14,3 +14,4 @@ from . import test_controllers_checkout
 from . import test_controllers_account
 from . import test_controllers_address
 from . import test_controllers_profile
+from . import test_controllers_favorite

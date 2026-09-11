@@ -152,3 +152,68 @@ class TestControllersAddress(AppHttpCase):
         response = self.api_post(
             '/addresses', {'kind': 'delivery', 'values': self._values()}, with_header=False)
         self.assertEqual(response.status_code, 403)
+
+    # --- editarea unei adrese existente ---------------------------------------
+
+    def _create_address(self, **overrides):
+        body = self.api_post(
+            '/addresses', {'kind': 'delivery', 'values': self._values(**overrides)}).json()
+        return self.env['res.partner'].browse(body['address']['id'])
+
+    def test_reading_one_address_gives_the_ids_the_form_needs(self):
+        """Formularul are nevoie de id-uri (tara, judet, oras), nu de nume: altfel
+        listele nu pot fi pre-selectate."""
+        self.api_login()
+        partner = self._create_address()
+
+        body = self.api_get(f'/addresses/{partner.id}').json()['address']
+        self.assertEqual(body['name'], 'Cabinet Secundar')
+        self.assertEqual(body['country_id'], self.country.id)
+        self.assertEqual(body['kind'], 'delivery')
+        self.assertIn('can_edit_vat', body)
+        self.assertIn('can_edit_name', body)
+
+    def test_editing_an_address_saves_the_change(self):
+        self.api_login()
+        partner = self._create_address()
+
+        response = self.api_post(
+            f'/addresses/{partner.id}',
+            {'values': self._values(name='Cabinet Secundar', street='Str. Modificata 7')})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['address']['street'], 'Str. Modificata 7')
+
+        partner.invalidate_recordset()
+        self.assertEqual(partner.street, 'Str. Modificata 7')
+        self.assertEqual(partner.type, 'delivery', 'tipul adresei ramane cel de dinainte')
+
+    def test_editing_refuses_what_the_shop_refuses(self):
+        """Validarea e a magazinului, chemata cu partenerul existent - deci si erorile
+        sunt ale lui, pe campurile lui."""
+        self.api_login()
+        partner = self._create_address()
+
+        response = self.api_post(f'/addresses/{partner.id}', {'values': {'street': ''}})
+        self.assertEqual(response.status_code, 422)
+        self.assertIn('street', response.json()['error']['details']['fields'])
+        partner.invalidate_recordset()
+        self.assertEqual(partner.street, 'Str. Noua 5')
+
+    def test_an_address_of_another_account_cannot_be_read_or_written(self):
+        self.api_login()
+        stranger = self.env['res.partner'].sudo().create({
+            'name': 'Adresa strain test', 'type': 'delivery', 'street': 'Str. Straina 1'})
+
+        self.assertEqual(self.api_get(f'/addresses/{stranger.id}').status_code, 404)
+        self.assertEqual(
+            self.api_post(f'/addresses/{stranger.id}', {'values': {'street': 'X'}}).status_code,
+            404)
+        stranger.invalidate_recordset()
+        self.assertEqual(stranger.street, 'Str. Straina 1')
+
+    def test_editing_requires_the_app_header(self):
+        self.api_login()
+        partner = self._create_address()
+        response = self.api_post(
+            f'/addresses/{partner.id}', {'values': {'street': 'Str. X 1'}}, with_header=False)
+        self.assertEqual(response.status_code, 403)

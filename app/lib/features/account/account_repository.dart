@@ -53,6 +53,36 @@ class AccountRepository {
         await _api.get('/addresses/options${query.isEmpty ? '' : '?$query'}'));
   }
 
+  /// O adresa a contului, cu id-urile de tara, judet si oras de care are nevoie
+  /// formularul de editare.
+  Future<AddressFormValues> fetchAddress(int id) async {
+    final body = await _api.get('/addresses/$id');
+    return AddressFormValues.fromJson((body['address'] as Map).cast<String, dynamic>());
+  }
+
+  /// Modifica o adresa existenta. Tipul adresei nu se trimite: e cel pe care il are
+  /// deja inregistrarea, ca in magazin.
+  Future<List<Address>> updateAddress({
+    required int id,
+    required Map<String, dynamic> values,
+  }) async {
+    final body = await _api.post('/addresses/$id', body: {'values': values});
+    final list = body['addresses'] as List? ?? const [];
+    return [for (final item in list) Address.fromJson((item as Map).cast<String, dynamic>())];
+  }
+
+  /// Schimba parola contului. Verificarile sunt ale portalului Odoo; la esec vine 422
+  /// cu mesajul lui.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _api.post('/account/password', body: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+  }
+
   /// Adauga o adresa. `kind` e 'delivery' sau 'invoice'.
   ///
   /// Validarea e a magazinului: la esec, serverul intoarce 422 cu lista campurilor

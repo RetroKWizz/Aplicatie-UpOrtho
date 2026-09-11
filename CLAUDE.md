@@ -55,8 +55,10 @@ si de document ale produsului, plus (Faza 3-4) `GET /cart`, `POST /cart/lines`,
 `GET /checkout`, `POST /checkout/address`, `POST /checkout/delivery`,
 `POST /checkout/confirm`, `GET /delivery-methods/<id>/logo`, `GET /orders`,
 `GET /orders/<id>`, `GET /invoices`, `GET /invoices/<id>/pdf`, `GET /addresses`,
-`GET /addresses/options`, `POST /addresses`, `GET /account/profile`,
-`POST /account/profile`, `GET /loyalty`.
+`GET /addresses/options`, `POST /addresses`, `GET /addresses/<id>`,
+`POST /addresses/<id>`, `GET /account/profile`, `POST /account/profile`,
+`POST /account/password`, `GET /loyalty`, `GET /favorites`, `POST /favorites`,
+`DELETE /favorites/<id>`.
 
 **Parametru de sistem, de setat la fiecare deploy**: `uportho_app.website_id`
 (Setari → Tehnic → Parametri de sistem) = id-ul website-ului magazinului
@@ -201,6 +203,28 @@ Doua capcane, amandoua prinse de teste:
   valoarea de acum; unul trimis gol e o cerere de stergere si merge asa la validare.
   Confundate, o stergere ceruta de client primea 200 si nu se intampla nimic.
 
+**Editarea unei adrese trece prin aceeasi validare ca adaugarea**, doar ca
+`_validate_address_values` primeste partenerul existent ca al doilea argument - asa
+intra in joc si regulile pe care magazinul le are doar la editare: numele nu se mai
+schimba dupa emiterea facturilor, nici emailul, iar CUI-ul e blocat. Tipul adresei nu
+se trimite de pe telefon: ramane cel al inregistrarii. Ce adresa poate fi modificata se
+decide din aceeasi lista pe care o vede clientul (`_account_addresses`); un id din
+afara ei primeste 404, nu 403 - altfel un client ar putea afla, incercand id-uri, ce
+adrese exista.
+
+**Schimbarea parolei e a portalului**, `CustomerPortal._update_password`, chemat cum il
+cheama si pagina `/my/security`. Nu se scrie parola direct: metoda lor verifica parola
+veche, aplica regulile si **recalculeaza tokenul de sesiune** - fara ea clientul ar fi
+deconectat imediat dupa schimbare, pentru ca Odoo goleste cache-ul de credentiale.
+
+**Favoritele sunt singura lista care NU vine din magazin.** Modulul care ar aduce-o
+(`website_sale_wishlist`) nu e instalat pe instanta reala, deci nu exista nimic cu care
+sa se sincronizeze; traiesc in `uportho.app.favorite`, legate de partenerul comercial
+(un cabinet cu mai multi utilizatori vede aceeasi lista). Lista se filtreaza prin
+domeniul catalogului, deci un produs depublicat dispare din favorite fara sa stergem
+nimic. Daca magazinul primeste vreodata wishlist-ul, de acolo se trece pe
+`product.wishlist`.
+
 **Lista de adrese are o singura sursa**, `address._account_addresses()`: partenerul
 comercial, copiii lui **si** partenerii cu `access_for_user_id` — campul prin care
 clientul da acces la o firma din afara arborelui. Site-ul le adauga in
@@ -215,8 +239,8 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
 
 ## Status curent — Fazele 0-4 livrate (mai putin push-ul)
 
-- Modul Odoo `uportho_app`: 372 teste trecute.
-- Aplicatia Flutter: 340 teste trecute, `flutter analyze` curat. Login cu restaurare
+- Modul Odoo `uportho_app`: 398 teste trecute.
+- Aplicatia Flutter: 356 teste trecute, `flutter analyze` curat. Login cu restaurare
   silentioasa a sesiunii, Acasa, catalog cu cautare si paginare, pagina de produs
   completa (galerie, tabele de pret, tabel de variante, brand, file, documente,
   recenzii, produse similare), cos, checkout, plata (offline, card salvat, card nou in

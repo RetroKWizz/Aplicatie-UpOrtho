@@ -61,3 +61,31 @@ abstract class AddressOptions with _$AddressOptions {
 
   factory AddressOptions.fromJson(Map<String, dynamic> json) => _$AddressOptionsFromJson(json);
 }
+
+/// Valorile unei adrese existente, in forma ceruta de formular: id-uri pentru tara,
+/// judet si oras, nu nume. `canEditName` si `canEditVat` vin de la Odoo: dupa emiterea
+/// documentelor contabile, numele si codul fiscal nu mai pot fi schimbate.
+@freezed
+abstract class AddressFormValues with _$AddressFormValues {
+  const factory AddressFormValues({
+    required int id,
+    required String kind,
+    String? name,
+    String? street,
+    String? street2,
+    String? city,
+    @JsonKey(name: 'city_id') int? cityId,
+    String? zip,
+    @JsonKey(name: 'state_id') int? stateId,
+    @JsonKey(name: 'country_id') int? countryId,
+    String? phone,
+    String? email,
+    String? vat,
+    @JsonKey(name: 'company_name') String? companyName,
+    @JsonKey(name: 'can_edit_name') @Default(true) bool canEditName,
+    @JsonKey(name: 'can_edit_vat') @Default(true) bool canEditVat,
+  }) = _AddressFormValues;
+
+  factory AddressFormValues.fromJson(Map<String, dynamic> json) =>
+      _$AddressFormValuesFromJson(json);
+}

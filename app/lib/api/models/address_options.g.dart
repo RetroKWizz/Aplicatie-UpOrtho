@@ -101,3 +101,43 @@ Map<String, dynamic> _$AddressOptionsToJson(_AddressOptions instance) =>
       'required': instance.required,
       'city_is_list': instance.cityIsList,
     };
+
+_AddressFormValues _$AddressFormValuesFromJson(Map<String, dynamic> json) =>
+    _AddressFormValues(
+      id: (json['id'] as num).toInt(),
+      kind: json['kind'] as String,
+      name: json['name'] as String?,
+      street: json['street'] as String?,
+      street2: json['street2'] as String?,
+      city: json['city'] as String?,
+      cityId: (json['city_id'] as num?)?.toInt(),
+      zip: json['zip'] as String?,
+      stateId: (json['state_id'] as num?)?.toInt(),
+      countryId: (json['country_id'] as num?)?.toInt(),
+      phone: json['phone'] as String?,
+      email: json['email'] as String?,
+      vat: json['vat'] as String?,
+      companyName: json['company_name'] as String?,
+      canEditName: json['can_edit_name'] as bool? ?? true,
+      canEditVat: json['can_edit_vat'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$AddressFormValuesToJson(_AddressFormValues instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'kind': instance.kind,
+      'name': instance.name,
+      'street': instance.street,
+      'street2': instance.street2,
+      'city': instance.city,
+      'city_id': instance.cityId,
+      'zip': instance.zip,
+      'state_id': instance.stateId,
+      'country_id': instance.countryId,
+      'phone': instance.phone,
+      'email': instance.email,
+      'vat': instance.vat,
+      'company_name': instance.companyName,
+      'can_edit_name': instance.canEditName,
+      'can_edit_vat': instance.canEditVat,
+    };

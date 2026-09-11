@@ -441,6 +441,29 @@ def _parse_limit(raw):
     return min(value, MAX_LIMIT)
 
 
+def _serialize_templates(templates, website):
+    """Produsele in forma de card, cu preturile contului: acelasi drum ca `/products`,
+    ca o lista de favorite sa nu poata arata alte preturi decat catalogul."""
+    if not templates:
+        return []
+    partner = request.env.user.partner_id
+    pricelist = _customer_pricelist(partner)
+    club_pricelist = _current_club_pricelist()
+    fiscal_position = request.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
+    price_by_template = _prices_by_template(templates, pricelist, partner, fiscal_position)
+    club_price_by_template = _club_prices_by_template(
+        templates, club_pricelist, pricelist, partner, fiscal_position, price_by_template)
+    ids_with_image = _ids_with_image(templates)
+    rating_by_template = _ratings_by_template(templates)
+    return [
+        serialize_product(
+            t, price_by_template[t.id], club_price_by_template.get(t.id), t.id in ids_with_image,
+            rating_by_template.get(t.id))
+        for t in templates
+    ]
+
+
+
 class AppCatalog(http.Controller):
     @app_route('/categories', methods=['GET'])
     def categories(self, **kw):

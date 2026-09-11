@@ -3,7 +3,7 @@ from datetime import timedelta
 from odoo import fields
 from odoo.tests.common import tagged
 
-from .common import AppHttpCase
+from .common import PORTAL_LOGIN, PORTAL_PASSWORD, AppHttpCase
 
 
 @tagged('post_install', '-at_install')
@@ -132,6 +132,71 @@ class TestControllersProfile(AppHttpCase):
         response = self.api_post(
             '/account/profile', {'values': {'phone': '+4070'}}, with_header=False)
         self.assertEqual(response.status_code, 403)
+
+
+@tagged('post_install', '-at_install')
+class TestControllersPassword(AppHttpCase):
+    """Schimbarea parolei trece prin portalul Odoo, deci si verificarile lui."""
+
+    def test_password_change_requires_login(self):
+        response = self.api_post(
+            '/account/password', {'current_password': 'x', 'new_password': 'y'})
+        self.assertEqual(response.status_code, 401)
+
+    def test_a_wrong_current_password_is_refused(self):
+        self.api_login()
+        response = self.api_post('/account/password', {
+            'current_password': 'gresita', 'new_password': 'AltaParola456!'})
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()['error']['code'], 'invalid_password')
+        # Parola chiar nu s-a schimbat: vechea pereche inca autentifica.
+        self.assertTrue(self.env['res.users'].authenticate(
+            self.env.cr.dbname, {'login': PORTAL_LOGIN, 'password': PORTAL_PASSWORD,
+                                 'type': 'password'}, {'interactive': False}))
+
+    def test_two_different_new_passwords_are_refused(self):
+        self.api_login()
+        response = self.api_post('/account/password', {
+            'current_password': PORTAL_PASSWORD,
+            'new_password': 'AltaParola456!',
+            'new_password_confirm': 'Altceva789!'})
+        self.assertEqual(response.status_code, 422)
+
+    def test_an_empty_new_password_is_refused(self):
+        self.api_login()
+        response = self.api_post('/account/password', {
+            'current_password': PORTAL_PASSWORD, 'new_password': ''})
+        self.assertEqual(response.status_code, 422)
+
+    def test_bad_body_is_422_never_500(self):
+        self.api_login()
+        self.assertEqual(self.api_post('/account/password', {}).status_code, 422)
+        self.assertEqual(
+            self.api_post('/account/password', {'current_password': 1, 'new_password': 2}
+                          ).status_code, 422)
+
+    def test_password_change_requires_the_app_header(self):
+        self.api_login()
+        response = self.api_post(
+            '/account/password',
+            {'current_password': PORTAL_PASSWORD, 'new_password': 'AltaParola456!'},
+            with_header=False)
+        self.assertEqual(response.status_code, 403)
+
+    def test_changing_the_password_works_and_keeps_the_session(self):
+        """Dupa schimbare, sesiunea ramane valida - portalul recalculeaza tokenul, exact
+        motivul pentru care schimbarea trece prin metoda lui si nu printr-o scriere a
+        noastra."""
+        self.api_login()
+        response = self.api_post('/account/password', {
+            'current_password': PORTAL_PASSWORD, 'new_password': 'ParolaNoua789!'})
+        self.assertEqual(response.status_code, 200, response.text)
+
+        self.assertEqual(self.api_get('/me').status_code, 200)
+        self.assertTrue(self.env['res.users'].authenticate(
+            self.env.cr.dbname, {'login': PORTAL_LOGIN, 'password': 'ParolaNoua789!',
+                                 'type': 'password'}, {'interactive': False}))
 
 
 @tagged('post_install', '-at_install')

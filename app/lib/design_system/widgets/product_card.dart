@@ -23,6 +23,8 @@ class ProductCard extends StatelessWidget {
     this.badgeColor,
     this.badgeTextColor,
     this.ratingLabel,
+    this.isFavorite,
+    this.onToggleFavorite,
     this.onTap,
   });
 
@@ -51,6 +53,11 @@ class ProductCard extends StatelessWidget {
   /// Nota din recenzii, deja formatata de ecran (ex. "5.0"); null = produsul n-are
   /// recenzii si pastila nu se deseneaza, ca pe site.
   final String? ratingLabel;
+
+  /// Starea inimioarei; null = cardul nu arata inimioara deloc (ex. produse
+  /// similare, unde nu are ce cauta).
+  final bool? isFavorite;
+  final VoidCallback? onToggleFavorite;
 
   final VoidCallback? onTap;
 
@@ -99,8 +106,23 @@ class ProductCard extends StatelessWidget {
                     if (ratingLabel != null)
                       Positioned(
                         top: 8,
-                        right: 8,
+                        right: isFavorite == null ? 8 : 44,
                         child: _RatingPill(label: ratingLabel!),
+                      ),
+                    if (isFavorite case final bool favorite)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: IconButton(
+                          iconSize: 20,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: favorite ? 'Scoate de la favorite' : 'Adauga la favorite',
+                          icon: Icon(
+                            favorite ? Icons.favorite : Icons.favorite_border,
+                            color: favorite ? AppColors.danger : AppColors.textSecondary,
+                          ),
+                          onPressed: onToggleFavorite,
+                        ),
                       ),
                   ],
                 ),

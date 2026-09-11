@@ -9,3 +9,4 @@ from . import checkout
 from . import account
 from . import address
 from . import profile
+from . import favorite

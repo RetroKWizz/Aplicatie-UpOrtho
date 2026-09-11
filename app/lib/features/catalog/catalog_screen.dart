@@ -10,6 +10,7 @@ import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/widgets/product_card.dart';
 import '../../providers.dart';
+import '../favorites/favorites_controller.dart';
 import '../product_badge_palette.dart';
 import '../product_rating_label.dart';
 import 'catalog_controller.dart';
@@ -94,6 +95,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     final selectedCategoryId = ref.watch(catalogCategoryFilterProvider);
     final api = ref.watch(apiClientProvider);
     final imageHeaders = ref.watch(imageHeadersProvider).value;
+    final favorites = ref.watch(favoritesControllerProvider).value?.ids ?? const <int>{};
     Map<String, String>? headersFor(String url) =>
         imageHeadersFor(url, apiBaseUrl: api.baseUrl, headers: imageHeaders);
 
@@ -177,6 +179,9 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       badgeTextColor:
                           product.badge == null ? null : productBadgeForeground(product.badge!),
                       ratingLabel: productRatingLabel(product.rating),
+                      isFavorite: favorites.contains(product.id),
+                      onToggleFavorite: () =>
+                          ref.read(favoritesControllerProvider.notifier).toggle(product.id),
                       // Ruta copil a catalogului: pagina de produs ramane in
                       // tabul Catalog, iar butonul de inapoi duce la grila.
                       onTap: () => context.push('/catalog/${product.id}'),

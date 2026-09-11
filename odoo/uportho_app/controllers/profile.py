@@ -170,6 +170,39 @@ class AppProfile(CustomerPortal):
         partner.sudo().write(write_values)
         return json_ok({'profile': serialize_profile(partner)})
 
+    @app_route('/account/password', methods=['POST'])
+    def update_password(self, **kw):
+        """Schimba parola contului: `{"current_password": ..., "new_password": ...}`.
+
+        Verificarea parolei vechi, regulile de lungime si reimprospatarea sesiunii sunt
+        ale portalului (`_update_password`), chemat asa cum il cheama si pagina
+        `/my/security`. Fara el, schimbarea parolei ar deconecta clientul: Odoo goleste
+        cache-ul de credentiale, iar tokenul de sesiune trebuie recalculat - portalul
+        face exact asta la final.
+
+        Parolele nu se logheaza si nu se pastreaza nicaieri in aplicatie."""
+        body = read_json_body()
+        current = body.get('current_password')
+        new = body.get('new_password')
+        confirm = body.get('new_password_confirm', new)
+        if not isinstance(current, str) or not isinstance(new, str) or not isinstance(confirm, str):
+            raise ApiError(422, 'validation_error',
+                           'current_password si new_password trebuie sa fie text.')
+
+        result = self._update_password(current, new, confirm)
+        errors = result.get('errors', {}).get('password')
+        if errors:
+            # Portalul intoarce fie un dictionar {camp: mesaj}, fie un mesaj simplu.
+            if isinstance(errors, dict):
+                message = ' '.join(str(value) for value in errors.values())
+                fields = sorted(errors)
+            else:
+                message = str(errors)
+                fields = []
+            raise ApiError(422, 'invalid_password', message, {'fields': fields})
+        return json_ok({'ok': True})
+
+
 
 class AppLoyalty(http.Controller):
     """Cardurile de fidelitate ale contului: Ortho Club, carduri cadou, vouchere.

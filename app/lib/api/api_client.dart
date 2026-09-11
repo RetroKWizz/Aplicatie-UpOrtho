@@ -40,6 +40,10 @@ class ApiClient {
     await _request('DELETE', path);
   }
 
+  /// Ca `delete`, dar pentru rutele care raspund cu starea de dupa stergere (favoritele
+  /// intorc lista ramasa), ca ecranul sa nu mai ceara inca o data acelasi lucru.
+  Future<Map<String, dynamic>> deleteJson(String path) => _request('DELETE', path);
+
   Future<Map<String, dynamic>> login(String login, String password) async {
     final response = await _transport.send('POST', '$prefix/auth/login',
         body: {'login': login, 'password': password});

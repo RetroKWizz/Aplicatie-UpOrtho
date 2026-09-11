@@ -20,6 +20,7 @@ import '../../design_system/widgets/variant_picker.dart';
 import '../../providers.dart';
 import '../cart/cart_controller.dart';
 import '../description_blocks.dart';
+import '../favorites/favorites_controller.dart';
 import '../product_badge_palette.dart';
 import '../product_rating_label.dart';
 import 'document_controller.dart';
@@ -49,11 +50,24 @@ class ProductScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(productControllerProvider(productId));
+    final isFavorite =
+        ref.watch(favoritesControllerProvider).value?.ids.contains(productId) ?? false;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Produs',
             style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+        actions: [
+          IconButton(
+            tooltip: isFavorite ? 'Scoate de la favorite' : 'Adauga la favorite',
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? AppColors.danger : AppColors.textSecondary,
+            ),
+            onPressed: () =>
+                ref.read(favoritesControllerProvider.notifier).toggle(productId),
+          ),
+        ],
       ),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
