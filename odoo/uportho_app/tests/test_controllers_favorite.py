@@ -39,6 +39,10 @@ class TestControllersFavorite(AppHttpCase):
         self.assertEqual(added.status_code, 200, added.text)
         self.assertTrue(added.json()['favorite'])
         self.assertIn(self.product.id, added.json()['ids'])
+        # Raspunsul poarta si lista intreaga: ecranul de favorite o poate desena direct
+        # dupa apasarea inimioarei, fara sa mai ceara nimic.
+        self.assertEqual(
+            [p['name'] for p in added.json()['products']], ['Produs favorit test'])
 
         listed = self.api_get('/favorites').json()
         self.assertIn(self.product.id, listed['ids'])
@@ -50,6 +54,7 @@ class TestControllersFavorite(AppHttpCase):
         removed = self.api_delete(f'/favorites/{self.product.id}')
         self.assertEqual(removed.status_code, 200)
         self.assertFalse(removed.json()['favorite'])
+        self.assertEqual(removed.json()['products'], [])
         self.assertEqual(self.api_get('/favorites').json()['ids'], [])
 
     def test_adding_twice_does_not_duplicate(self):

@@ -72,15 +72,16 @@ void main() {
     transport.when(
       'POST',
       '/api/app/v1/favorites',
-      const ApiResponse(status: 200, json: {
+      ApiResponse(status: 200, json: {
         'favorite': true,
-        'ids': [7],
+        'products': [productJson(7, 'Produs 7')],
+        'ids': const [7],
       }),
     );
     transport.when(
       'DELETE',
       '/api/app/v1/favorites/7',
-      const ApiResponse(status: 200, json: {'favorite': false, 'ids': []}),
+      const ApiResponse(status: 200, json: {'favorite': false, 'products': [], 'ids': []}),
     );
     final container = await signedInContainer(transport);
     await container.read(favoritesControllerProvider.future);
@@ -89,6 +90,9 @@ void main() {
     await controller.toggle(7);
     expect(controller.isFavorite(7), isTrue);
     expect(transport.calls.last.method, 'POST');
+    // Raspunsul aduce lista intreaga, deci ecranul de favorite o are imediat: fara
+    // asta, lista aparea goala fix dupa ce apasai inimioara.
+    expect(container.read(favoritesControllerProvider).value!.products, hasLength(1));
 
     await controller.toggle(7);
     expect(controller.isFavorite(7), isFalse);

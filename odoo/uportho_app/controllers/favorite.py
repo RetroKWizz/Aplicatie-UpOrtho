@@ -31,6 +31,18 @@ def _favorite_templates(website):
     return request.env['product.template'].search(domain)
 
 
+def _favorites_payload():
+    """Raspunsul tuturor rutelor de favorite: lista intreaga plus id-urile ei.
+
+    Aceeasi forma peste tot, dinadins. Cand adaugarea raspundea doar cu id-urile,
+    ecranul primea o stare fara produse si lista de favorite aparea goala imediat dupa
+    ce apasai inimioara - desi serverul le avea. Un singur drum de serializare inseamna
+    ca asa ceva nu se mai poate intampla."""
+    website = _current_website()
+    templates = _favorite_templates(website)
+    return {'products': _serialize_templates(templates, website), 'ids': templates.ids}
+
+
 def _product_of_request(product_id):
     """Produsul pe care clientul chiar il poate vedea in magazin. Un id din afara
     catalogului nu se poate pune la favorite."""
@@ -51,12 +63,7 @@ class AppFavorites(http.Controller):
 
     @app_route('/favorites', methods=['GET'])
     def favorites(self, **kw):
-        website = _current_website()
-        templates = _favorite_templates(website)
-        return json_ok({
-            'products': _serialize_templates(templates, website),
-            'ids': templates.ids,
-        })
+        return json_ok(_favorites_payload())
 
     @app_route('/favorites', methods=['POST'])
     def add_favorite(self, **kw):
@@ -74,7 +81,7 @@ class AppFavorites(http.Controller):
             [('partner_id', '=', partner.id), ('product_tmpl_id', '=', template.id)], limit=1)
         if not existing:
             Favorite.create({'partner_id': partner.id, 'product_tmpl_id': template.id})
-        return json_ok({'favorite': True, 'ids': _favorite_templates(_current_website()).ids})
+        return json_ok({'favorite': True, **_favorites_payload()})
 
     @app_route('/favorites/<int:product_id>', methods=['DELETE'])
     def remove_favorite(self, product_id, **kw):
@@ -85,4 +92,4 @@ class AppFavorites(http.Controller):
             ('partner_id', '=', _favorites_partner().id),
             ('product_tmpl_id', '=', product_id),
         ]).unlink()
-        return json_ok({'favorite': False, 'ids': _favorite_templates(_current_website()).ids})
+        return json_ok({'favorite': False, **_favorites_payload()})
