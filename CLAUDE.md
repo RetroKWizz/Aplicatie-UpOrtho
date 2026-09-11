@@ -223,10 +223,14 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
   (creata din API, vizibila in lista contului) si ecranul cu datele contului, care arata
   campurile reale, cu codul fiscal blocat de Odoo si emailul cerut pentru ca partenerul
   n-are unul. Neverificata pe date reale ramane plata cu card salvat.
-- **Cardul de membru se arata si cu zero puncte.** Un card `loyalty` spune ca esti in
-  Ortho Club, iar asta e informatia, nu soldul; un card cadou sau un portofel golit se
-  ascunde, acolo zero chiar inseamna "nu mai ai ce folosi". Cardul lui Mihai are zero
-  puncte, deci regula veche ii ascundea complet sectiunea.
+- **Cardurile de fidelitate se filtreaza cu filtrul portalului, nu cu unul al nostru.**
+  `/loyalty` foloseste exact domeniul din
+  `loyalty.controllers.portal.CustomerPortalLoyalty._prepare_home_portal_values`:
+  cardurile propriului partener, program activ, doar tipurile `loyalty` si `ewallet`,
+  doar cele neexpirate. Portalul nu filtreaza dupa puncte, deci un card de membru cu
+  zero puncte se vede - cardul lui Mihai are zero, iar o regula inventata de noi il
+  ascundea. Verificat pe staging: toate cele 16 carduri stau pe parteneri de utilizator,
+  niciunul pe un contact-copil, deci filtrul lor nu pierde nimic.
 - Ramase, de decis doar de user: export Odoo Studio ca plasa de siguranta (plan Task 0.3),
   deploy pe odoo.sh (plan Task 1.9, sarit deliberat).
 - Ce a fost amanat constient (setari de dezvoltare de scos la lansare + datorie tehnica):

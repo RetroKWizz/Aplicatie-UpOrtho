@@ -182,21 +182,27 @@ class AppLoyalty(http.Controller):
     def loyalty(self, **kw):
         """Cardurile contului, cu punctele lor.
 
+        **Filtrul e chiar al portalului Odoo**, copiat din
+        `loyalty.controllers.portal.CustomerPortalLoyalty._prepare_home_portal_values`:
+        cardurile propriului partener, program activ, doar programele de tip `loyalty`
+        si `ewallet` (nu carduri cadou, nu cupoane) si doar cele neexpirate. Asa in
+        aplicatie apar exact cardurile pe care clientul le vede si in contul de pe site
+        - inclusiv un card de membru cu zero puncte, fiindca portalul nu filtreaza dupa
+        puncte.
+
         Punctele se afiseaza cum le afiseaza si programul (`_format_points`): un
         program pe bani scrie "150,00 lei", unul pe puncte scrie "150 puncte". Textul
-        vine de la Odoo, nu se compune aici - aplicatia nu formateaza bani.
-
-        Un card de **membru** (`loyalty`) se arata si cu zero puncte: el spune ca
-        clientul e in Ortho Club, iar asta e informatia, nu soldul. Un card cadou sau
-        un portofel golit se ascunde - acolo zero chiar inseamna "nu mai ai ce
-        folosi"."""
+        vine de la Odoo, nu se compune aici - aplicatia nu formateaza bani."""
         if 'loyalty.card' not in request.env:
             return json_ok([])
-        commercial = request.env.user.partner_id.commercial_partner_id
-        partners = commercial | commercial.child_ids
+        today = fields.Date.context_today(request.env.user)
         cards = request.env['loyalty.card'].sudo().search([
-            ('partner_id', 'in', partners.ids),
+            ('partner_id', '=', request.env.user.partner_id.id),
             ('program_id.active', '=', True),
+            ('program_id.program_type', 'in', ['loyalty', 'ewallet']),
+            '|',
+                ('expiration_date', '>=', today),
+                ('expiration_date', '=', False),
         ])
         return json_ok([
             {
@@ -210,5 +216,4 @@ class AppLoyalty(http.Controller):
                                    if card.expiration_date else None,
             }
             for card in cards
-            if card.points or card.program_id.program_type == 'loyalty'
         ])

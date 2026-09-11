@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from odoo import fields
 from odoo.tests.common import tagged
 
 from .common import AppHttpCase
@@ -179,17 +182,35 @@ class TestControllersLoyalty(AppHttpCase):
 
         self.assertIn(card.id, [c['id'] for c in self.api_get('/loyalty').json()])
 
-    def test_a_spent_gift_card_is_not_shown(self):
-        """La un card cadou, zero chiar inseamna ca nu mai ai ce folosi."""
+    def test_a_gift_card_is_not_shown(self):
+        """Portalul Odoo arata doar programele de tip `loyalty` si `ewallet`. Un card
+        cadou sau un cupon nu apare nici in contul de pe site, deci nici aici."""
         if 'loyalty.card' not in self.env:
             self.skipTest('baza nu are modulul de fidelitate')
         self.api_login()
         program = self.env['loyalty.program'].create({
-            'name': 'Card cadou golit test', 'program_type': 'gift_card'})
+            'name': 'Card cadou test', 'program_type': 'gift_card'})
         card = self.env['loyalty.card'].create({
             'program_id': program.id,
             'partner_id': self.portal_user.partner_id.commercial_partner_id.id,
-            'points': 0.0,
+            'points': 50.0,
+        })
+
+        self.assertNotIn(card.id, [c['id'] for c in self.api_get('/loyalty').json()])
+
+    def test_an_expired_card_is_not_shown(self):
+        """Acelasi filtru ca al portalului: un card trecut de data de expirare nu se mai
+        arata, oricate puncte ar avea pe el."""
+        if 'loyalty.card' not in self.env:
+            self.skipTest('baza nu are modulul de fidelitate')
+        self.api_login()
+        program = self.env['loyalty.program'].create({
+            'name': 'Ortho Club expirat test', 'program_type': 'loyalty'})
+        card = self.env['loyalty.card'].create({
+            'program_id': program.id,
+            'partner_id': self.portal_user.partner_id.id,
+            'points': 120.0,
+            'expiration_date': fields.Date.today() - timedelta(days=1),
         })
 
         self.assertNotIn(card.id, [c['id'] for c in self.api_get('/loyalty').json()])
