@@ -4,6 +4,11 @@
   "payment": {
     "kind": "webview",
     "url": "/shop/payment",
-    "return_url_prefix": "/shop/confirmation"
+    "return_url_prefix": "/shop/confirmation",
+    "state": null,
+    "message": null,
+    "method": null,
+    "instructions": [],
+    "reference": null
   }
 }

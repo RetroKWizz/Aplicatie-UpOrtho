@@ -211,6 +211,66 @@ class TestControllersCheckout(AppHttpCase):
             'payment_method_id': 0, 'provider_id': 0})
         self.assertEqual(response.status_code, 422)
 
+    def test_a_saved_card_is_offered_and_pays_without_leaving_the_app(self):
+        """Cardul salvat e drumul pe care il folosesc deja clientii pe site. Datele
+        cardului nu trec prin aplicatie: tokenul e o referinta a providerului, iar
+        cererea de plata o face serverul."""
+        self.api_login()
+        self._fill_cart()
+        self.api_post('/checkout/delivery', {'carrier_id': self.carrier.id})
+        token = self.env['payment.token'].create({
+            'provider_id': self.provider.id,
+            'payment_method_id': self.env['payment.method'].search(
+                [('id', 'in', self.provider.payment_method_ids.ids)], limit=1).id,
+            'partner_id': self.portal_user.partner_id.id,
+            'payment_details': '4242',
+            'provider_ref': 'tok_test_app',
+        })
+
+        offered = [o for o in self._checkout().json()['payment_options']
+                   if o['token_id'] == token.id]
+        self.assertTrue(offered, 'cardul salvat trebuie sa apara intre metodele de plata')
+        option = offered[0]
+        self.assertEqual(option['kind'], 'token')
+
+        response = self.api_post('/checkout/confirm', {
+            'payment_method_id': option['payment_method_id'],
+            'provider_id': option['provider_id'],
+            'token_id': option['token_id'],
+        })
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn(body['payment']['kind'], ('token', 'webview'))
+        self.assertTrue(body['payment']['reference'])
+
+        order = self.env['sale.order'].browse(body['order_id'])
+        self.assertTrue(order.transaction_ids)
+        self.assertEqual(order.transaction_ids[0].token_id, token)
+        self.assertEqual(order.transaction_ids[0].operation, 'online_token')
+
+    def test_a_card_of_another_customer_is_refused(self):
+        """Un id de token strain nu are ce cauta pe comanda acestui cont, oricat de
+        valid ar fi."""
+        self.api_login()
+        self._fill_cart()
+        self.api_post('/checkout/delivery', {'carrier_id': self.carrier.id})
+        stranger = self.env['res.partner'].create({'name': 'Alt client card'})
+        token = self.env['payment.token'].create({
+            'provider_id': self.provider.id,
+            'payment_method_id': self.env['payment.method'].search(
+                [('id', 'in', self.provider.payment_method_ids.ids)], limit=1).id,
+            'partner_id': stranger.id,
+            'payment_details': '1111',
+            'provider_ref': 'tok_strain',
+        })
+
+        ids = [o['token_id'] for o in self._checkout().json()['payment_options']]
+        self.assertNotIn(token.id, ids, 'cardul altui client nu se ofera')
+
+        response = self.api_post('/checkout/confirm', {
+            'payment_method_id': 1, 'provider_id': self.provider.id, 'token_id': token.id})
+        self.assertEqual(response.status_code, 422)
+
     def test_the_confirmed_order_is_no_longer_the_cart(self):
         """Dupa trimitere, cosul aplicatiei porneste de la zero - altfel clientul ar
         continua sa adauge produse intr-o comanda deja plasata."""

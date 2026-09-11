@@ -89,6 +89,8 @@ abstract class PaymentOption with _$PaymentOption {
   const factory PaymentOption({
     @JsonKey(name: 'payment_method_id') required int paymentMethodId,
     @JsonKey(name: 'provider_id') required int providerId,
+    /// Cardul salvat, cand optiunea e unul. Pe uportho clientii platesc des asa.
+    @JsonKey(name: 'token_id') int? tokenId,
     required String name,
     @JsonKey(name: 'provider_name') required String providerName,
     required String code,
@@ -104,6 +106,9 @@ abstract class PaymentOption with _$PaymentOption {
   const PaymentOption._();
 
   bool get isOffline => kind == 'offline';
+
+  /// Card deja salvat: plata se face fara sa iesim din aplicatie si fara formular.
+  bool get isSavedCard => kind == 'token';
 }
 
 /// De ce nu se poate trimite inca comanda. Textul vine de la server, tradus acolo.
@@ -143,6 +148,10 @@ abstract class PaymentOutcome with _$PaymentOutcome {
     String? method,
     @Default([]) List<DescriptionBlock> instructions,
     String? reference,
+    /// Starea tranzactiei, cand serverul a incercat deja plata (card salvat).
+    String? state,
+    /// Motivul dat de provider cand plata cu cardul salvat nu a trecut.
+    String? message,
     String? url,
     @JsonKey(name: 'return_url_prefix') String? returnUrlPrefix,
   }) = _PaymentOutcome;
@@ -152,6 +161,13 @@ abstract class PaymentOutcome with _$PaymentOutcome {
   const PaymentOutcome._();
 
   bool get isOffline => kind == 'offline';
+
+  /// Plata cu cardul salvat a trecut: nu mai e nimic de facut in WebView.
+  bool get isPaidByCard => kind == 'token';
+
+  /// Mai e nevoie de pagina de plata a magazinului. Se intampla si cand cardul salvat
+  /// cere autentificare 3-D Secure, pe care o plata pornita de server n-o poate face.
+  bool get needsWebView => kind == 'webview';
 }
 
 @freezed

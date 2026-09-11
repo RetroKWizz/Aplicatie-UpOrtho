@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/models/account.dart';
+import '../../api/models/profile.dart';
 import '../../providers.dart';
 import '../auth/auth_controller.dart';
 import 'account_repository.dart';
@@ -44,6 +45,22 @@ final addressesProvider = FutureProvider<List<Address>>(
   (ref) async {
     await ref.watch(authControllerProvider.future);
     return ref.read(accountRepositoryProvider).fetchAddresses();
+  },
+  retry: (retryCount, error) => null,
+);
+
+final profileProvider = FutureProvider<AccountProfileResponse>(
+  (ref) async {
+    await ref.watch(authControllerProvider.future);
+    return ref.read(accountRepositoryProvider).fetchProfile();
+  },
+  retry: (retryCount, error) => null,
+);
+
+final loyaltyProvider = FutureProvider<List<LoyaltyCard>>(
+  (ref) async {
+    await ref.watch(authControllerProvider.future);
+    return ref.read(accountRepositoryProvider).fetchLoyaltyCards();
   },
   retry: (retryCount, error) => null,
 );

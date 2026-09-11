@@ -7,3 +7,5 @@ from . import product
 from . import cart
 from . import checkout
 from . import account
+from . import address
+from . import profile

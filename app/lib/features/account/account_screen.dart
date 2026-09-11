@@ -7,6 +7,8 @@ import '../../api/models/account.dart';
 import '../../design_system/colors.dart';
 import '../auth/auth_controller.dart';
 import 'account_controller.dart';
+import 'address_form_screen.dart';
+import 'profile_screen.dart';
 
 /// Ecranul "Contul meu": cine e conectat, comenzile recente, facturile si adresele.
 class AccountScreen extends ConsumerWidget {
@@ -27,7 +29,16 @@ class AccountScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (profile != null) _ProfileCard(name: profile.name, email: profile.email),
+            if (profile != null)
+              _ProfileCard(
+                name: profile.name,
+                email: profile.email,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                ),
+              ),
+            const SizedBox(height: 16),
+            _LoyaltyCards(),
             const SizedBox(height: 16),
             _RecentOrders(),
             const SizedBox(height: 16),
@@ -48,9 +59,10 @@ class AccountScreen extends ConsumerWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.name, required this.email});
+  const _ProfileCard({required this.name, required this.email, required this.onTap});
   final String name;
   final String? email;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +74,8 @@ class _ProfileCard extends StatelessWidget {
         ),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: email == null ? null : Text(email!),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }
@@ -93,6 +107,34 @@ class _SectionCard extends StatelessWidget {
             child,
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Cardurile de fidelitate: Ortho Club, carduri cadou, vouchere. Sectiunea lipseste
+/// complet cand contul n-are niciun card cu puncte - un titlu peste nimic n-ajuta.
+class _LoyaltyCards extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cards = ref.watch(loyaltyProvider).value ?? const [];
+    if (cards.isEmpty) return const SizedBox.shrink();
+    return _SectionCard(
+      title: 'Ortho Club si vouchere',
+      child: Column(
+        children: [
+          for (final card in cards)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.card_giftcard, color: AppColors.primary),
+              title: Text(card.program),
+              subtitle: card.code == null ? null : Text('Cod: ${card.code}'),
+              trailing: Text(
+                card.pointsDisplay,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -213,6 +255,20 @@ class _Addresses extends ConsumerWidget {
     final addresses = ref.watch(addressesProvider);
     return _SectionCard(
       title: 'Adrese',
+      action: PopupMenuButton<String>(
+        tooltip: 'Adauga adresa',
+        onSelected: (kind) => Navigator.of(context).push<bool>(
+          MaterialPageRoute(builder: (_) => AddressFormScreen(kind: kind)),
+        ),
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'delivery', child: Text('Adresa de livrare')),
+          PopupMenuItem(value: 'invoice', child: Text('Adresa de facturare')),
+        ],
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text('Adauga', style: TextStyle(color: AppColors.primary)),
+        ),
+      ),
       child: addresses.when(
         loading: () => const Padding(
           padding: EdgeInsets.all(16),
@@ -234,7 +290,7 @@ class _Addresses extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.only(top: 4),
               child: Text(
-                'Adresele si datele de facturare se modifica din contul de pe uportho.ro.',
+                'Adresele existente se modifica din contul de pe uportho.ro.',
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ),

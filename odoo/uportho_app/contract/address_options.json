@@ -1,0 +1,55 @@
+{
+  "countries": [
+    {
+      "id": 188,
+      "name": "Romania",
+      "code": "RO",
+      "state_required": true,
+      "zip_required": true
+    },
+    {
+      "id": 20,
+      "name": "Bulgaria",
+      "code": "BG",
+      "state_required": false,
+      "zip_required": true
+    }
+  ],
+  "default_country_id": 188,
+  "states": [
+    {
+      "id": 721,
+      "name": "Cluj",
+      "code": "CJ"
+    }
+  ],
+  "cities": [
+    {
+      "id": 4258,
+      "name": "Cluj-Napoca",
+      "zip": "400001"
+    }
+  ],
+  "required": {
+    "delivery": [
+      "city_id",
+      "country_id",
+      "name",
+      "phone",
+      "state_id",
+      "street",
+      "zip"
+    ],
+    "invoice": [
+      "city_id",
+      "country_id",
+      "email",
+      "name",
+      "phone",
+      "state_id",
+      "street",
+      "zip"
+    ]
+  },
+  "city_is_list": true
+}

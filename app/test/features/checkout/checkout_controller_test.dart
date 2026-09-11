@@ -38,7 +38,8 @@ void main() {
 
     final checkout = await container.read(checkoutControllerProvider.future);
     expect(checkout.deliveryMethods.length, 2);
-    expect(checkout.paymentOptions.length, 2);
+    // Card salvat, transfer bancar si card nou: trei drumuri de plata, ca pe site.
+    expect(checkout.paymentOptions.length, 3);
   });
 
   test('alegerea curierului trimite carrier_id si preia checkout-ul recalculat', () async {
@@ -166,9 +167,16 @@ void main() {
     expect(container.read(checkoutControllerProvider).hasError, isTrue);
   });
 
-  test('optiunea de plata cu card poarta adresa paginii de plata', () async {
+  test('cardul nou trimite in pagina de plata, cel salvat nu', () async {
     final checkout = Checkout.fromJson(checkoutFixture());
-    final card = checkout.paymentOptions.firstWhere((o) => !o.isOffline);
-    expect(card.kind, 'webview');
+
+    final saved = checkout.paymentOptions.firstWhere((o) => o.isSavedCard);
+    expect(saved.tokenId, isNotNull);
+    expect(saved.kind, 'token');
+
+    final newCard =
+        checkout.paymentOptions.firstWhere((o) => !o.isOffline && !o.isSavedCard);
+    expect(newCard.kind, 'webview');
+    expect(newCard.tokenId, isNull);
   });
 }

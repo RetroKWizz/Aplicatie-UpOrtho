@@ -220,9 +220,7 @@ class AppAccount(http.Controller):
 
     @app_route('/addresses', methods=['GET'])
     def addresses(self, **kw):
-        """Adresele contului. Aceeasi multime pe care o arata si checkout-ul; aici e
-        doar pentru ecranul de cont, unde clientul isi vede datele de facturare."""
-        commercial = request.env.user.partner_id.commercial_partner_id
-        partners = commercial | commercial.child_ids.filtered(
-            lambda p: p.type in ('delivery', 'invoice', 'other'))
-        return json_ok([serialize_address(p) for p in partners])
+        """Adresele contului. Exact multimea pe care o arata si checkout-ul - vezi
+        `address._account_addresses`."""
+        from .address import _account_addresses
+        return json_ok([serialize_address(p) for p in _account_addresses()])

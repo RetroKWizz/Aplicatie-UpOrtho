@@ -82,6 +82,7 @@ _PaymentOption _$PaymentOptionFromJson(Map<String, dynamic> json) =>
     _PaymentOption(
       paymentMethodId: (json['payment_method_id'] as num).toInt(),
       providerId: (json['provider_id'] as num).toInt(),
+      tokenId: (json['token_id'] as num?)?.toInt(),
       name: json['name'] as String,
       providerName: json['provider_name'] as String,
       code: json['code'] as String,
@@ -98,6 +99,7 @@ Map<String, dynamic> _$PaymentOptionToJson(_PaymentOption instance) =>
     <String, dynamic>{
       'payment_method_id': instance.paymentMethodId,
       'provider_id': instance.providerId,
+      'token_id': instance.tokenId,
       'name': instance.name,
       'provider_name': instance.providerName,
       'code': instance.code,
@@ -162,6 +164,8 @@ _PaymentOutcome _$PaymentOutcomeFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       reference: json['reference'] as String?,
+      state: json['state'] as String?,
+      message: json['message'] as String?,
       url: json['url'] as String?,
       returnUrlPrefix: json['return_url_prefix'] as String?,
     );
@@ -172,6 +176,8 @@ Map<String, dynamic> _$PaymentOutcomeToJson(_PaymentOutcome instance) =>
       'method': instance.method,
       'instructions': instance.instructions,
       'reference': instance.reference,
+      'state': instance.state,
+      'message': instance.message,
       'url': instance.url,
       'return_url_prefix': instance.returnUrlPrefix,
     };

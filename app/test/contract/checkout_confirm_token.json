@@ -1,0 +1,14 @@
+{
+  "order_id": 5001,
+  "order_ref": "S12345",
+  "payment": {
+    "kind": "token",
+    "method": "VISA **** 4242",
+    "instructions": [],
+    "reference": "S12345-1",
+    "state": "done",
+    "message": null,
+    "url": null,
+    "return_url_prefix": null
+  }
+}

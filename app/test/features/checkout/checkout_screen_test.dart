@@ -52,6 +52,7 @@ void main() {
     expect(find.text('Gratuit'), findsOneWidget);
     expect(find.text('Transfer bancar'), findsOneWidget);
     expect(find.text('Card'), findsOneWidget);
+    expect(find.text('VISA **** 4242'), findsOneWidget, reason: 'cardul salvat');
   });
 
   testWidgets('alegerea unui curier trimite carrier_id serverului', (tester) async {
@@ -139,6 +140,59 @@ void main() {
 
     button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Trimite comanda'));
     expect(button.onPressed, isNotNull);
+  });
+
+  testWidgets('cardul salvat se alege si se trimite cu tokenul lui', (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/checkout',
+        ApiResponse(status: 200, json: checkoutFixture()));
+    transport.when(
+      'POST',
+      '/api/app/v1/checkout/confirm',
+      const ApiResponse(status: 200, json: {
+        'order_id': 5001,
+        'order_ref': 'S12345',
+        'payment': {
+          'kind': 'token',
+          'method': 'VISA **** 4242',
+          'instructions': <dynamic>[],
+          'reference': 'S12345-1',
+          'state': 'done',
+          'message': null,
+          'url': null,
+          'return_url_prefix': null,
+        },
+      }),
+    );
+    transport.when('GET', '/api/app/v1/cart',
+        ApiResponse(status: 200, json: (checkoutFixture()['cart'] as Map).cast<String, dynamic>()));
+
+    await pumpCheckout(tester, transport);
+    await tester.tap(find.text('VISA **** 4242'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Trimite comanda'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final call = transport.calls.firstWhere((c) => c.path == '/api/app/v1/checkout/confirm');
+    expect(call.body!['token_id'], 4501,
+        reason: 'fara token, serverul n-ar sti cu care card salvat sa plateasca');
+  });
+
+  testWidgets('doua carduri salvate raman optiuni diferite', (tester) async {
+    // Cheia de selectie include tokenul: fara el, al doilea card ar parea acelasi
+    // lucru cu primul si clientul n-ar putea alege intre ele.
+    final json = checkoutFixture();
+    final options = json['payment_options'] as List;
+    final first = (options.first as Map).cast<String, dynamic>();
+    options.insert(1, {...first, 'token_id': 4502, 'name': 'MASTERCARD **** 8888'});
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/checkout', ApiResponse(status: 200, json: json));
+
+    await pumpCheckout(tester, transport);
+
+    expect(find.text('VISA **** 4242'), findsOneWidget);
+    expect(find.text('MASTERCARD **** 8888'), findsOneWidget);
   });
 
   testWidgets('cosul gol da 409 si ecranul arata mesajul serverului', (tester) async {

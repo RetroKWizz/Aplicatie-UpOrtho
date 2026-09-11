@@ -25,5 +25,8 @@ class CheckoutRepository {
       CheckoutConfirmation.fromJson(await _api.post('/checkout/confirm', body: {
         'payment_method_id': option.paymentMethodId,
         'provider_id': option.providerId,
+        // Cardul salvat se identifica si prin token: aceeasi metoda si acelasi
+        // provider pot avea mai multe carduri.
+        if (option.tokenId case final int id) 'token_id': id,
       }));
 }

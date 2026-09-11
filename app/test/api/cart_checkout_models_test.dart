@@ -60,13 +60,18 @@ void main() {
   test('metoda offline se distinge de cea care cere WebView', () {
     final checkout = Checkout.fromJson(fixture('checkout.json'));
     final offline = checkout.paymentOptions.firstWhere((o) => o.isOffline);
-    final card = checkout.paymentOptions.firstWhere((o) => !o.isOffline);
+    final card = checkout.paymentOptions
+        .firstWhere((o) => !o.isOffline && !o.isSavedCard);
+    final saved = checkout.paymentOptions.firstWhere((o) => o.isSavedCard);
 
     expect(offline.code, 'custom');
     // Instructiunile vin ca blocuri, nu ca HTML - aplicatia nu are motor HTML.
     expect(offline.instructions.single.spans.single.text, contains('RO00'));
     expect(card.kind, 'webview');
     expect(card.instructions, isEmpty);
+    // Cardul salvat se distinge prin token: aceeasi metoda si acelasi provider pot
+    // avea mai multe carduri.
+    expect(saved.tokenId, 4501);
   });
 
   test('un blocaj de checkout tine butonul de trimitere inchis', () {

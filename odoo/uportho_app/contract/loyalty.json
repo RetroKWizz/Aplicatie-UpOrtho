@@ -1,0 +1,20 @@
+[
+  {
+    "id": 9101,
+    "program": "Ortho Club 2026",
+    "program_type": "loyalty",
+    "code": "0448-5c9a-42b8",
+    "points": 150.0,
+    "points_display": "150 puncte",
+    "expiration_date": null
+  },
+  {
+    "id": 9102,
+    "program": "Card cadou Ortho Club",
+    "program_type": "gift_card",
+    "code": "044A-11B2-77C1",
+    "points": 250.0,
+    "points_display": "250,00 lei",
+    "expiration_date": "2026-12-31"
+  }
+]

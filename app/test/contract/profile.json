@@ -1,0 +1,42 @@
+{
+  "profile": {
+    "id": 7001,
+    "name": "Dr. Exemplu Popescu",
+    "email": "cabinet@exemplu.ro",
+    "phone": "+40700000000",
+    "mobile": "+40711111111",
+    "function": "Medic primar",
+    "street": "Str. Exemplu 12",
+    "street2": null,
+    "city": "Cluj-Napoca",
+    "zip": "400001",
+    "state_id": 721,
+    "state": "Cluj",
+    "country_id": 188,
+    "country": "Romania",
+    "vat": "RO12345678",
+    "company_name": "Cabinet Dentar Exemplu SRL",
+    "can_edit_vat": false
+  },
+  "required": [
+    "city",
+    "country_id",
+    "email",
+    "name",
+    "phone",
+    "street"
+  ],
+  "editable": [
+    "city",
+    "company_name",
+    "country_id",
+    "email",
+    "name",
+    "phone",
+    "state_id",
+    "street",
+    "street2",
+    "vat",
+    "zip"
+  ]
+}

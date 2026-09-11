@@ -166,6 +166,17 @@
   "delivery_required": true,
   "payment_options": [
     {
+      "payment_method_id": 1,
+      "provider_id": 8,
+      "token_id": 4501,
+      "name": "VISA **** 4242",
+      "provider_name": "Card online prin Stripe",
+      "code": "stripe",
+      "kind": "token",
+      "instructions": [],
+      "is_test": false
+    },
+    {
       "payment_method_id": 21,
       "provider_id": 5,
       "name": "Transfer bancar",
@@ -184,7 +195,8 @@
           ]
         }
       ],
-      "is_test": false
+      "is_test": false,
+      "token_id": null
     },
     {
       "payment_method_id": 1,
@@ -194,7 +206,8 @@
       "code": "stripe",
       "kind": "webview",
       "instructions": [],
-      "is_test": false
+      "is_test": false,
+      "token_id": null
     }
   ],
   "blockers": []

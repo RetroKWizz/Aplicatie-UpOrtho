@@ -54,7 +54,9 @@ Endpointuri curente: `POST /auth/login`, `POST /auth/logout`, `GET /me`, `GET /h
 si de document ale produsului, plus (Faza 3-4) `GET /cart`, `POST /cart/lines`,
 `GET /checkout`, `POST /checkout/address`, `POST /checkout/delivery`,
 `POST /checkout/confirm`, `GET /delivery-methods/<id>/logo`, `GET /orders`,
-`GET /orders/<id>`, `GET /invoices`, `GET /invoices/<id>/pdf`, `GET /addresses`.
+`GET /orders/<id>`, `GET /invoices`, `GET /invoices/<id>/pdf`, `GET /addresses`,
+`GET /addresses/options`, `POST /addresses`, `GET /account/profile`,
+`POST /account/profile`, `GET /loyalty`.
 
 **Parametru de sistem, de setat la fiecare deploy**: `uportho_app.website_id`
 (Setari → Tehnic → Parametri de sistem) = id-ul website-ului magazinului
@@ -134,20 +136,61 @@ restrictiile pe etichete de partener) si filtrul de greutate al curierilor.
   proces — apoi `tx._post_process()`. **Post-procesarea nu vine de la sine**: pe site o
   declanseaza pagina `/payment/status`; fara ea comanda ramane ciorna si nimeni n-o
   vede in Odoo.
-- **card** (Stripe): aplicatia deschide pagina de plata a magazinului
+- **card salvat** (`kind: token`): plata se face fara sa iesim din aplicatie. Tokenul
+  e o referinta pastrata de provider, iar cererea o face serverul
+  (`payment.transaction._send_payment_request`) — acelasi apel ca
+  `payment.controllers.portal._create_transaction` cu `flow='token'`. Nicio informatie
+  de card nu trece prin aplicatie. Pe uportho asta nu e un caz marginal: peste o mie de
+  carduri salvate si zeci de plati pe luna facute asa. Rezultatul nu se presupune: se
+  citeste starea tranzactiei, iar daca plata nu a trecut (3-D Secure cere clientul in
+  fata ecranului, fonduri, card expirat) raspunsul devine `webview` si aplicatia
+  trimite clientul in pagina magazinului.
+- **card nou** (Stripe): aplicatia deschide pagina de plata a magazinului
   (`/shop/payment`) intr-un **WebView**, cu acelasi cookie de sesiune. In Odoo 18
   formularul Stripe e **inline** (JavaScript in pagina), nu o redirectionare: nu exista
   URL de plata care sa poata fi deschis altfel, iar datele cardului nu trec prin
   aplicatie. WebView-ul se inchide cand URL-ul ajunge la `/shop/confirmation`.
 
+  **Optiunea de plata se identifica prin (provider, metoda, token), nu prin primele
+  doua.** Acelasi provider ofera si cardul nou, si fiecare card salvat, toate cu acelasi
+  `payment_method_id`. Fara token in cheie, doua randuri din ecran primeau aceeasi
+  valoare si apasarea pe cardul salvat alegea de fapt cardul nou.
+
 Ce provideri sunt "offline" se poate schimba fara release, prin parametrul de sistem
 `uportho_app.offline_payment_codes` (implicit `custom,on_delivery`).
 
-**Adrese noi nu se creeaza din aplicatie.** Formularul de adresa al magazinului e
-modificat de client (`terrabit_website_invoice_address`, `deltatech_website_city`: CUI
-validat, oras ca lista legata, nu text liber). Aplicatia alege dintre adresele
-existente ale contului; adaugarea unei adrese noi ramane in browser, ca sa nu existe
-doua validari care se pot contrazice.
+**Adresele noi si datele contului trec prin validarea lor, nu prin a noastra.**
+`controllers/address.py` mosteneste `WebsiteSale` si `controllers/profile.py`
+mosteneste `CustomerPortal` — mostenirea e chiar mecanismul prin care se leaga si
+modulele clientului, deci `self._validate_address_values` si
+`self.details_form_validate` trec prin toate override-urile lor:
+`terrabit_website_invoice_address` sare peste verificarea de format a CUI-ului (au
+coduri pe care Odoo le-ar refuza) dar il face obligatoriu cand se completeaza numele
+firmei, iar `deltatech_website_city` adauga `city_id` la campurile obligatorii, pentru
+ca orasul e o inregistrare legata. **Cele doua clase nu suprascriu nicio metoda si
+nicio ruta a lor** — adauga doar rute sub `/api/app/v1`.
+
+Campurile obligatorii nu se scriu in codul nostru: se cer magazinului
+(`_get_mandatory_billing_address_fields` / `_get_mandatory_delivery_address_fields`) si
+portalului (`_get_mandatory_fields`), deci o schimbare facuta de ei ajunge in aplicatie
+fara release. Ce trimite aplicatia e insa o lista scrisa explicit (`ALLOWED_FIELDS`,
+`PROFILE_FIELDS`): `_parse_form_data` de pe site accepta orice camp "scriibil din
+formular", ceea ce pe o ruta JSON ar lasa un client sa-si seteze singur agentul de
+vanzari sau etichetele.
+
+Doua capcane, amandoua prinse de teste:
+- `details_form_validate` **respinge orice cheie necunoscuta** ("Unknown field"), deci
+  `mobile` si `function` (care nu sunt in formularul web) se salveaza pe langa ea, nu
+  prin ea.
+- "netrimis" si "trimis gol" sunt lucruri diferite. Un camp netrimis se completeaza cu
+  valoarea de acum; unul trimis gol e o cerere de stergere si merge asa la validare.
+  Confundate, o stergere ceruta de client primea 200 si nu se intampla nimic.
+
+**Lista de adrese are o singura sursa**, `address._account_addresses()`: partenerul
+comercial, copiii lui **si** partenerii cu `access_for_user_id` — campul prin care
+clientul da acces la o firma din afara arborelui. Site-ul le adauga in
+`_prepare_checkout_page_values`; fara ele aplicatia ar arata mai putine adrese decat
+magazinul.
 
 **Accesul B2B al temei inseamna "utilizator autentificat".**
 `website._dr_has_b2b_access()` din `droggol_theme_common` intoarce
@@ -157,12 +200,13 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
 
 ## Status curent — Fazele 0-4 livrate (mai putin push-ul)
 
-- Modul Odoo `uportho_app`: 338 teste trecute.
-- Aplicatia Flutter: 312 teste trecute, `flutter analyze` curat. Login cu restaurare
+- Modul Odoo `uportho_app`: 371 teste trecute.
+- Aplicatia Flutter: 339 teste trecute, `flutter analyze` curat. Login cu restaurare
   silentioasa a sesiunii, Acasa, catalog cu cautare si paginare, pagina de produs
   completa (galerie, tabele de pret, tabel de variante, brand, file, documente,
-  recenzii, produse similare), cos, checkout, plata, cont cu comenzi, facturi (PDF) si
-  adrese. Toate cele patru taburi sunt reale.
+  recenzii, produse similare), cos, checkout, plata (offline, card salvat, card nou in
+  WebView), cont cu datele contului editabile, comenzi, facturi (PDF), adrese cu
+  adaugare de adrese noi si carduri Ortho Club. Toate cele patru taburi sunt reale.
 - Contract JSON comun: `odoo/uportho_app/contract/*.json` e sursa de adevar, copiat in
   `app/test/contract/` prin `app/tool/sync_contract.sh` — o schimbare pe server care
   rupe aplicatia pica un test inainte de a ajunge in productie. Divergenta intre cele
@@ -170,10 +214,13 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
   daca pica, ruleaza `app/tool/sync_contract.sh`.
 - Nu e facut inca: notificari push (partea de FCM din Faza 4 — modelul `uportho.app.device`
   si rutele exista, trimiterea nu), lansare in store (Faza 5), migrare Odoo 19 (Faza 6).
-- Neverificat inca pe un Odoo real: **nicio comanda nu a fost trimisa pe staging sau pe
-  productie din aplicatie**. Tot ce e mai sus e verificat contra bazei locale Docker si
-  a codului clientului citit pe staging (read-only). O comanda de proba pe staging e
-  decizia lui Mihai, ceruta explicit de fiecare data.
+- Verificat pe staging, pe catalogul real (11 septembrie 2026): login, catalog, produs,
+  cos, checkout si **doua comenzi duse pana la capat** (CMD42024, CMD42026), plus
+  contul lui Mihai cu 31 de comenzi, 2 facturi si 4 adrese. Doua defecte gasite acolo,
+  nu in teste: pretul pe bucata ignora reducerea liniei, si al doilea cont vedea datele
+  primului. Ambele reparate, cu teste care le reproduc.
+- Neverificat inca pe staging: adaugarea de adrese, editarea datelor contului, plata cu
+  card salvat. Sunt acoperite de teste, dar n-au fost exercitate pe date reale.
 - Ramase, de decis doar de user: export Odoo Studio ca plasa de siguranta (plan Task 0.3),
   deploy pe odoo.sh (plan Task 1.9, sarit deliberat).
 - Ce a fost amanat constient (setari de dezvoltare de scos la lansare + datorie tehnica):

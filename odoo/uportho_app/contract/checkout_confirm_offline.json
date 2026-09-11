@@ -16,6 +16,10 @@
         ]
       }
     ],
-    "reference": "S12345-1"
+    "reference": "S12345-1",
+    "state": null,
+    "message": null,
+    "url": null,
+    "return_url_prefix": null
   }
 }

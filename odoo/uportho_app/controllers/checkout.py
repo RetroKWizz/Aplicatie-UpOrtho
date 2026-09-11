@@ -111,15 +111,14 @@ def serialize_address(partner):
 
 
 def _available_addresses(order):
-    """Adresele pe care contul le poate folosi la livrare si la facturare: partenerul
-    comercial si adresele lui copil.
+    """Adresele pe care contul le poate folosi la livrare si la facturare.
 
-    Se pleaca de la `commercial_partner_id`, nu de la utilizator: intr-o clinica pot
-    exista mai multi utilizatori pe acelasi client, iar adresele sunt ale clientului.
-    Aceeasi multime din care alege si site-ul."""
-    commercial = order.partner_id.sudo().commercial_partner_id
-    children = commercial.child_ids.filtered(lambda p: p.type in ('delivery', 'invoice', 'other'))
-    return commercial | children
+    O singura sursa, `address._account_addresses()`, folosita si de `/addresses` si de
+    checkout - altfel ecranul de cont si cel de checkout ar putea arata liste diferite
+    aceluiasi client. Importul se face aici, nu la inceput de fisier: `address.py` il
+    importa pe acesta pentru `serialize_address`."""
+    from .address import _account_addresses
+    return _account_addresses()
 
 
 def serialize_delivery_method(carrier, order, rate=None):
@@ -165,7 +164,29 @@ def _payment_options(order):
         currency_id=order.currency_id.id, sale_order_id=order.id)
 
     offline = _offline_codes()
+    tokens = request.env['payment.token'].sudo()._get_available_tokens(
+        providers.ids, partner.id)
+
     options = []
+    # Cardurile deja salvate vin primele: pe site clientul plateste cu ele dintr-o
+    # apasare, fara sa mai treaca prin formularul de card. Pe uportho sunt peste o mie
+    # de astfel de carduri si zeci de plati pe luna facute asa.
+    for token in tokens:
+        provider = token.provider_id
+        if provider not in providers:
+            continue
+        options.append({
+            'payment_method_id': token.payment_method_id.id,
+            'provider_id': provider.id,
+            'token_id': token.id,
+            'name': token.display_name,
+            'provider_name': provider.name,
+            'code': provider.code,
+            'kind': 'token',
+            'instructions': [],
+            'is_test': provider.state == 'test',
+        })
+
     for method in methods:
         provider = method.provider_ids.filtered(lambda p: p in providers)[:1]
         if not provider:
@@ -174,6 +195,7 @@ def _payment_options(order):
         options.append({
             'payment_method_id': method.id,
             'provider_id': provider.id,
+            'token_id': None,
             'name': method.name,
             'provider_name': provider.name,
             'code': provider.code,
@@ -226,6 +248,62 @@ def _blockers(order):
         elif not order.carrier_id:
             blockers.append({'code': 'no_carrier_selected', 'message': 'Alege metoda de livrare.'})
     return blockers
+
+
+def _pay_with_token(order, option):
+    """Plata cu un card deja salvat, exact ca pe site.
+
+    Nicio informatie de card nu trece prin aplicatie: tokenul e o referinta pastrata de
+    provider, iar cererea de plata o face serverul
+    (`payment.transaction._send_payment_request`) - acelasi apel pe care il face si
+    `payment.controllers.portal._create_transaction` cu `flow='token'`.
+
+    Rezultatul nu e presupus: se citeste starea reala a tranzactiei dupa apel. Un card
+    care cere autentificare 3-D Secure esueaza la o plata facuta fara clientul in fata
+    ecranului, iar atunci raspunsul spune asta si aplicatia trimite clientul catre
+    pagina de plata a magazinului, unde poate confirma."""
+    token = request.env['payment.token'].sudo().browse(option['token_id'])
+    partner = order.partner_invoice_id.sudo()
+    # Aceeasi verificare pe care o face si portalul: un token al altui client nu are ce
+    # cauta pe comanda asta, oricat de valid ar fi id-ul trimis.
+    if partner.commercial_partner_id != token.partner_id.commercial_partner_id:
+        raise ApiError(403, 'forbidden', 'Cardul nu apartine acestui cont.')
+
+    amount = order.amount_total - order.amount_paid
+    reference = request.env['payment.transaction']._compute_reference(
+        token.provider_id.code, sale_order_ids=[(6, 0, order.ids)])
+    tx = request.env['payment.transaction'].sudo().create({
+        'provider_id': token.provider_id.id,
+        'payment_method_id': token.payment_method_id.id,
+        'token_id': token.id,
+        'reference': reference,
+        'amount': amount,
+        'currency_id': order.currency_id.id,
+        'partner_id': partner.id,
+        'operation': 'online_token',
+        'sale_order_ids': [(6, 0, order.ids)],
+    })
+    tx._send_payment_request()
+    tx._post_process()
+    order.invalidate_recordset()
+
+    paid = tx.state in ('authorized', 'done', 'pending')
+    return {
+        'order_id': order.id,
+        'order_ref': order.name,
+        'payment': {
+            'kind': 'token' if paid else 'webview',
+            'method': option['name'],
+            'instructions': [],
+            'reference': tx.reference,
+            'state': tx.state,
+            'message': tx.state_message or None,
+            # Cand plata cu cardul salvat nu trece (3-D Secure, fonduri, card expirat),
+            # clientul trebuie sa poata incerca in pagina magazinului.
+            'url': None if paid else PAYMENT_PAGE_PATH,
+            'return_url_prefix': None if paid else PAYMENT_RETURN_PREFIX,
+        },
+    }
 
 
 def _own_partner(partner_id):
@@ -347,17 +425,30 @@ class AppCheckout(http.Controller):
         except ValidationError as error:
             raise ApiError(409, 'cart_not_ready', str(error.args[0]) if error.args else str(error))
 
-        options = {(o['payment_method_id'], o['provider_id']): o for o in _payment_options(order)}
         method_id = body.get('payment_method_id')
         provider_id = body.get('provider_id')
+        token_id = body.get('token_id')
         if isinstance(method_id, bool) or not isinstance(method_id, int):
             raise ApiError(422, 'validation_error', 'payment_method_id trebuie sa fie numeric.')
         if isinstance(provider_id, bool) or not isinstance(provider_id, int):
             raise ApiError(422, 'validation_error', 'provider_id trebuie sa fie numeric.')
-        option = options.get((method_id, provider_id))
+        if token_id is not None and (isinstance(token_id, bool) or not isinstance(token_id, int)):
+            raise ApiError(422, 'validation_error', 'token_id trebuie sa fie numeric.')
+
+        # Optiunea ceruta trebuie sa fie una din cele pe care magazinul chiar le ofera
+        # pentru ACEASTA comanda - inclusiv cardul salvat, care se identifica si prin
+        # `token_id`, nu doar prin metoda si provider.
+        options = {
+            (o['payment_method_id'], o['provider_id'], o['token_id']): o
+            for o in _payment_options(order)
+        }
+        option = options.get((method_id, provider_id, token_id))
         if not option:
             raise ApiError(422, 'validation_error',
                            'Metoda de plata nu e disponibila pentru aceasta comanda.')
+
+        if option['kind'] == 'token':
+            return json_ok(_pay_with_token(order, option))
 
         if option['kind'] == 'webview':
             return json_ok({
@@ -365,6 +456,11 @@ class AppCheckout(http.Controller):
                 'order_ref': order.name,
                 'payment': {
                     'kind': 'webview',
+                    'method': option['name'],
+                    'instructions': [],
+                    'reference': None,
+                    'state': None,
+                    'message': None,
                     'url': PAYMENT_PAGE_PATH,
                     'return_url_prefix': PAYMENT_RETURN_PREFIX,
                 },
@@ -407,6 +503,10 @@ class AppCheckout(http.Controller):
                 'method': option['name'],
                 'instructions': option['instructions'],
                 'reference': tx.reference,
+                'state': tx.state,
+                'message': None,
+                'url': None,
+                'return_url_prefix': None,
             },
         })
 

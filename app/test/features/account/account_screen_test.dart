@@ -49,6 +49,10 @@ void main() {
         ApiResponse(status: 200, json: fixture('invoices.json')));
     transport.when('GET', '/api/app/v1/addresses',
         ApiResponse(status: 200, json: listFixture('addresses.json')));
+    transport.when('GET', '/api/app/v1/account/profile',
+        ApiResponse(status: 200, json: fixture('profile.json')));
+    transport.when('GET', '/api/app/v1/loyalty',
+        ApiResponse(status: 200, json: listFixture('loyalty.json')));
     return transport;
   }
 
@@ -88,6 +92,26 @@ void main() {
     expect(find.text('FACT/2026/0042'), findsOneWidget);
     expect(find.text('Cabinet Dentar Exemplu SRL'), findsOneWidget);
     expect(find.text('304,99 lei'), findsOneWidget);
+  });
+
+  testWidgets('cardurile Ortho Club apar cu punctele lor, formatate de server',
+      (tester) async {
+    await pump(tester, const AccountScreen(), accountTransport());
+
+    expect(find.text('Ortho Club si vouchere'), findsOneWidget);
+    expect(find.text('Ortho Club 2026'), findsOneWidget);
+    expect(find.text('150 puncte'), findsOneWidget);
+    expect(find.text('250,00 lei'), findsOneWidget);
+  });
+
+  testWidgets('fara carduri, sectiunea de fidelitate lipseste complet', (tester) async {
+    final transport = accountTransport();
+    transport.when(
+        'GET', '/api/app/v1/loyalty', const ApiResponse(status: 200, json: <dynamic>[]));
+
+    await pump(tester, const AccountScreen(), transport);
+
+    expect(find.text('Ortho Club si vouchere'), findsNothing);
   });
 
   testWidgets('o sectiune picata nu arunca tot ecranul pe eroare', (tester) async {

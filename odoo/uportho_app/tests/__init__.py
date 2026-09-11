@@ -12,3 +12,5 @@ from . import test_controllers_product
 from . import test_controllers_cart
 from . import test_controllers_checkout
 from . import test_controllers_account
+from . import test_controllers_address
+from . import test_controllers_profile

@@ -6,6 +6,8 @@ import '../../api/api_exception.dart';
 import '../../api/models/checkout.dart';
 import '../../design_system/colors.dart';
 import '../../providers.dart';
+import '../account/account_controller.dart';
+import '../account/address_form_screen.dart';
 import '../cart/cart_controller.dart';
 import 'checkout_controller.dart';
 import 'payment_webview_screen.dart';
@@ -58,6 +60,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   onPick: (id) => _run(
                     () => ref.read(checkoutControllerProvider.notifier).chooseDeliveryAddress(id),
                   ),
+                  onAdd: () => _addAddress('delivery'),
                 ),
               ),
               if (checkout.deliveryRequired)
@@ -114,11 +117,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final selected = _selectedPayment;
     if (selected != null) {
       final match = checkout.paymentOptions.where(
-        (o) => o.paymentMethodId == selected.paymentMethodId && o.providerId == selected.providerId,
+        (o) =>
+            o.paymentMethodId == selected.paymentMethodId &&
+            o.providerId == selected.providerId &&
+            o.tokenId == selected.tokenId,
       );
       if (match.isNotEmpty) return match.first;
     }
     return checkout.paymentOptions.length == 1 ? checkout.paymentOptions.first : null;
+  }
+
+  /// Adresa noua se adauga din chiar acest ecran: pe site, clientul o poate crea in
+  /// pasul de checkout, nu doar din contul lui. Dupa salvare se reciteste checkout-ul,
+  /// ca noua adresa sa apara in lista si sa poata fi aleasa imediat.
+  Future<void> _addAddress(String kind) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => AddressFormScreen(kind: kind)),
+    );
+    if (saved != true || !mounted) return;
+    ref.invalidate(addressesProvider);
+    await _run(() => ref.read(checkoutControllerProvider.notifier).reload());
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -137,7 +155,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     try {
       final confirmation = await ref.read(checkoutControllerProvider.notifier).confirm(option);
       if (!mounted) return;
-      if (confirmation.payment.isOffline) {
+      // Plata cu cardul salvat s-a facut deja pe server. Daca nu a trecut (3-D Secure,
+      // fonduri, card expirat), serverul raspunde `webview` si mergem in pagina de
+      // plata a magazinului, ca pe site.
+      if (confirmation.payment.isOffline || confirmation.payment.isPaidByCard) {
         context.go('/cart/confirmed/${confirmation.orderId}', extra: confirmation);
         return;
       }
@@ -207,9 +228,14 @@ class _Section extends StatelessWidget {
 }
 
 class _AddressPicker extends StatelessWidget {
-  const _AddressPicker({required this.checkout, required this.onPick});
+  const _AddressPicker({
+    required this.checkout,
+    required this.onPick,
+    required this.onAdd,
+  });
   final Checkout checkout;
   final ValueChanged<int> onPick;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -227,14 +253,17 @@ class _AddressPicker extends StatelessWidget {
                 title: Text(address.name),
                 subtitle: address.oneLine.isEmpty ? null : Text(address.oneLine),
               ),
-            if (checkout.addresses.available.length <= 1)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(
-                  'Adresele se adauga si se modifica din contul de pe uportho.ro.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: TextButton.icon(
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Adauga o adresa de livrare'),
+                  onPressed: onAdd,
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -346,7 +375,14 @@ class _PaymentPicker extends StatelessWidget {
 
   /// Cheia care identifica o optiune in grup: metoda de plata singura nu ajunge -
   /// aceeasi metoda ("Card") poate fi oferita de mai multi provideri.
-  static String _key(PaymentOption option) => '${option.providerId}-${option.paymentMethodId}';
+  /// Cheia care identifica o optiune in grupul de radio-butoane.
+  ///
+  /// Metoda si providerul nu ajung: acelasi provider ofera si cardul nou, si fiecare
+  /// card salvat, toate cu acelasi `payment_method_id`. Fara token in cheie, doua
+  /// randuri diferite primeau aceeasi valoare, Flutter le vedea pe amandoua selectate,
+  /// iar apasarea pe cardul salvat alegea de fapt cardul nou.
+  static String _key(PaymentOption option) =>
+      '${option.providerId}-${option.paymentMethodId}-${option.tokenId ?? 0}';
 }
 
 class _CheckoutFooter extends StatelessWidget {
