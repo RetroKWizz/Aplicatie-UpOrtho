@@ -288,6 +288,44 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
    version of Flutter") — daca pachetul nu adopta SPM, la o versiune viitoare de Flutter
    trebuie inlocuit. `Podfile` si `Podfile.lock` sunt versionate, `Pods/` nu.
 
+## Desfasurare pe staging (odoo.sh)
+
+Modulul sta pe staging la `~/src/user/custom_modules/uportho_app` si e **installed**.
+Actualizarea codului, din terminalul editorului odoo.sh:
+
+```bash
+cd ~/src/user/custom_modules
+tar czf ~/tmp/backup_uportho_app_$(date +%Y%m%d_%H%M).tar.gz uportho_app   # plasa de siguranta
+curl -sSL -o /tmp/uportho_app.tar.gz \
+  https://raw.githubusercontent.com/RetroKWizz/Aplicatie-UpOrtho/main/uportho_app.tar.gz
+tar xzf /tmp/uportho_app.tar.gz -C . 2>/dev/null   # se dezarhiveaza PESTE, fara rm
+odoo-update uportho_app                            # reporneste si actualizeaza modulul
+```
+
+`uportho_app.tar.gz` din radacina repo-ului e chiar arhiva de desfasurare; se
+regenereaza cu `tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' uportho_app`.
+
+**Copia e temporara.** `~/src/user` e checkout-ul repo-ului lor; la primul build al
+ramurii de staging (adica la primul push facut de Terrabit) fisierele copiate manual
+dispar. Pentru ceva permanent, modulul trebuie sa intre in repo-ul lor.
+
+**Terminalul editorului e ALT container decat serverul Odoo.** Acolo asculta doar
+jupyter-lab; `curl http://127.0.0.1:8069/...` da mereu `000`. Testarea rutelor se face
+pe URL-ul public al instantei (`https://uportho-staging-36862484.dev.odoo.com/...`),
+tot din acel terminal. Baza de date si filesystemul sunt insa comune, deci `psql` si
+`odoo-bin shell` merg direct.
+
+**Pe staging, Odoo dezactiveaza singur toti providerii de plata** (`state='disabled'`),
+ca sa nu se incaseze bani reali dintr-o copie de productie. Fara ca cineva sa porneasca
+explicit unul in mod test, `/checkout` intoarce lista de plati goala — nu e un bug al
+modulului.
+
+**Starea configurarii pe website 11, verificata pe copia de staging din 29 iulie 2026:**
+singurul curier publicat e "Ridicare din sediu" (id 4). Fan Courier (3) si Fan Courier
+ramburs (5) sunt arhivate din 28 iulie, iar cele doua "Caut Curier – Sameday" (31, 32)
+sunt nepublicate si legate de website 12. Aplicatia arata exact ce e publicat, deci
+daca in productie lipsesc curierii, lipsesc si in aplicatie.
+
 ## Comenzi utile
 
 ```bash

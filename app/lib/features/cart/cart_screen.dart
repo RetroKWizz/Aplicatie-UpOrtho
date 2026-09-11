@@ -149,8 +149,23 @@ class _CartLineTile extends StatelessWidget {
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ),
                   const SizedBox(height: 4),
-                  Text('${line.unitPrice.formatted} / buc',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  // Pretul pe bucata, cu cel dinainte de reducere taiat langa el -
+                  // exact ce arata si cosul de pe site cand linia are reducere.
+                  Row(
+                    children: [
+                      Text('${line.unitPrice.formatted} / buc',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      if (line.unitPrice.listFormatted case final String struck) ...[
+                        const SizedBox(width: 6),
+                        Text(struck,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              decoration: TextDecoration.lineThrough,
+                            )),
+                      ],
+                    ],
+                  ),
                   if (line.warning case final String warning)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),

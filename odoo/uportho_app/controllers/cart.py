@@ -66,25 +66,37 @@ def _variant_label(line):
     return ', '.join(f'{v.attribute_id.name}: {v.name}' for v in values)
 
 
-def _line_unit_price(line):
-    """Pretul unitar al liniei, CU TVA.
+def _line_unit_prices(line):
+    """Pretul unitar al liniei CU TVA, si pretul dinainte de reducere cand exista.
 
-    Aceeasi socoteala ca `sale.order.line._get_displayed_unit_price()` din
-    `website_sale` (taxele liniei aplicate pe o bucata, cu tratarea separata a
+    Intoarce `(pret, pret_taiat_sau_None)`.
+
+    Pretul de baza e aceeasi socoteala ca `sale.order.line._get_displayed_unit_price()`
+    din `website_sale` (taxele liniei aplicate pe o bucata, cu tratarea separata a
     produselor combo), cu o singura diferenta deliberata: acolo alegerea intre
     `total_included` si `total_excluded` urmeaza configurarea website-ului, aici e
-    mereu `total_included`.
+    mereu `total_included` - tot API-ul acestui modul intoarce preturi cu TVA si le
+    marcheaza asa (`with_vat: True`). Altfel acelasi produs ar avea doua preturi in
+    aceeasi aplicatie: unul in catalog, altul in cos.
 
-    De ce: tot API-ul acestui modul intoarce preturi cu TVA si le marcheaza asa
-    (`with_vat: True` din `serialize_price`) - cerinta de contract, nu optiune de
-    configurare. Daca linia ar urma configurarea si restul nu, acelasi produs ar avea
-    doua preturi diferite in aceeasi aplicatie: unul in catalog, altul in cos. Cand
-    website-ul chiar e configurat pe TVA exclus, `_warn_if_tax_display_mismatch`
-    logheaza asta la fiecare citire de cos - cifrele raman insa consecvente intre ele."""
-    price = line._get_display_price_ignore_combo() if line.product_type == 'combo' else line.price_unit
-    return line.tax_id.compute_all(
-        price_unit=price, currency=line.currency_id, quantity=1.0,
+    **Reducerea liniei se aplica.** `_get_displayed_unit_price()` o ignora: pe o
+    comanda reala de pe staging el intorcea 330,00 lei pe bucata, in timp ce comanda
+    incasa 264,00 (272,73 fara TVA, minus 20%, plus TVA). Magazinul arata amandoua
+    cifrele - sablonul `website_sale.cart_lines` taie pretul nereduse si scrie langa
+    el pretul cu reducere aplicata - asa ca aplicatia trebuie sa le primeasca pe
+    amandoua, nu doar pe cel taiat.
+
+    Inmultirea cu `(1 - discount/100)` e chiar formula lui Odoo pentru totalul liniei;
+    facuta aici, pe server, nu in aplicatie (CLAUDE.md: aplicatia nu face aritmetica pe
+    bani)."""
+    base = line._get_display_price_ignore_combo() if line.product_type == 'combo' else line.price_unit
+    taxed = line.tax_id.compute_all(
+        price_unit=base, currency=line.currency_id, quantity=1.0,
         product=line.product_id, partner=line.order_partner_id)['total_included']
+    discount = line.discount or 0.0
+    if not discount:
+        return taxed, None
+    return line.currency_id.round(taxed * (1.0 - discount / 100.0)), taxed
 
 
 def serialize_cart_line(line, currency):
@@ -92,7 +104,7 @@ def serialize_cart_line(line, currency):
 
     Subtotalul e `price_total` (cu TVA), campul pe care il aduna si comanda - asa randul
     si totalul nu pot sa nu fie de acord, iar pretul unitar e calculat cu aceeasi taxa
-    (vezi `_line_unit_price`).
+    si cu aceeasi reducere (vezi `_line_unit_prices`).
 
     `warning` e avertismentul de magazin al liniei (stoc insuficient, cantitate ajustata).
     Se citeste fara sa se stearga: o cerere `GET` nu are voie sa consume un mesaj pe
@@ -106,7 +118,7 @@ def serialize_cart_line(line, currency):
         'default_code': line.product_id.default_code or None,
         'image_url': _line_image_url(line),
         'quantity': line._get_displayed_quantity(),
-        'unit_price': serialize_price(_line_unit_price(line), None, currency),
+        'unit_price': serialize_price(*_line_unit_prices(line), currency=currency),
         'subtotal': serialize_price(line.price_total, None, currency),
         'warning': line.shop_warning or None,
     }

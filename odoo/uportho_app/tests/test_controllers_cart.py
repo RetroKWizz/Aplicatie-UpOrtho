@@ -92,6 +92,38 @@ class TestControllersCart(AppHttpCase):
         self.assertEqual(body['amounts']['total']['amount'], line['subtotal']['amount'])
         self.assertTrue(body['amounts']['total']['formatted'])
 
+    def test_unit_price_includes_the_line_discount(self):
+        """Pretul unitar trebuie sa fie cel PLATIT, nu cel dinainte de reducere.
+
+        Reprodus de pe staging: o linie cu 272,73 lei fara TVA si 20% reducere costa
+        264,00 lei bucata cu TVA, dar `sale.order.line._get_displayed_unit_price()` -
+        metoda pe care o foloseam - intorcea 330,00. Clientul vedea in cos un pret pe
+        bucata mai mare decat cel cu care i se incasa comanda.
+
+        Magazinul arata amandoua cifrele (sablonul `website_sale.cart_lines` taie
+        pretul nereduse), deci raspunsul le poarta pe amandoua: `amount` e cel platit,
+        `list_amount` cel taiat."""
+        self.api_login()
+        self._add(2)
+        order = self.env['sale.order'].browse(self._cart()['order_id'])
+        line = order.order_line[0]
+        # 20% reducere pe linie, exact forma in care o pune o lista de preturi reala.
+        line.sudo().write({'discount': 20.0})
+
+        body = self._cart()
+        unit = body['lines'][0]['unit_price']
+        self.assertAlmostEqual(unit['amount'] * 2, body['lines'][0]['subtotal']['amount'], places=2)
+        self.assertIsNotNone(unit['list_amount'])
+        self.assertGreater(unit['list_amount'], unit['amount'])
+        self.assertEqual(unit['discount_pct'], 20)
+
+    def test_without_a_discount_the_unit_price_carries_no_struck_price(self):
+        self.api_login()
+        self._add(1)
+        unit = self._cart()['lines'][0]['unit_price']
+        self.assertIsNone(unit['list_amount'])
+        self.assertIsNone(unit['discount_pct'])
+
     def test_several_variants_in_one_request(self):
         """Tabelul de variante din pagina de produs trimite toate randurile deodata:
         o singura cerere, o singura recalculare de preturi, un singur raspuns."""

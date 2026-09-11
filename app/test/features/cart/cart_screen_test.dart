@@ -55,6 +55,37 @@ void main() {
     expect(find.text('44,71 lei'), findsOneWidget, reason: 'TVA');
   });
 
+  testWidgets('cu reducere pe linie, pretul pe bucata apare cu cel vechi taiat',
+      (tester) async {
+    // Cosul de pe site taie pretul nereduse si scrie langa el pretul platit. Aplicatia
+    // arata amandoua cifrele; fixture-ul de contract poarta o reducere de 20%.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/cart', ApiResponse(status: 200, json: cartFixture()));
+
+    await pumpCart(tester, transport);
+
+    expect(find.text('70,00 lei / buc'), findsOneWidget);
+    final struck = tester.widget<Text>(find.text('87,50 lei'));
+    expect(struck.style!.decoration, TextDecoration.lineThrough);
+  });
+
+  testWidgets('fara reducere, nu apare niciun pret taiat', (tester) async {
+    final json = cartFixture();
+    ((json['lines'] as List).first as Map<String, dynamic>)['unit_price'] = {
+      ...((json['lines'] as List).first as Map<String, dynamic>)['unit_price']
+          as Map<String, dynamic>,
+      'list_amount': null,
+      'list_formatted': null,
+      'discount_pct': null,
+    };
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/cart', ApiResponse(status: 200, json: json));
+
+    await pumpCart(tester, transport);
+
+    expect(find.text('87,50 lei'), findsNothing);
+  });
+
   testWidgets('progresul catre livrarea gratuita arata cat mai lipseste', (tester) async {
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/cart', ApiResponse(status: 200, json: cartFixture()));

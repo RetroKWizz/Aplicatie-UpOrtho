@@ -12,16 +12,16 @@
       "image_url": "/api/app/v1/products/101/image?unique=3a1f9c2",
       "quantity": 4,
       "unit_price": {
-        "amount": 70.00,
+        "amount": 70.0,
         "currency": "RON",
         "formatted": "70,00 lei",
         "with_vat": true,
-        "list_amount": null,
-        "list_formatted": null,
-        "discount_pct": null
+        "list_amount": 87.5,
+        "list_formatted": "87,50 lei",
+        "discount_pct": 20
       },
       "subtotal": {
-        "amount": 280.00,
+        "amount": 280.0,
         "currency": "RON",
         "formatted": "280,00 lei",
         "with_vat": true,
@@ -52,7 +52,7 @@
       "discount_pct": null
     },
     "delivery": {
-      "amount": 0.00,
+      "amount": 0.0,
       "currency": "RON",
       "formatted": "0,00 lei",
       "with_vat": true,
@@ -61,7 +61,7 @@
       "discount_pct": null
     },
     "total": {
-      "amount": 280.00,
+      "amount": 280.0,
       "currency": "RON",
       "formatted": "280,00 lei",
       "with_vat": true,
@@ -72,7 +72,7 @@
   },
   "free_delivery": {
     "free_over": {
-      "amount": 500.00,
+      "amount": 500.0,
       "currency": "RON",
       "formatted": "500,00 lei",
       "with_vat": true,
@@ -81,7 +81,7 @@
       "discount_pct": null
     },
     "order_amount": {
-      "amount": 280.00,
+      "amount": 280.0,
       "currency": "RON",
       "formatted": "280,00 lei",
       "with_vat": true,
@@ -90,7 +90,7 @@
       "discount_pct": null
     },
     "remaining": {
-      "amount": 220.00,
+      "amount": 220.0,
       "currency": "RON",
       "formatted": "220,00 lei",
       "with_vat": true,
