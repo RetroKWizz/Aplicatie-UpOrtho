@@ -87,6 +87,40 @@ void main() {
     expect(find.text('Produs din categoria 12'), findsOneWidget);
   });
 
+  testWidgets('acelasi ecran, alta categorie: schimbarea trece fara exceptie', (tester) async {
+    // Catalogul e un tab din `StatefulShellRoute.indexedStack`: ramane montat, iar o a
+    // doua navigare de pe Acasa il reconstruieste cu alt `initialCategoryId`. Scrierea
+    // facuta direct in `didUpdateWidget` arunca "Tried to modify a provider while the
+    // widget tree was building" si categoria noua nu se incarca niciodata.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/categories', const ApiResponse(status: 200, json: []));
+    transport.when('GET', '/api/app/v1/products?offset=0&limit=20', ApiResponse(status: 200, json: {
+      'products': [productJson(1, 'Toate produsele')],
+      'total': 1,
+      'offset': 0,
+      'limit': 20,
+    }));
+    transport.when('GET', '/api/app/v1/products?category_id=12&offset=0&limit=20',
+        ApiResponse(status: 200, json: {
+      'products': [productJson(9, 'Produs din categoria 12')],
+      'total': 1,
+      'offset': 0,
+      'limit': 20,
+    }));
+
+    final container = await pumpCatalog(tester, transport: transport);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: CatalogScreen(initialCategoryId: 12)),
+    ));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Produs din categoria 12'), findsOneWidget);
+  });
+
   testWidgets('eroarea serverului arata mesajul si un buton de reincercare', (tester) async {
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/categories', const ApiResponse(status: 200, json: []));

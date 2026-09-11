@@ -48,8 +48,16 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     // Ecranul ramane montat permanent (tab in StatefulShellRoute.indexedStack) -
     // o a doua navigare catre catalog cu alta categorie (ex. alt banner de pe
     // Acasa) reconstruieste acelasi widget cu alt `initialCategoryId`, nu unul nou.
+    // Ca in `initState`: schimbarea de categorie scrie stare intr-un provider, iar
+    // `didUpdateWidget` ruleaza inca in timpul constructiei arborelui. Direct aici,
+    // Riverpod arunca "Tried to modify a provider while the widget tree was building"
+    // si ecranul ramane pe categoria veche.
     if (widget.initialCategoryId != oldWidget.initialCategoryId) {
-      ref.read(catalogControllerProvider.notifier).setCategory(widget.initialCategoryId);
+      final categoryId = widget.initialCategoryId;
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(catalogControllerProvider.notifier).setCategory(categoryId);
+      });
     }
   }
 

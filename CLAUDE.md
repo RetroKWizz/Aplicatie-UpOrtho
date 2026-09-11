@@ -200,8 +200,8 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
 
 ## Status curent — Fazele 0-4 livrate (mai putin push-ul)
 
-- Modul Odoo `uportho_app`: 371 teste trecute.
-- Aplicatia Flutter: 339 teste trecute, `flutter analyze` curat. Login cu restaurare
+- Modul Odoo `uportho_app`: 372 teste trecute.
+- Aplicatia Flutter: 340 teste trecute, `flutter analyze` curat. Login cu restaurare
   silentioasa a sesiunii, Acasa, catalog cu cautare si paginare, pagina de produs
   completa (galerie, tabele de pret, tabel de variante, brand, file, documente,
   recenzii, produse similare), cos, checkout, plata (offline, card salvat, card nou in
@@ -219,8 +219,14 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
   contul lui Mihai cu 31 de comenzi, 2 facturi si 4 adrese. Doua defecte gasite acolo,
   nu in teste: pretul pe bucata ignora reducerea liniei, si al doilea cont vedea datele
   primului. Ambele reparate, cu teste care le reproduc.
-- Neverificat inca pe staging: adaugarea de adrese, editarea datelor contului, plata cu
-  card salvat. Sunt acoperite de teste, dar n-au fost exercitate pe date reale.
+- Verificat pe staging pe 11 septembrie 2026, dupa comenzi: adaugarea unei adrese noi
+  (creata din API, vizibila in lista contului) si ecranul cu datele contului, care arata
+  campurile reale, cu codul fiscal blocat de Odoo si emailul cerut pentru ca partenerul
+  n-are unul. Neverificata pe date reale ramane plata cu card salvat.
+- **Cardul de membru se arata si cu zero puncte.** Un card `loyalty` spune ca esti in
+  Ortho Club, iar asta e informatia, nu soldul; un card cadou sau un portofel golit se
+  ascunde, acolo zero chiar inseamna "nu mai ai ce folosi". Cardul lui Mihai are zero
+  puncte, deci regula veche ii ascundea complet sectiunea.
 - Ramase, de decis doar de user: export Odoo Studio ca plasa de siguranta (plan Task 0.3),
   deploy pe odoo.sh (plan Task 1.9, sarit deliberat).
 - Ce a fost amanat constient (setari de dezvoltare de scos la lansare + datorie tehnica):
@@ -253,6 +259,12 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
    acoperita de `app/test/features/account/account_switch_test.dart`, care face chiar
    logout + login cu alt cont. Providerii legati azi: cos, checkout, comenzi, facturi,
    adrese, detaliu de comanda, plus `homeControllerProvider` si `imageHeadersProvider`.
+
+   **Si nicio scriere in provider din ciclul de viata al unui widget** (`initState`,
+   `didUpdateWidget`, `didChangeDependencies`): Riverpod arunca "Tried to modify a
+   provider while the widget tree was building". Catalogul e montat permanent, deci o a
+   doua navigare de pe Acasa il reconstruieste cu alta categorie — scrierea se face
+   dintr-un `Future.microtask`, ca si prima incarcare.
 
    Catalogul e cazul special: `CatalogController` foloseste `ref.listen`, nu `watch`,
    fiindca un watch ar goli grila la fiecare tranzitie (inclusiv la restaurarea

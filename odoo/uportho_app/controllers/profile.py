@@ -186,8 +186,10 @@ class AppLoyalty(http.Controller):
         program pe bani scrie "150,00 lei", unul pe puncte scrie "150 puncte". Textul
         vine de la Odoo, nu se compune aici - aplicatia nu formateaza bani.
 
-        Cardurile fara puncte si fara reducere de folosit nu se arata: ar umple ecranul
-        cu randuri care nu spun nimic."""
+        Un card de **membru** (`loyalty`) se arata si cu zero puncte: el spune ca
+        clientul e in Ortho Club, iar asta e informatia, nu soldul. Un card cadou sau
+        un portofel golit se ascunde - acolo zero chiar inseamna "nu mai ai ce
+        folosi"."""
         if 'loyalty.card' not in request.env:
             return json_ok([])
         commercial = request.env.user.partner_id.commercial_partner_id
@@ -207,5 +209,6 @@ class AppLoyalty(http.Controller):
                 'expiration_date': fields.Date.to_string(card.expiration_date)
                                    if card.expiration_date else None,
             }
-            for card in cards if card.points
+            for card in cards
+            if card.points or card.program_id.program_type == 'loyalty'
         ])

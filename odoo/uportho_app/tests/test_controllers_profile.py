@@ -162,12 +162,30 @@ class TestControllersLoyalty(AppHttpCase):
         # Textul punctelor vine de la Odoo; aplicatia nu compune sume.
         self.assertTrue(listed[card.id]['points_display'])
 
-    def test_a_card_with_no_points_is_not_shown(self):
+    def test_a_membership_card_is_shown_even_with_zero_points(self):
+        """Cardul Ortho Club spune ca esti membru; zero puncte nu inseamna ca nu mai
+        esti. Pe staging, cardul lui Mihai chiar are zero - ascuns, contul lui n-ar fi
+        aratat nicio urma de Ortho Club."""
         if 'loyalty.card' not in self.env:
             self.skipTest('baza nu are modulul de fidelitate')
         self.api_login()
         program = self.env['loyalty.program'].create({
-            'name': 'Program gol test', 'program_type': 'loyalty'})
+            'name': 'Ortho Club fara puncte', 'program_type': 'loyalty'})
+        card = self.env['loyalty.card'].create({
+            'program_id': program.id,
+            'partner_id': self.portal_user.partner_id.commercial_partner_id.id,
+            'points': 0.0,
+        })
+
+        self.assertIn(card.id, [c['id'] for c in self.api_get('/loyalty').json()])
+
+    def test_a_spent_gift_card_is_not_shown(self):
+        """La un card cadou, zero chiar inseamna ca nu mai ai ce folosi."""
+        if 'loyalty.card' not in self.env:
+            self.skipTest('baza nu are modulul de fidelitate')
+        self.api_login()
+        program = self.env['loyalty.program'].create({
+            'name': 'Card cadou golit test', 'program_type': 'gift_card'})
         card = self.env['loyalty.card'].create({
             'program_id': program.id,
             'partner_id': self.portal_user.partner_id.commercial_partner_id.id,
