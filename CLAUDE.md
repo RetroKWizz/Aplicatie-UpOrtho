@@ -103,6 +103,15 @@ Modele de continut care inlocuiesc Odoo Studio: `uportho.app.banner`, plus campu
 si `app_badge_text` / `app_badge_color` / `app_badge_date_end` pe `product.template`.
 Editare din Website → Aplicatie mobila (fara developer).
 
+**Eticheta de pe cardul de produs e a magazinului, nu a noastra.** Sursa e
+`dr_label_id` (`dr.product.label` din `droggol_theme_common`) — chiar campul dupa care
+tema deseneaza "pana la -40%" in magazin, cu culorile lui (`background_color`,
+`text_color`, in hexazecimal). Pe instanta reala 578 din 848 de produse active au una.
+Campurile noastre `app_badge_*` raman rezerva, pentru bazele fara tema (baza locala,
+testele) si pentru o eticheta scrisa special pentru aplicatie pe un produs care n-are
+una in magazin. Aplicatia foloseste culorile primite; numele de culoare din paleta de
+brand e doar pentru rezerva.
+
 **Motivul modulului**: aplicatia vorbeste doar cu `/api/app/v1`. O migrare Odoo 19
 (asteptata in 3-9 luni) se repara in Python intr-un singur loc, fara release de App Store.
 

@@ -44,8 +44,10 @@ void main() {
     expect(full.price.discountPct, 55);
     expect(full.clubPrice?.formatted, '133,65 lei');
     expect(full.clubPrice?.listAmount, isNull);
-    expect(full.badge?.text, 'Nou');
-    expect(full.badge?.color, ProductBadgeColor.green);
+    // Eticheta reala vine de la magazin: text si culori exacte, fara nume de culoare.
+    expect(full.badge?.text, 'pana la -40%');
+    expect(full.badge?.backgroundColor, '#f47c0b');
+    expect(full.badge?.textColor, '#FFFFFF');
 
     final bare = response.products[1];
     expect(bare.defaultCode, isNull);

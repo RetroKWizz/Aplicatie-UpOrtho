@@ -245,7 +245,11 @@ class _Heading extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (badge != null) ...[
-          _Pill(text: badge.text, color: productBadgeColor(badge.color)),
+          _Pill(
+            text: badge.text,
+            color: productBadgeBackground(badge),
+            textColor: productBadgeForeground(badge),
+          ),
           const SizedBox(height: 8),
         ],
         Text(detail.name, style: AppTypography.title),
@@ -732,7 +736,10 @@ class _SimilarList extends ConsumerWidget {
               discountLabel:
                   product.price.discountPct == null ? null : '-${product.price.discountPct}%',
               badgeText: product.badge?.text,
-              badgeColor: product.badge == null ? null : productBadgeColor(product.badge!.color),
+              badgeColor:
+                  product.badge == null ? null : productBadgeBackground(product.badge!),
+              badgeTextColor:
+                  product.badge == null ? null : productBadgeForeground(product.badge!),
               onTap: () => context.push('/catalog/${product.id}'),
             ),
           );
@@ -763,10 +770,11 @@ class _Section extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.text, required this.color});
+  const _Pill({required this.text, required this.color, this.textColor});
 
   final String text;
   final Color color;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -774,7 +782,8 @@ class _Pill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
       child: Text(text,
-          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+          style: TextStyle(
+              color: textColor ?? Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
     );
   }
 }

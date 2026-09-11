@@ -216,14 +216,39 @@ class ProductTemplate(models.Model):
     app_badge_date_end = fields.Date(string='Eticheta activa pana la (app)')
 
     def _app_badge_active(self):
-        """Eticheta de afisat in app pentru acest produs, sau None daca nu exista sau a expirat."""
+        """Eticheta de afisat in app pentru acest produs, sau None daca nu exista.
+
+        **Prima sursa e eticheta magazinului**, `dr_label_id` din `droggol_theme_common`
+        - chiar campul dupa care tema deseneaza "pana la -40%" pe cardurile din
+        magazin, cu culorile lui. Pe instanta reala 578 din 848 de produse active au
+        una, deci fara ea aplicatia arata carduri goale acolo unde site-ul arata o
+        eticheta. Textul si culorile vin de la ei; noi nu le compunem si nu le
+        traducem.
+
+        Campurile noastre (`app_badge_text` si restul) raman ca rezerva pentru bazele
+        fara tema - baza locala si testele - si pentru o eticheta scrisa special pentru
+        aplicatie pe un produs care nu are una in magazin."""
         self.ensure_one()
+        label = self.dr_label_id if 'dr_label_id' in self._fields else None
+        if label:
+            label = label.sudo()
+            return {
+                'text': label.name,
+                'color': None,
+                'background_color': label.background_color or None,
+                'text_color': label.text_color or None,
+            }
         if not self.app_badge_text:
             return None
         today = fields.Date.context_today(self)
         if self.app_badge_date_end and self.app_badge_date_end < today:
             return None
-        return {'text': self.app_badge_text, 'color': self.app_badge_color or 'purple'}
+        return {
+            'text': self.app_badge_text,
+            'color': self.app_badge_color or 'purple',
+            'background_color': None,
+            'text_color': None,
+        }
 
     def _uportho_description_blocks(self):
         """Descrierea web (`website_description`) transformata in blocurile

@@ -171,7 +171,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       listAmountFormatted: product.price.listFormatted,
                       discountLabel: product.price.discountPct == null ? null : '-${product.price.discountPct}%',
                       badgeText: product.badge?.text,
-                      badgeColor: product.badge == null ? null : productBadgeColor(product.badge!.color),
+                      badgeColor:
+                          product.badge == null ? null : productBadgeBackground(product.badge!),
+                      badgeTextColor:
+                          product.badge == null ? null : productBadgeForeground(product.badge!),
                       // Ruta copil a catalogului: pagina de produs ramane in
                       // tabul Catalog, iar butonul de inapoi duce la grila.
                       onTap: () => context.push('/catalog/${product.id}'),

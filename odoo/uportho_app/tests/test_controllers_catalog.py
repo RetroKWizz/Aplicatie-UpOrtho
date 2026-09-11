@@ -582,7 +582,8 @@ class TestControllersProductPricing(AppHttpCase):
 
     def test_badge_present_and_absent(self):
         self.assertEqual(
-            self._product('Produs cu eticheta test pret')['badge'], {'text': 'Nou', 'color': 'green'})
+            self._product('Produs cu eticheta test pret')['badge'],
+            {'text': 'Nou', 'color': 'green', 'background_color': None, 'text_color': None})
         self.assertIsNone(self._product('Produs fara reducere test pret')['badge'])
 
 

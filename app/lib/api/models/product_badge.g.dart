@@ -9,17 +9,23 @@ part of 'product_badge.dart';
 _ProductBadge _$ProductBadgeFromJson(Map<String, dynamic> json) =>
     _ProductBadge(
       text: json['text'] as String,
-      color: $enumDecode(
-        _$ProductBadgeColorEnumMap,
-        json['color'],
-        unknownValue: ProductBadgeColor.orange,
-      ),
+      color:
+          $enumDecodeNullable(
+            _$ProductBadgeColorEnumMap,
+            json['color'],
+            unknownValue: ProductBadgeColor.orange,
+          ) ??
+          ProductBadgeColor.orange,
+      backgroundColor: json['background_color'] as String?,
+      textColor: json['text_color'] as String?,
     );
 
 Map<String, dynamic> _$ProductBadgeToJson(_ProductBadge instance) =>
     <String, dynamic>{
       'text': instance.text,
       'color': _$ProductBadgeColorEnumMap[instance.color]!,
+      'background_color': instance.backgroundColor,
+      'text_color': instance.textColor,
     };
 
 const _$ProductBadgeColorEnumMap = {

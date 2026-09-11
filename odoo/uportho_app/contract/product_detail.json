@@ -3,7 +3,7 @@
   "variant_id": 501,
   "name": "Cleste Tie Back mare (.016 - .021x.025) Ixion",
   "default_code": "IX954",
-  "badge": { "text": "Nou", "color": "blue" },
+  "badge": { "text": "Nou", "color": "blue", "background_color": null, "text_color": null },
   "images": [
     { "id": 0, "url": "/api/app/v1/products/101/gallery/0?unique=3a1f9c2", "kind": "image", "video_url": null },
     { "id": 14, "url": "/api/app/v1/products/101/gallery/14?unique=9b2e1d0",

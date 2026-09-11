@@ -23,7 +23,7 @@
         "list_formatted": null,
         "discount_pct": null
       },
-      "badge": { "text": "Nou", "color": "green" }
+      "badge": { "text": "pana la -40%", "color": null, "background_color": "#f47c0b", "text_color": "#FFFFFF" }
     },
     {
       "id": 102,

@@ -18,11 +18,21 @@ enum ProductBadgeColor {
   final String value;
 }
 
+/// Eticheta unui produs.
+///
+/// Pe instanta reala textul si culorile vin de la eticheta magazinului
+/// (`dr_label_id` din tema), deci `backgroundColor` si `textColor` sunt culori
+/// exacte, in hexazecimal, iar `color` lipseste. Pe o baza fara tema eticheta e a
+/// noastra si vine doar cu un nume de culoare din paleta de brand.
 @freezed
 abstract class ProductBadge with _$ProductBadge {
   const factory ProductBadge({
     required String text,
-    @JsonKey(unknownEnumValue: ProductBadgeColor.orange) required ProductBadgeColor color,
+    @JsonKey(unknownEnumValue: ProductBadgeColor.orange)
+    @Default(ProductBadgeColor.orange)
+    ProductBadgeColor color,
+    @JsonKey(name: 'background_color') String? backgroundColor,
+    @JsonKey(name: 'text_color') String? textColor,
   }) = _ProductBadge;
 
   factory ProductBadge.fromJson(Map<String, dynamic> json) => _$ProductBadgeFromJson(json);

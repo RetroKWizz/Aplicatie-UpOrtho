@@ -286,7 +286,8 @@ class TestControllersProductDetail(AppHttpCase):
         body = self._detail().json()
         self.assertEqual(body['id'], self.product.id)
         self.assertEqual(body['name'], self.product.name)
-        self.assertEqual(body['badge'], {'text': 'Nou', 'color': 'blue'})
+        self.assertEqual(body['badge'], {
+            'text': 'Nou', 'color': 'blue', 'background_color': None, 'text_color': None})
         self.assertIn(body['variant_id'], self.product.product_variant_ids.ids)
 
     def test_description_and_specs_come_from_model_helpers(self):

@@ -21,6 +21,7 @@ class ProductCard extends StatelessWidget {
     this.discountLabel,
     this.badgeText,
     this.badgeColor,
+    this.badgeTextColor,
     this.onTap,
   });
 
@@ -43,6 +44,8 @@ class ProductCard extends StatelessWidget {
 
   final String? badgeText;
   final Color? badgeColor;
+  /// Culoarea textului etichetei; null = alb, ca pe site.
+  final Color? badgeTextColor;
 
   final VoidCallback? onTap;
 
@@ -81,7 +84,12 @@ class ProductCard extends StatelessWidget {
                       Positioned(
                         top: 8,
                         left: 8,
-                        child: _Pill(text: badgeText!, color: badgeColor ?? AppColors.accent, fontSize: 11),
+                        child: _Pill(
+                          text: badgeText!,
+                          color: badgeColor ?? AppColors.accent,
+                          textColor: badgeTextColor,
+                          fontSize: 11,
+                        ),
                       ),
                   ],
                 ),
@@ -160,9 +168,15 @@ class ProductCard extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.text, required this.color, required this.fontSize});
+  const _Pill({
+    required this.text,
+    required this.color,
+    required this.fontSize,
+    this.textColor,
+  });
   final String text;
   final Color color;
+  final Color? textColor;
   final double fontSize;
 
   @override
@@ -172,7 +186,11 @@ class _Pill extends StatelessWidget {
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
       child: Text(
         text,
-        style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: textColor ?? Colors.white,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
