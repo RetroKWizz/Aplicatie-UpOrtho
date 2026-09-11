@@ -23,7 +23,8 @@
         "list_formatted": null,
         "discount_pct": null
       },
-      "badge": { "text": "pana la -40%", "color": null, "background_color": "#f47c0b", "text_color": "#FFFFFF" }
+      "badge": { "text": "pana la -40%", "color": null, "background_color": "#f47c0b", "text_color": "#FFFFFF" },
+      "rating": { "average": 4.7, "count": 12 }
     },
     {
       "id": 102,
@@ -40,7 +41,8 @@
         "discount_pct": null
       },
       "club_price": null,
-      "badge": null
+      "badge": null,
+      "rating": null
     }
   ],
   "total": 2,

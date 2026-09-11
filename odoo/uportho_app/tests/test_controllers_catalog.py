@@ -580,6 +580,47 @@ class TestControllersProductPricing(AppHttpCase):
             self._product('Produs fara reducere test pret')
         self.assertFalse(any('show_line_subtotals_tax_selection' in message for message in captured.output))
 
+    def test_rating_comes_from_the_same_reviews_as_the_product_page(self):
+        """Pe site cardul poarta o pastila cu nota, desenata doar cand produsul are
+        recenzii (`rating_get_stats`). Nota din lista trebuie sa fie aceeasi cu cea din
+        pagina produsului, altfel acelasi produs ar arata doua cifre."""
+        self.api_login()
+        listed = self._product('Produs cu eticheta test pret')
+        self.assertIsNone(listed['rating'], 'fara recenzii nu exista pastila')
+
+        template = self.env['product.template'].browse(listed['id'])
+        for value in (5, 4):
+            partner = self.env['res.partner'].create({'name': f'Autor nota {value} test'})
+            self.env['rating.rating'].sudo().create({
+                'res_model_id': self.env['ir.model']._get_id('product.template'),
+                'res_id': template.id,
+                'rating': value,
+                'consumed': True,
+                'partner_id': partner.id,
+            })
+
+        rating = self._product('Produs cu eticheta test pret')['rating']
+        self.assertEqual(rating, {'average': 4.5, 'count': 2})
+        detail = self.api_get(f"/products/{template.id}").json()['rating']
+        self.assertEqual(detail, rating)
+
+    def test_an_internal_review_does_not_change_the_card(self):
+        """Recenziile interne nu se arata nicaieri, deci nici nota de pe card."""
+        self.api_login()
+        template = self.env['product.template'].browse(
+            self._product('Produs fara reducere test pret')['id'])
+        partner = self.env['res.partner'].create({'name': 'Autor intern nota test'})
+        self.env['rating.rating'].sudo().create({
+            'res_model_id': self.env['ir.model']._get_id('product.template'),
+            'res_id': template.id,
+            'rating': 1,
+            'consumed': True,
+            'is_internal': True,
+            'partner_id': partner.id,
+        })
+
+        self.assertIsNone(self._product('Produs fara reducere test pret')['rating'])
+
     def test_badge_present_and_absent(self):
         self.assertEqual(
             self._product('Produs cu eticheta test pret')['badge'],

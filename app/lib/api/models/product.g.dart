@@ -18,6 +18,9 @@ _Product _$ProductFromJson(Map<String, dynamic> json) => _Product(
   badge: json['badge'] == null
       ? null
       : ProductBadge.fromJson(json['badge'] as Map<String, dynamic>),
+  rating: json['rating'] == null
+      ? null
+      : ProductRating.fromJson(json['rating'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
@@ -28,4 +31,5 @@ Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
   'price': instance.price,
   'club_price': instance.clubPrice,
   'badge': instance.badge,
+  'rating': instance.rating,
 };

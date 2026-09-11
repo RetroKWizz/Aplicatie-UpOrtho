@@ -364,7 +364,33 @@ def _ids_with_image(records, field_name='image_1920'):
     return set(attachments.mapped('res_id'))
 
 
-def serialize_product(template, price, club_price, has_image):
+def _ratings_by_template(templates):
+    """Media si numarul recenziilor pentru fiecare produs din pagina, intr-o singura
+    interogare.
+
+    Aceleasi recenzii pe care le numara si magazinul: tema cheama
+    `product.sudo().rating_get_stats()` si arata pastila cu nota doar cand exista cel
+    putin una. Domeniul e cel al detaliului de produs (`_serialize_reviews`), ca nota
+    de pe card si nota din pagina produsului sa nu poata arata cifre diferite.
+    `rating.rating` nu e citibil de portal, de aceea sudo."""
+    if not templates:
+        return {}
+    groups = request.env['rating.rating'].sudo()._read_group(
+        [
+            ('res_model', '=', 'product.template'), ('res_id', 'in', templates.ids),
+            ('consumed', '=', True), ('is_internal', '=', False),
+        ],
+        ['res_id'],
+        ['__count', 'rating:avg'],
+    )
+    return {
+        res_id: {'average': round(average or 0.0, 1), 'count': count}
+        for res_id, count, average in groups
+        if count
+    }
+
+
+def serialize_product(template, price, club_price, has_image, rating=None):
     return {
         'id': template.id,
         'name': template.name,
@@ -374,6 +400,9 @@ def serialize_product(template, price, club_price, has_image):
         'price': price,
         'club_price': club_price,
         'badge': template._app_badge_active(),
+        # null cand produsul n-are nicio recenzie - la fel ca pe site, unde pastila cu
+        # nota nici nu se deseneaza atunci.
+        'rating': rating,
     }
 
 
@@ -451,10 +480,12 @@ class AppCatalog(http.Controller):
         club_price_by_template = _club_prices_by_template(
             templates, club_pricelist, pricelist, partner, fiscal_position, price_by_template)
         ids_with_image = _ids_with_image(templates)
+        rating_by_template = _ratings_by_template(templates)
 
         products = [
             serialize_product(
-                t, price_by_template[t.id], club_price_by_template.get(t.id), t.id in ids_with_image)
+                t, price_by_template[t.id], club_price_by_template.get(t.id), t.id in ids_with_image,
+                rating_by_template.get(t.id))
             for t in templates
         ]
         return json_ok({

@@ -17,6 +17,7 @@ from .catalog import (
     _ids_with_image,
     _prices_by_template,
     _products_domain,
+    _ratings_by_template,
     _warn_if_tax_display_mismatch,
     club_pricelist_comparable,
     serialize_product,
@@ -485,9 +486,11 @@ def _serialize_similar(template, website, pricelist, club_pricelist, partner, fi
     club_price_by_template = _club_prices_by_template(
         similar, club_pricelist, pricelist, partner, fiscal_position, price_by_template)
     ids_with_image = _ids_with_image(similar)
+    rating_by_template = _ratings_by_template(similar)
     return [
         serialize_product(
-            t, price_by_template[t.id], club_price_by_template.get(t.id), t.id in ids_with_image)
+            t, price_by_template[t.id], club_price_by_template.get(t.id), t.id in ids_with_image,
+            rating_by_template.get(t.id))
         for t in similar
     ]
 

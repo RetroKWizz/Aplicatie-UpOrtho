@@ -93,7 +93,7 @@
   "similar": [ { "id": 102, "name": "Cleste Tie Back mic Ixion", "default_code": null, "image_url": null,
                  "price": { "amount": 25.0, "currency": "RON", "formatted": "25,00 lei", "with_vat": true,
                             "list_amount": null, "list_formatted": null, "discount_pct": null },
-                 "club_price": null, "badge": null } ],
+                 "club_price": null, "badge": null, "rating": null } ],
   "benefits": [
     { "icon": "club", "title": "Alatura-te Ortho Club", "text": "pentru extra beneficii", "image_url": null },
     { "icon": "delivery", "title": "Livrare gratuita", "text": "pentru comenzi de peste 400 lei",

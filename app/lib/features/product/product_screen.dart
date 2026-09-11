@@ -21,6 +21,7 @@ import '../../providers.dart';
 import '../cart/cart_controller.dart';
 import '../description_blocks.dart';
 import '../product_badge_palette.dart';
+import '../product_rating_label.dart';
 import 'document_controller.dart';
 import 'product_controller.dart';
 
@@ -740,6 +741,7 @@ class _SimilarList extends ConsumerWidget {
                   product.badge == null ? null : productBadgeBackground(product.badge!),
               badgeTextColor:
                   product.badge == null ? null : productBadgeForeground(product.badge!),
+              ratingLabel: productRatingLabel(product.rating),
               onTap: () => context.push('/catalog/${product.id}'),
             ),
           );

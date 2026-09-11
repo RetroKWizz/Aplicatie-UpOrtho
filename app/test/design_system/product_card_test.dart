@@ -125,4 +125,25 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('Set bracketi metalici Atlas Mini'), findsOneWidget);
   });
+
+  testWidgets('nota din recenzii apare ca pastila, iar fara nota nu apare nimic',
+      (tester) async {
+    await tester.pumpWidget(sized(const ProductCard(
+      title: 'Organizator elastomeri',
+      priceFormatted: '275,00 lei',
+      ratingLabel: '5.0',
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.text('5.0'), findsOneWidget);
+    expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+
+    await tester.pumpWidget(sized(const ProductCard(
+      title: 'Organizator elastomeri',
+      priceFormatted: '275,00 lei',
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.star_rounded), findsNothing);
+  });
 }

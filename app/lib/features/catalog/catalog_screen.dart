@@ -11,6 +11,7 @@ import '../../design_system/colors.dart';
 import '../../design_system/widgets/product_card.dart';
 import '../../providers.dart';
 import '../product_badge_palette.dart';
+import '../product_rating_label.dart';
 import 'catalog_controller.dart';
 
 /// Ecranul de catalog: cautare, filtrare pe categorie, grila de produse cu
@@ -175,6 +176,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                           product.badge == null ? null : productBadgeBackground(product.badge!),
                       badgeTextColor:
                           product.badge == null ? null : productBadgeForeground(product.badge!),
+                      ratingLabel: productRatingLabel(product.rating),
                       // Ruta copil a catalogului: pagina de produs ramane in
                       // tabul Catalog, iar butonul de inapoi duce la grila.
                       onTap: () => context.push('/catalog/${product.id}'),

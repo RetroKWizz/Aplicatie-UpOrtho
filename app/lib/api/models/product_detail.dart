@@ -5,7 +5,6 @@ import 'price_table.dart';
 import 'product.dart';
 import 'product_brand.dart';
 import 'product_document.dart';
-import 'product_review.dart';
 import 'spec.dart';
 import 'variant.dart';
 

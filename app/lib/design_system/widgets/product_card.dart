@@ -22,6 +22,7 @@ class ProductCard extends StatelessWidget {
     this.badgeText,
     this.badgeColor,
     this.badgeTextColor,
+    this.ratingLabel,
     this.onTap,
   });
 
@@ -46,6 +47,10 @@ class ProductCard extends StatelessWidget {
   final Color? badgeColor;
   /// Culoarea textului etichetei; null = alb, ca pe site.
   final Color? badgeTextColor;
+
+  /// Nota din recenzii, deja formatata de ecran (ex. "5.0"); null = produsul n-are
+  /// recenzii si pastila nu se deseneaza, ca pe site.
+  final String? ratingLabel;
 
   final VoidCallback? onTap;
 
@@ -90,6 +95,12 @@ class ProductCard extends StatelessWidget {
                           textColor: badgeTextColor,
                           fontSize: 11,
                         ),
+                      ),
+                    if (ratingLabel != null)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _RatingPill(label: ratingLabel!),
                       ),
                   ],
                 ),
@@ -162,6 +173,36 @@ class ProductCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Pastila cu nota din recenzii: steluta si nota, pe fundal alb, ca pe site.
+class _RatingPill extends StatelessWidget {
+  const _RatingPill({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 4)],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star_rounded, size: 13, color: AppColors.accent),
+          const SizedBox(width: 2),
+          Text(
+            label,
+            style: const TextStyle(
+                color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }

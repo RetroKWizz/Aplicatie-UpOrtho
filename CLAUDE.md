@@ -112,6 +112,12 @@ testele) si pentru o eticheta scrisa special pentru aplicatie pe un produs care 
 una in magazin. Aplicatia foloseste culorile primite; numele de culoare din paleta de
 brand e doar pentru rezerva.
 
+**Nota de pe card vine din aceleasi recenzii ca pagina produsului.** Tema deseneaza
+pastila cu nota din `rating_get_stats()` si doar cand exista cel putin o recenzie;
+`/products` intoarce `rating` (medie si numar) calculat cu acelasi domeniu ca
+`_serialize_reviews`, intr-o singura interogare grupata pe toata pagina, si `null` cand
+produsul n-are recenzii. Recenziile interne nu se numara nicaieri.
+
 **Motivul modulului**: aplicatia vorbeste doar cu `/api/app/v1`. O migrare Odoo 19
 (asteptata in 3-9 luni) se repara in Python intr-un singur loc, fara release de App Store.
 
