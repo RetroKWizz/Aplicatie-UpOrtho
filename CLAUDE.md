@@ -321,10 +321,23 @@ explicit unul in mod test, `/checkout` intoarce lista de plati goala — nu e un
 modulului.
 
 **Starea configurarii pe website 11, verificata pe copia de staging din 29 iulie 2026:**
-singurul curier publicat e "Ridicare din sediu" (id 4). Fan Courier (3) si Fan Courier
-ramburs (5) sunt arhivate din 28 iulie, iar cele doua "Caut Curier – Sameday" (31, 32)
-sunt nepublicate si legate de website 12. Aplicatia arata exact ce e publicat, deci
-daca in productie lipsesc curierii, lipsesc si in aplicatie.
+singurul curier ACTIV si publicat e "Ridicare din sediu" (id 4). Fan Courier (3) si
+Fan Courier ramburs (5) raman publicate dar sunt **arhivate** (`active = false`) din
+28 iulie, iar cele doua "Caut Curier – Sameday" (31, 32) sunt legate de website 12.
+Aplicatia arata exact ce e publicat SI activ, deci daca in productie lipsesc curierii,
+lipsesc si in aplicatie.
+
+**Un cont fara adresa nu primeste niciun curier.** `carrier.rate_shipment()` raspunde
+"aceasta metoda de livrare nu este disponibila pentru aceasta adresa" cand partenerul
+n-are tara/oras, iar checkout-ul arata atunci lista goala si blocajul
+`no_delivery_method`. E raspunsul corect al Odoo, nu un defect al modulului: primul
+lucru de verificat cand un client zice ca "nu apare livrarea" e adresa lui.
+
+**Comanda de proba dusa pana la capat pe staging (11 septembrie 2026):** CMD42024 si
+CMD42026, cont `app.test@uportho.ro`, transfer bancar, ridicare din sediu. Comanda iese
+din ciorna (`state = sent`), tranzactia ramane `pending` si post-procesata, iar cosul se
+goleste. Providerul a fost pornit in mod test doar pentru proba si pus inapoi pe
+`disabled`.
 
 ## Comenzi utile
 
