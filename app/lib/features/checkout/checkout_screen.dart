@@ -56,11 +56,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               _Section(
                 title: 'Adresa de livrare',
                 child: _AddressPicker(
-                  checkout: checkout,
+                  // Ca pe site: la livrare se aleg doar adresele pe care magazinul le
+                  // accepta acolo.
+                  addresses: checkout.addresses.available.where((a) => a.forDelivery).toList(),
+                  selectedId: checkout.addresses.deliveryId,
+                  addLabel: 'Adauga adresa de livrare',
                   onPick: (id) => _run(
                     () => ref.read(checkoutControllerProvider.notifier).chooseDeliveryAddress(id),
                   ),
                   onAdd: () => _addAddress('delivery'),
+                ),
+              ),
+              _Section(
+                title: 'Adresa de facturare',
+                child: _AddressPicker(
+                  addresses: checkout.addresses.available.where((a) => a.forBilling).toList(),
+                  selectedId: checkout.addresses.invoiceId,
+                  addLabel: 'Adauga adresa de facturare',
+                  onPick: (id) => _run(
+                    () => ref.read(checkoutControllerProvider.notifier).chooseInvoiceAddress(id),
+                  ),
+                  onAdd: () => _addAddress('invoice'),
                 ),
               ),
               if (checkout.deliveryRequired)
@@ -229,11 +245,15 @@ class _Section extends StatelessWidget {
 
 class _AddressPicker extends StatelessWidget {
   const _AddressPicker({
-    required this.checkout,
+    required this.addresses,
+    required this.selectedId,
+    required this.addLabel,
     required this.onPick,
     required this.onAdd,
   });
-  final Checkout checkout;
+  final List<Address> addresses;
+  final int? selectedId;
+  final String addLabel;
   final ValueChanged<int> onPick;
   final VoidCallback onAdd;
 
@@ -241,13 +261,13 @@ class _AddressPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: RadioGroup<int>(
-        groupValue: checkout.addresses.deliveryId,
+        groupValue: selectedId,
         onChanged: (id) {
           if (id != null) onPick(id);
         },
         child: Column(
           children: [
-            for (final address in checkout.addresses.available)
+            for (final address in addresses)
               RadioListTile<int>(
                 value: address.id,
                 title: Text(address.name),
@@ -259,7 +279,7 @@ class _AddressPicker extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                 child: TextButton.icon(
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Adauga o adresa de livrare'),
+                  label: Text(addLabel),
                   onPressed: onAdd,
                 ),
               ),

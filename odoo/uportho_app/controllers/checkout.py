@@ -85,12 +85,33 @@ def _carrier_rate(carrier, order):
     return rate
 
 
+def _address_purposes(partner):
+    """(pentru facturare, pentru livrare) - dupa regula magazinului.
+
+    Copiata din `WebsiteSale._prepare_checkout_page_values`: la facturare intra
+    contactele de tip `invoice` si `other`, la livrare cele de tip `delivery` si
+    `other`, iar partenerul principal al contului si cel al utilizatorului conectat
+    intra in amandoua. Pe site adresele sunt doua liste separate; daca aplicatia le-ar
+    imparti dupa alta regula, clientul ar vedea o adresa la livrare pe care magazinul
+    n-o accepta acolo."""
+    commercial = partner.commercial_partner_id
+    is_main = partner == commercial or partner == request.env.user.partner_id
+    return (
+        is_main or partner.type in ('invoice', 'other'),
+        is_main or partner.type in ('delivery', 'other'),
+    )
+
+
 def serialize_address(partner):
     """O adresa asa cum o arata aplicatia. `city_id` exista doar pe bazele cu modulul
     de orase al clientului (`deltatech_website_city`, care face orasul un camp legat,
     nu text liber); se citeste doar daca e acolo - pe baza locala campul nu exista si
-    o citire oarba ar fi eroare."""
+    o citire oarba ar fi eroare.
+
+    `for_billing` si `for_delivery` spun in care din cele doua liste ale magazinului
+    intra adresa; o adresa poate fi in amandoua."""
     partner = partner.sudo()
+    for_billing, for_delivery = _address_purposes(partner)
     city = partner.city
     if 'city_id' in partner._fields and partner.city_id:
         city = partner.city_id.name
@@ -107,6 +128,8 @@ def serialize_address(partner):
         'email': partner.email or None,
         'vat': partner.vat or None,
         'type': partner.type,
+        'for_billing': for_billing,
+        'for_delivery': for_delivery,
     }
 
 
@@ -247,6 +270,15 @@ def _blockers(order):
                 'message': 'Nu exista metoda de livrare pentru aceasta adresa. Contacteaza-ne.'})
         elif not order.carrier_id:
             blockers.append({'code': 'no_carrier_selected', 'message': 'Alege metoda de livrare.'})
+    # Fara nicio metoda de plata ecranul ar arata o sectiune goala si clientul n-ar
+    # sti de ce nu poate continua. Se intampla cand magazinul n-are niciun provider
+    # activ (pe staging Odoo ii dezactiveaza pe toti) sau cand regulile clientului nu
+    # lasa niciunul pentru curierul ales.
+    if not _payment_options(order):
+        blockers.append({
+            'code': 'no_payment_method',
+            'message': 'Nu exista metoda de plata disponibila pentru aceasta comanda. '
+                       'Contacteaza-ne.'})
     return blockers
 
 

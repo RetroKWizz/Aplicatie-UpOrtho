@@ -16,7 +16,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Address {
 
- int get id; String get name; String? get street; String? get street2; String? get city; String? get zip; String? get state; String? get country; String? get phone; String? get email; String? get vat; String? get type;
+ int get id; String get name; String? get street; String? get street2; String? get city; String? get zip; String? get state; String? get country; String? get phone; String? get email; String? get vat; String? get type;/// In care din cele doua liste ale magazinului intra adresa. O adresa poate fi
+/// in amandoua (partenerul principal al contului, sau un contact de tip "altul").
+@JsonKey(name: 'for_billing') bool get forBilling;@JsonKey(name: 'for_delivery') bool get forDelivery;
 /// Create a copy of Address
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +32,20 @@ $AddressCopyWith<Address> get copyWith => _$AddressCopyWithImpl<Address>(this as
 @override
 bool operator ==(Object other) {
   final _this = this as Address;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Address&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.street, _this.street) || other.street == _this.street)&&(identical(other.street2, _this.street2) || other.street2 == _this.street2)&&(identical(other.city, _this.city) || other.city == _this.city)&&(identical(other.zip, _this.zip) || other.zip == _this.zip)&&(identical(other.state, _this.state) || other.state == _this.state)&&(identical(other.country, _this.country) || other.country == _this.country)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.email, _this.email) || other.email == _this.email)&&(identical(other.vat, _this.vat) || other.vat == _this.vat)&&(identical(other.type, _this.type) || other.type == _this.type));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Address&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.street, _this.street) || other.street == _this.street)&&(identical(other.street2, _this.street2) || other.street2 == _this.street2)&&(identical(other.city, _this.city) || other.city == _this.city)&&(identical(other.zip, _this.zip) || other.zip == _this.zip)&&(identical(other.state, _this.state) || other.state == _this.state)&&(identical(other.country, _this.country) || other.country == _this.country)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.email, _this.email) || other.email == _this.email)&&(identical(other.vat, _this.vat) || other.vat == _this.vat)&&(identical(other.type, _this.type) || other.type == _this.type)&&(identical(other.forBilling, _this.forBilling) || other.forBilling == _this.forBilling)&&(identical(other.forDelivery, _this.forDelivery) || other.forDelivery == _this.forDelivery));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Address;
-  return Object.hash(runtimeType,_this.id,_this.name,_this.street,_this.street2,_this.city,_this.zip,_this.state,_this.country,_this.phone,_this.email,_this.vat,_this.type);
+  return Object.hash(runtimeType,_this.id,_this.name,_this.street,_this.street2,_this.city,_this.zip,_this.state,_this.country,_this.phone,_this.email,_this.vat,_this.type,_this.forBilling,_this.forDelivery);
 }
 
 @override
 String toString() {
   final _this = this as Address;
-  return 'Address(id: ${_this.id}, name: ${_this.name}, street: ${_this.street}, street2: ${_this.street2}, city: ${_this.city}, zip: ${_this.zip}, state: ${_this.state}, country: ${_this.country}, phone: ${_this.phone}, email: ${_this.email}, vat: ${_this.vat}, type: ${_this.type})';
+  return 'Address(id: ${_this.id}, name: ${_this.name}, street: ${_this.street}, street2: ${_this.street2}, city: ${_this.city}, zip: ${_this.zip}, state: ${_this.state}, country: ${_this.country}, phone: ${_this.phone}, email: ${_this.email}, vat: ${_this.vat}, type: ${_this.type}, forBilling: ${_this.forBilling}, forDelivery: ${_this.forDelivery})';
 }
 
 
@@ -54,7 +56,7 @@ abstract mixin class $AddressCopyWith<$Res>  {
   factory $AddressCopyWith(Address value, $Res Function(Address) _then) = _$AddressCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String? street, String? street2, String? city, String? zip, String? state, String? country, String? phone, String? email, String? vat, String? type
+ int id, String name, String? street, String? street2, String? city, String? zip, String? state, String? country, String? phone, String? email, String? vat, String? type,@JsonKey(name: 'for_billing') bool forBilling,@JsonKey(name: 'for_delivery') bool forDelivery
 });
 
 
@@ -71,7 +73,7 @@ class _$AddressCopyWithImpl<$Res>
 
 /// Create a copy of Address
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? street = freezed,Object? street2 = freezed,Object? city = freezed,Object? zip = freezed,Object? state = freezed,Object? country = freezed,Object? phone = freezed,Object? email = freezed,Object? vat = freezed,Object? type = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? street = freezed,Object? street2 = freezed,Object? city = freezed,Object? zip = freezed,Object? state = freezed,Object? country = freezed,Object? phone = freezed,Object? email = freezed,Object? vat = freezed,Object? type = freezed,Object? forBilling = null,Object? forDelivery = null,}) {
   return _then(Address(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -85,7 +87,9 @@ as String?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullabl
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,vat: freezed == vat ? _self.vat : vat // ignore: cast_nullable_to_non_nullable
 as String?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,forBilling: null == forBilling ? _self.forBilling : forBilling // ignore: cast_nullable_to_non_nullable
+as bool,forDelivery: null == forDelivery ? _self.forDelivery : forDelivery // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -170,10 +174,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String? street,  String? street2,  String? city,  String? zip,  String? state,  String? country,  String? phone,  String? email,  String? vat,  String? type)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String? street,  String? street2,  String? city,  String? zip,  String? state,  String? country,  String? phone,  String? email,  String? vat,  String? type, @JsonKey(name: 'for_billing')  bool forBilling, @JsonKey(name: 'for_delivery')  bool forDelivery)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Address() when $default != null:
-return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.zip,_that.state,_that.country,_that.phone,_that.email,_that.vat,_that.type);case _:
+return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.zip,_that.state,_that.country,_that.phone,_that.email,_that.vat,_that.type,_that.forBilling,_that.forDelivery);case _:
   return orElse();
 
 }
@@ -191,10 +195,10 @@ return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String? street,  String? street2,  String? city,  String? zip,  String? state,  String? country,  String? phone,  String? email,  String? vat,  String? type)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String? street,  String? street2,  String? city,  String? zip,  String? state,  String? country,  String? phone,  String? email,  String? vat,  String? type, @JsonKey(name: 'for_billing')  bool forBilling, @JsonKey(name: 'for_delivery')  bool forDelivery)  $default,) {final _that = this;
 switch (_that) {
 case _Address():
-return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.zip,_that.state,_that.country,_that.phone,_that.email,_that.vat,_that.type);case _:
+return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.zip,_that.state,_that.country,_that.phone,_that.email,_that.vat,_that.type,_that.forBilling,_that.forDelivery);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -211,10 +215,10 @@ return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String? street,  String? street2,  String? city,  String? zip,  String? state,  String? country,  String? phone,  String? email,  String? vat,  String? type)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String? street,  String? street2,  String? city,  String? zip,  String? state,  String? country,  String? phone,  String? email,  String? vat,  String? type, @JsonKey(name: 'for_billing')  bool forBilling, @JsonKey(name: 'for_delivery')  bool forDelivery)?  $default,) {final _that = this;
 switch (_that) {
 case _Address() when $default != null:
-return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.zip,_that.state,_that.country,_that.phone,_that.email,_that.vat,_that.type);case _:
+return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.zip,_that.state,_that.country,_that.phone,_that.email,_that.vat,_that.type,_that.forBilling,_that.forDelivery);case _:
   return null;
 
 }
@@ -226,7 +230,7 @@ return $default(_that.id,_that.name,_that.street,_that.street2,_that.city,_that.
 @JsonSerializable()
 
 class _Address extends Address {
-  const _Address({required this.id, required this.name, this.street, this.street2, this.city, this.zip, this.state, this.country, this.phone, this.email, this.vat, this.type}): super._();
+  const _Address({required this.id, required this.name, this.street, this.street2, this.city, this.zip, this.state, this.country, this.phone, this.email, this.vat, this.type, @JsonKey(name: 'for_billing') this.forBilling = true, @JsonKey(name: 'for_delivery') this.forDelivery = true}): super._();
   factory _Address.fromJson(Map<String, dynamic> json) => _$AddressFromJson(json);
 
 @override final  int id;
@@ -241,6 +245,10 @@ class _Address extends Address {
 @override final  String? email;
 @override final  String? vat;
 @override final  String? type;
+/// In care din cele doua liste ale magazinului intra adresa. O adresa poate fi
+/// in amandoua (partenerul principal al contului, sau un contact de tip "altul").
+@override@JsonKey(name: 'for_billing') final  bool forBilling;
+@override@JsonKey(name: 'for_delivery') final  bool forDelivery;
 
 /// Create a copy of Address
 /// with the given fields replaced by the non-null parameter values.
@@ -255,18 +263,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Address&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.street, street) || other.street == street)&&(identical(other.street2, street2) || other.street2 == street2)&&(identical(other.city, city) || other.city == city)&&(identical(other.zip, zip) || other.zip == zip)&&(identical(other.state, state) || other.state == state)&&(identical(other.country, country) || other.country == country)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email)&&(identical(other.vat, vat) || other.vat == vat)&&(identical(other.type, type) || other.type == type));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Address&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.street, street) || other.street == street)&&(identical(other.street2, street2) || other.street2 == street2)&&(identical(other.city, city) || other.city == city)&&(identical(other.zip, zip) || other.zip == zip)&&(identical(other.state, state) || other.state == state)&&(identical(other.country, country) || other.country == country)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.email, email) || other.email == email)&&(identical(other.vat, vat) || other.vat == vat)&&(identical(other.type, type) || other.type == type)&&(identical(other.forBilling, forBilling) || other.forBilling == forBilling)&&(identical(other.forDelivery, forDelivery) || other.forDelivery == forDelivery));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,name,street,street2,city,zip,state,country,phone,email,vat,type);
+    return Object.hash(runtimeType,id,name,street,street2,city,zip,state,country,phone,email,vat,type,forBilling,forDelivery);
 }
 
 @override
 String toString() {
-    return 'Address(id: $id, name: $name, street: $street, street2: $street2, city: $city, zip: $zip, state: $state, country: $country, phone: $phone, email: $email, vat: $vat, type: $type)';
+    return 'Address(id: $id, name: $name, street: $street, street2: $street2, city: $city, zip: $zip, state: $state, country: $country, phone: $phone, email: $email, vat: $vat, type: $type, forBilling: $forBilling, forDelivery: $forDelivery)';
 }
 
 
@@ -277,7 +285,7 @@ abstract mixin class _$AddressCopyWith<$Res> implements $AddressCopyWith<$Res> {
   factory _$AddressCopyWith(_Address value, $Res Function(_Address) _then) = __$AddressCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String? street, String? street2, String? city, String? zip, String? state, String? country, String? phone, String? email, String? vat, String? type
+ int id, String name, String? street, String? street2, String? city, String? zip, String? state, String? country, String? phone, String? email, String? vat, String? type,@JsonKey(name: 'for_billing') bool forBilling,@JsonKey(name: 'for_delivery') bool forDelivery
 });
 
 
@@ -294,7 +302,7 @@ class __$AddressCopyWithImpl<$Res>
 
 /// Create a copy of Address
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? street = freezed,Object? street2 = freezed,Object? city = freezed,Object? zip = freezed,Object? state = freezed,Object? country = freezed,Object? phone = freezed,Object? email = freezed,Object? vat = freezed,Object? type = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? street = freezed,Object? street2 = freezed,Object? city = freezed,Object? zip = freezed,Object? state = freezed,Object? country = freezed,Object? phone = freezed,Object? email = freezed,Object? vat = freezed,Object? type = freezed,Object? forBilling = null,Object? forDelivery = null,}) {
   return _then(_Address(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -308,7 +316,9 @@ as String?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullabl
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,vat: freezed == vat ? _self.vat : vat // ignore: cast_nullable_to_non_nullable
 as String?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,forBilling: null == forBilling ? _self.forBilling : forBilling // ignore: cast_nullable_to_non_nullable
+as bool,forDelivery: null == forDelivery ? _self.forDelivery : forDelivery // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

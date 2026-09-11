@@ -305,26 +305,43 @@ class _Addresses extends ConsumerWidget {
         data: (list) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final address in list)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(address.name),
-                subtitle: address.oneLine.isEmpty ? null : Text(address.oneLine),
-                trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                onTap: () async {
-                  await Navigator.of(context).push<bool>(MaterialPageRoute(
-                    builder: (_) => AddressFormScreen(
-                      kind: address.type == 'invoice' ? 'invoice' : 'delivery',
-                      addressId: address.id,
-                    ),
-                  ));
-                  ref.invalidate(addressesProvider);
-                },
-              ),
+            // Ca pe site: doua liste, facturare si livrare. Impartirea vine de la
+            // server, dupa regula magazinului - o adresa poate aparea in amandoua.
+            ..._group(context, ref, 'Facturare', list.where((a) => a.forBilling)),
+            ..._group(context, ref, 'Livrare', list.where((a) => a.forDelivery)),
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _group(
+      BuildContext context, WidgetRef ref, String title, Iterable<Address> addresses) {
+    if (addresses.isEmpty) return const [];
+    return [
+      Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        child: Text(title,
+            style: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+      ),
+      for (final address in addresses)
+        ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(address.name),
+                subtitle: address.oneLine.isEmpty ? null : Text(address.oneLine),
+          trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          onTap: () async {
+            await Navigator.of(context).push<bool>(MaterialPageRoute(
+              builder: (_) => AddressFormScreen(
+                kind: address.type == 'invoice' ? 'invoice' : 'delivery',
+                addressId: address.id,
+              ),
+            ));
+            ref.invalidate(addressesProvider);
+          },
+        ),
+    ];
   }
 }
 

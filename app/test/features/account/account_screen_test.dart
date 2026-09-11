@@ -90,7 +90,11 @@ void main() {
 
     expect(find.text('S12345'), findsOneWidget);
     expect(find.text('FACT/2026/0042'), findsOneWidget);
-    expect(find.text('Cabinet Dentar Exemplu SRL'), findsOneWidget);
+    // Adresele sunt impartite in facturare si livrare, iar adresa principala a
+    // contului apare in amandoua - exact ca pe site.
+    expect(find.text('Cabinet Dentar Exemplu SRL'), findsNWidgets(2));
+    expect(find.text('Facturare'), findsOneWidget);
+    expect(find.text('Livrare'), findsOneWidget);
     expect(find.text('304,99 lei'), findsOneWidget);
   });
 
@@ -129,7 +133,11 @@ void main() {
     expect(find.text('Facturile nu merg acum.'), findsOneWidget);
     // Comenzile si adresele raman pe ecran.
     expect(find.text('S12345'), findsOneWidget);
-    expect(find.text('Cabinet Dentar Exemplu SRL'), findsOneWidget);
+    // Adresele sunt impartite in facturare si livrare, iar adresa principala a
+    // contului apare in amandoua - exact ca pe site.
+    expect(find.text('Cabinet Dentar Exemplu SRL'), findsNWidgets(2));
+    expect(find.text('Facturare'), findsOneWidget);
+    expect(find.text('Livrare'), findsOneWidget);
   });
 
   testWidgets('detaliul comenzii arata liniile, totalurile si adresele', (tester) async {

@@ -217,3 +217,22 @@ class TestControllersAddress(AppHttpCase):
         response = self.api_post(
             f'/addresses/{partner.id}', {'values': {'street': 'Str. X 1'}}, with_header=False)
         self.assertEqual(response.status_code, 403)
+
+    def test_addresses_say_where_the_shop_accepts_them(self):
+        """Site-ul are doua liste, facturare si livrare; aplicatia trebuie sa le poata
+        imparti la fel. Regula e a magazinului: `invoice` si `other` merg la facturare,
+        `delivery` si `other` la livrare, iar partenerul principal intra in amandoua."""
+        self.api_login()
+        delivery = self._create_address()
+        billing = self.env['res.partner'].browse(self.api_post(
+            '/addresses', {'kind': 'invoice', 'values': self._values(
+                name='Firma de facturare test', email='facturi@test.ro')}).json()['address']['id'])
+
+        listed = {a['id']: a for a in self.api_get('/addresses').json()}
+        main = listed[self.portal_user.partner_id.commercial_partner_id.id]
+        self.assertTrue(main['for_billing'])
+        self.assertTrue(main['for_delivery'], 'partenerul principal e in amandoua listele')
+        self.assertTrue(listed[delivery.id]['for_delivery'])
+        self.assertFalse(listed[delivery.id]['for_billing'])
+        self.assertTrue(listed[billing.id]['for_billing'])
+        self.assertFalse(listed[billing.id]['for_delivery'])

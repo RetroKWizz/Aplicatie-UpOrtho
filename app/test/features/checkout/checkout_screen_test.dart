@@ -45,7 +45,10 @@ void main() {
 
     await pumpCheckout(tester, transport);
 
-    expect(find.text('Cabinet Dentar Exemplu SRL'), findsOneWidget);
+    // Adresa principala a contului intra in amandoua listele, ca pe site.
+    expect(find.text('Adresa de livrare'), findsOneWidget);
+    expect(find.text('Adresa de facturare'), findsOneWidget);
+    expect(find.text('Cabinet Dentar Exemplu SRL'), findsNWidgets(2));
     expect(find.text('Fan Courier'), findsOneWidget);
     expect(find.text('24,99 lei'), findsOneWidget);
     // Curierul fara cost e etichetat, nu scris cu "0,00 lei".

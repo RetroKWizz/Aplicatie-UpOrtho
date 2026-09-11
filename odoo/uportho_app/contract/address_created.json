@@ -11,7 +11,9 @@
     "phone": "+40700000000",
     "email": "cabinet@exemplu.ro",
     "vat": "RO12345678",
-    "type": "contact"
+    "type": "contact",
+        "for_billing": true,
+        "for_delivery": true
   },
   "addresses": [
     {
@@ -26,7 +28,9 @@
       "phone": "+40700000000",
       "email": "cabinet@exemplu.ro",
       "vat": "RO12345678",
-      "type": "contact"
+      "type": "contact",
+        "for_billing": true,
+        "for_delivery": true
     }
   ]
 }

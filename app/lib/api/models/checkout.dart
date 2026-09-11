@@ -27,6 +27,10 @@ abstract class Address with _$Address {
     String? email,
     String? vat,
     String? type,
+    /// In care din cele doua liste ale magazinului intra adresa. O adresa poate fi
+    /// in amandoua (partenerul principal al contului, sau un contact de tip "altul").
+    @JsonKey(name: 'for_billing') @Default(true) bool forBilling,
+    @JsonKey(name: 'for_delivery') @Default(true) bool forDelivery,
   }) = _Address;
 
   factory Address.fromJson(Map<String, dynamic> json) => _$AddressFromJson(json);

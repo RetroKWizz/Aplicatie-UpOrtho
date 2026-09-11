@@ -19,6 +19,8 @@ _Address _$AddressFromJson(Map<String, dynamic> json) => _Address(
   email: json['email'] as String?,
   vat: json['vat'] as String?,
   type: json['type'] as String?,
+  forBilling: json['for_billing'] as bool? ?? true,
+  forDelivery: json['for_delivery'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$AddressToJson(_Address instance) => <String, dynamic>{
@@ -34,6 +36,8 @@ Map<String, dynamic> _$AddressToJson(_Address instance) => <String, dynamic>{
   'email': instance.email,
   'vat': instance.vat,
   'type': instance.type,
+  'for_billing': instance.forBilling,
+  'for_delivery': instance.forDelivery,
 };
 
 _CheckoutAddresses _$CheckoutAddressesFromJson(Map<String, dynamic> json) =>

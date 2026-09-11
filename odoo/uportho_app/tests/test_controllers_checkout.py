@@ -123,6 +123,19 @@ class TestControllersCheckout(AppHttpCase):
         self.api_post('/checkout/delivery', {'carrier_id': self.carrier.id})
         self.assertEqual(self._checkout().json()['blockers'], [])
 
+    def test_a_checkout_without_payment_methods_says_so(self):
+        """Pe staging Odoo dezactiveaza toti providerii de plata, iar regulile
+        clientului pot lasa zero metode pentru un anumit curier. Fara acest blocaj,
+        ecranul ar arata o sectiune de plata goala si clientul n-ar sti de ce nu poate
+        continua."""
+        self.api_login()
+        self._fill_cart()
+        self.api_post('/checkout/delivery', {'carrier_id': self.carrier.id})
+        self.env['payment.provider'].sudo().search([]).write({'state': 'disabled'})
+
+        codes = {b['code'] for b in self._checkout().json()['blockers']}
+        self.assertIn('no_payment_method', codes)
+
     def test_addresses_are_limited_to_the_account(self):
         self.api_login()
         self._fill_cart()

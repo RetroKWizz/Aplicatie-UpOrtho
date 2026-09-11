@@ -225,6 +225,12 @@ domeniul catalogului, deci un produs depublicat dispare din favorite fara sa ste
 nimic. Daca magazinul primeste vreodata wishlist-ul, de acolo se trece pe
 `product.wishlist`.
 
+**Adresele sunt doua liste, ca pe site.** Fiecare adresa poarta `for_billing` si
+`for_delivery`, calculate cu regula magazinului din
+`WebsiteSale._prepare_checkout_page_values`: la facturare intra contactele `invoice` si
+`other`, la livrare `delivery` si `other`, iar partenerul principal al contului intra
+in amandoua. Contul le arata grupat, checkout-ul are cate un selector pentru fiecare.
+
 **Lista de adrese are o singura sursa**, `address._account_addresses()`: partenerul
 comercial, copiii lui **si** partenerii cu `access_for_user_id` — campul prin care
 clientul da acces la o firma din afara arborelui. Site-ul le adauga in
@@ -239,7 +245,7 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
 
 ## Status curent — Fazele 0-4 livrate (mai putin push-ul)
 
-- Modul Odoo `uportho_app`: 398 teste trecute.
+- Modul Odoo `uportho_app`: 400 teste trecute.
 - Aplicatia Flutter: 356 teste trecute, `flutter analyze` curat. Login cu restaurare
   silentioasa a sesiunii, Acasa, catalog cu cautare si paginare, pagina de produs
   completa (galerie, tabele de pret, tabel de variante, brand, file, documente,
