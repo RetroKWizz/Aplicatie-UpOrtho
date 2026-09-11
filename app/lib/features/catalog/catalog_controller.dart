@@ -6,6 +6,7 @@ import '../../api/api_exception.dart';
 import '../../api/models/catalog_category.dart';
 import '../../api/models/product.dart';
 import '../../providers.dart';
+import '../auth/auth_controller.dart';
 import 'catalog_repository.dart';
 
 /// Numarul de produse cerute pe pagina. Catalogul real are ~925 de produse -
@@ -77,7 +78,29 @@ class CatalogController extends AsyncNotifier<CatalogState> {
   bool _initialized = false;
 
   @override
-  FutureOr<CatalogState> build() => CatalogState.empty;
+  FutureOr<CatalogState> build() {
+    // Preturile din grila sunt ale CONTULUI (fiecare client are lista lui), deci
+    // produsele deja incarcate nu mai sunt valabile cand se schimba utilizatorul.
+    // Ecranul ramane montat permanent (StatefulShellRoute.indexedStack) si isi cere
+    // datele o singura data, din `initState`, asa ca reactia trebuie sa fie aici.
+    //
+    // `ref.listen`, nu `ref.watch`: un watch ar reconstrui notifierul si ar goli
+    // grila la fiecare tranzitie de autentificare, inclusiv la restaurarea sesiunii
+    // de la pornire. Aici vrem doar sa reincarcam ce era incarcat.
+    // `_initialized` NU se reseteaza la deconectare: el pazeste doar `ensureLoaded`,
+    // iar ecranul si-l cheama o singura data, din `initState`. Resetat aici, login-ul
+    // care urmeaza ar cadea pe `!_initialized` si grila ar ramane goala - exact
+    // greseala facuta la prima incercare de reparatie.
+    ref.listen(authControllerProvider, (previous, next) {
+      if (previous == null || !_initialized) return;
+      if (next.value is SignedIn) {
+        _reload();
+      } else if (next.value is SignedOut) {
+        state = const AsyncData(CatalogState.empty);
+      }
+    });
+    return CatalogState.empty;
+  }
 
   /// Prima incarcare a ecranului, cu categoria initiala dedusa din navigare
   /// (poate fi null = "toate categoriile"). Idempotenta: un `initState` reexecutat

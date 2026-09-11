@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/models/cart.dart';
 import '../../providers.dart';
+import '../auth/auth_controller.dart';
 import 'cart_repository.dart';
 
 final cartRepositoryProvider =
@@ -21,7 +22,19 @@ final cartControllerProvider = AsyncNotifierProvider<CartController, Cart>(
 /// intreg intors de server.
 class CartController extends AsyncNotifier<Cart> {
   @override
-  Future<Cart> build() => ref.watch(cartRepositoryProvider).fetchCart();
+  Future<Cart> build() async {
+    // `ref.watch(authControllerProvider.future)`, nu `ref.read`: leaga cosul de
+    // starea de autentificare pe toata durata lui. Orice tranzitie - restaurare
+    // terminata, login, logout, **alt cont pe acelasi telefon** - reconstruieste
+    // providerul si cere cosul din nou.
+    //
+    // Fara asta, cosul si badge-ul raman cele ale contului dinainte: Riverpod
+    // pastreaza valoarea in cache cat traieste containerul, iar nimic nu-l
+    // invalida la schimbarea de utilizator. Aceeasi regula ca la
+    // `homeControllerProvider` si `imageHeadersProvider`.
+    await ref.watch(authControllerProvider.future);
+    return ref.read(cartRepositoryProvider).fetchCart();
+  }
 
   /// Adauga in cos randurile alese in tabelul de variante (sau un singur produs).
   /// Intoarce avertismentele serverului, ca ecranul care a cerut adaugarea sa le

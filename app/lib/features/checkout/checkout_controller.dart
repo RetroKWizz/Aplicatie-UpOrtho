@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/models/checkout.dart';
 import '../../providers.dart';
+import '../auth/auth_controller.dart';
 import '../cart/cart_controller.dart';
 import 'checkout_repository.dart';
 
@@ -20,7 +21,11 @@ final checkoutControllerProvider = AsyncNotifierProvider<CheckoutController, Che
 /// intreg recalculat de server; nimic nu se deduce local.
 class CheckoutController extends AsyncNotifier<Checkout> {
   @override
-  Future<Checkout> build() => ref.watch(checkoutRepositoryProvider).fetchCheckout();
+  Future<Checkout> build() async {
+    // Legat de autentificare, ca tot ce tine de cont - vezi `CartController.build`.
+    await ref.watch(authControllerProvider.future);
+    return ref.read(checkoutRepositoryProvider).fetchCheckout();
+  }
 
   Future<void> chooseDeliveryAddress(int partnerId) =>
       _apply(() => ref.read(checkoutRepositoryProvider).setAddress(deliveryId: partnerId));

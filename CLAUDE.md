@@ -196,6 +196,22 @@ acelasi modul goleste cosul in `_cart_update` daca accesul lipseste.
    cu backoff exponential pana la ~38 secunde. Fiecare provider de aici al carui
    `build()` poate arunca eroare primeste `retry: (retryCount, error) => null`.
    Daca uiti asta, un ecran de eroare apare abia dupa 38 de secunde.
+
+   **Si, separat de retry: orice provider care aduce date ALE CONTULUI trebuie sa
+   inceapa cu `await ref.watch(authControllerProvider.future)`.** Riverpod pastreaza
+   valoarea in cache cat traieste containerul, iar nimic nu o invalideaza la
+   schimbarea de utilizator: al doilea cont vede datele primului. **S-a intamplat pe
+   staging, cu doua conturi reale** — ecranul "Contul meu" arata numele corect (venea
+   din raspunsul de login) dar comenzile si adresele contului dinainte. Regula e
+   acoperita de `app/test/features/account/account_switch_test.dart`, care face chiar
+   logout + login cu alt cont. Providerii legati azi: cos, checkout, comenzi, facturi,
+   adrese, detaliu de comanda, plus `homeControllerProvider` si `imageHeadersProvider`.
+
+   Catalogul e cazul special: `CatalogController` foloseste `ref.listen`, nu `watch`,
+   fiindca un watch ar goli grila la fiecare tranzitie (inclusiv la restaurarea
+   sesiunii de la pornire). Si `_initialized` **nu** se reseteaza la deconectare: el
+   pazeste doar `ensureLoaded`, pe care ecranul il cheama o singura data din
+   `initState` — resetat, login-ul urmator ar lasa grila goala.
 4. **Containerul Odoo poate servi cod de controller invechit.** Daca rutele
    `/api/app/v1/...` dau 404 neasteptat, restarteaza containerul
    (`docker compose restart` in `odoo/`).
