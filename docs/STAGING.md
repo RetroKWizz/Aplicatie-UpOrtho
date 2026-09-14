@@ -301,6 +301,20 @@ cd app && flutter run -d <simulator-id> \
   liniei (330,00 lei afisat, 264,00 incasat). Vezi commit-ul `fix(cos): pretul pe
   bucata include reducerea liniei`.
 
+## Starea de pe staging, recitita pe 14 septembrie 2026
+
+Asa arata configurarea in momentul ultimei salvari a modulului; daca se reface baza,
+astea sunt valorile la care trebuie sa se ajunga:
+
+- Parametri de sistem: **doar** `uportho_app.website_id = 11`. `club_pricelist_id` nu e
+  setat si nici nu trebuie: pe instanta reala lista de club se ia din bifa clientului.
+- Liste de preturi bifate: **59** "Lista de prețuri Ortho Club 2026"
+  (`is_compare_pricelist`) si **45** "Lista de prețuri publica 2026"
+  (`is_public_pricelist`). Cate una din fiecare, cum cere regula de operare.
+- Toti providerii de plata sunt `disabled`, inclusiv Stripe (8, 21) si "Transfer bancar
+  / OP" (22). Asa ii lasa Odoo pe o copie de productie; se porneste unul in mod test
+  doar cat tine o proba si se pune inapoi.
+
 ## Ce s-a adaugat dupa 11 septembrie 2026
 
 Toate sunt in arhiva si intra odata cu `odoo-update`:
