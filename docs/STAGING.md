@@ -103,13 +103,28 @@ trebuie refacut ca sa ajungem inapoi exact unde eram pe 11 septembrie 2026.
 ### Pasul 0 — de unde vine codul
 
 Arhiva de desfasurare e chiar in repo: **`uportho_app.tar.gz`** din radacina. Contine
-modulul intreg (60 de fisiere de cod), fara `__pycache__`. Se regenereaza cu:
+modulul intreg (**72 de fisiere**, ~200 KB), fara `__pycache__`. Se regenereaza cu:
 
 ```bash
 tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' --exclude='*.pyc' uportho_app
 ```
 
 Repo-ul e public, deci arhiva se poate lua direct de pe server, fara acreditari.
+
+**Arhiva e verificata, nu presupusa.** Inainte de fiecare urcare se dezarhiveaza intr-un
+folder temporar si se compara cu sursa; ultima verificare (14 septembrie 2026) a iesit
+identica, iar `sha256` era
+`1f4be50ba0abf8ef4da9343a0d3a87b408d8a818e0b35cf227b1806194301f4b`:
+
+```bash
+tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' --exclude='*.pyc' uportho_app
+T=$(mktemp -d); tar xzf uportho_app.tar.gz -C $T 2>/dev/null
+diff -r --exclude='__pycache__' --exclude='*.pyc' odoo/uportho_app $T/uportho_app && echo OK
+```
+
+Chiar daca build-ul de staging dispare cu totul, modulul se reface din acest repo: codul,
+arhiva si reteta de mai jos sunt tot ce trebuie. Istoricul git tine si versiunile vechi
+ale arhivei, deci se poate reveni la orice zi.
 
 ### Pasul 1 — modulul pe server
 
@@ -226,14 +241,22 @@ implementarea standard din `website_sale` (vezi gotcha 7 din `CLAUDE.md`).
 
 ```bash
 psql -At -F'|' -c "select name,state,latest_version from ir_module_module where name='uportho_app'"
+psql -At -c "select count(*) from uportho_app_favorite"   # tabela modelului de favorite
 B=https://uportho-staging-36862484.dev.odoo.com/api/app/v1
-for r in ping cart checkout orders invoices addresses; do
-  printf "%-10s " $r; curl -s -o /dev/null -w "%{http_code}\n" $B/$r
+for r in ping cart checkout orders invoices addresses addresses/options \
+         account/profile account/password loyalty favorites; do
+  printf "%-18s " $r; curl -s -o /dev/null -w "%{http_code}\n" $B/$r
 done
 ```
 
 Toate trebuie sa dea **401** (`"Trebuie sa te autentifici."`) — ruta exista si cere
-sesiune. Un **404** inseamna ca modulul nu s-a incarcat.
+sesiune. Un **404** inseamna ca modulul nu s-a incarcat. `account/password` si
+`favorites` sunt rute POST, deci la un GET raspund tot 401 cat timp nu esti conectat;
+dupa autentificare `POST /account/password` fara corp da 422, nu 404.
+
+Daca interogarea pe `uportho_app_favorite` da eroarea "relation does not exist",
+modulul a fost doar copiat, nu si actualizat: ruleaza `odoo-update uportho_app`, care
+creeaza tabela modelului nou.
 
 **Atentie:** `curl http://127.0.0.1:8069/...` din terminalul editorului da mereu `000`.
 Acolo ruleaza doar jupyter-lab; serverul Odoo e in alt container. Testele de rute se fac
@@ -277,6 +300,35 @@ cd app && flutter run -d <simulator-id> \
 - **Defect gasit si reparat aici, nu in teste:** pretul pe bucata ignora reducerea
   liniei (330,00 lei afisat, 264,00 incasat). Vezi commit-ul `fix(cos): pretul pe
   bucata include reducerea liniei`.
+
+## Ce s-a adaugat dupa 11 septembrie 2026
+
+Toate sunt in arhiva si intra odata cu `odoo-update`:
+
+- **Editarea adreselor** (`GET /addresses/<id>`, `POST /addresses/<id>`), cu validarea
+  magazinului chemata cu partenerul existent.
+- **Schimbarea parolei** (`POST /account/password`), prin `CustomerPortal._update_password`.
+- **Favorite** (`GET|POST /favorites`, `DELETE /favorites/<id>`) si modelul
+  `uportho.app.favorite` — singura lista care nu vine din magazin, fiindca
+  `website_sale_wishlist` nu e instalat acolo. **Model nou = tabela noua**, deci dupa
+  copiere e obligatoriu `odoo-update`.
+- **Etichetele produsului** citite din `dr_label_id` (tema) si **nota din recenzii** pe
+  cardurile din catalog.
+- **Adresele impartite** in facturare si livrare (`for_billing`, `for_delivery`), cu
+  regula din `_prepare_checkout_page_values`.
+- **Blocaj nou la checkout**: `no_payment_method`, cand magazinul nu ofera nicio metoda
+  de plata (pe staging, unde toti providerii sunt dezactivati, apare mereu).
+
+## Transportul gratuit — cum e facut in magazin (verificat 14 septembrie 2026)
+
+Nu prin bifa "gratuit peste" de pe curier: `free_over` e fals pe toti curierii, iar
+reguli de pret de livrare (`delivery.price.rule`) nu exista deloc. Magazinul adauga pe
+comanda un **produs** "Livrare gratuită" (id 58236) la 0 lei, cu `is_delivery = false`.
+Vazut pe comanda 42073, de 528,01 lei, adica peste pragul de 400 lei.
+
+Consecinta pentru aplicatie: linia apare in cos ca produs normal, cu cantitate si buton
+de stergere, exact ca pe site — pentru ca filtrul e chiar `_show_in_cart` al lui Odoo,
+care ascunde doar liniile de transport adevarate. Nu e un defect al aplicatiei.
 
 ## Ce ramane de decis, si e decizia userului
 

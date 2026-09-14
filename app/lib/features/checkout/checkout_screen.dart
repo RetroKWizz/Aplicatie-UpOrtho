@@ -97,7 +97,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   onPick: (option) => setState(() => _selectedPayment = option),
                 ),
               ),
-              for (final blocker in checkout.blockers)
+              // Blocajul pentru plata e deja scris in sectiunea ei; repetat aici, acelasi
+              // mesaj aparea de doua ori pe ecran.
+              for (final blocker in
+                  checkout.blockers.where((b) => b.code != 'no_payment_method'))
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Row(
