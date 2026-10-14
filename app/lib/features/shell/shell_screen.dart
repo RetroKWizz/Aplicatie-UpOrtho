@@ -94,12 +94,17 @@ class _GlassBar extends StatelessWidget {
         child: Container(
           height: ShellScreen.barHeight,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.72),
+            // Sticla ia culoarea suprafetei temei: alba pe luminos, aproape neagra pe
+            // intunecat. O sticla alba peste un ecran intunecat ar fi aratat ca o
+            // bucata de hartie lipita pe el.
+            color: context.colors.surface.withValues(alpha: 0.78),
             borderRadius: BorderRadius.circular(ShellScreen.barHeight / 2),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+            border: Border.all(
+              color: context.colors.textPrimary.withValues(alpha: 0.08),
+            ),
             boxShadow: [
               BoxShadow(
-                color: context.colors.textPrimary.withValues(alpha: 0.10),
+                color: Colors.black.withValues(alpha: 0.14),
                 blurRadius: 20,
                 offset: const Offset(0, 6),
               ),
