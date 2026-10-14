@@ -18,10 +18,16 @@ _HomeResponse _$HomeResponseFromJson(Map<String, dynamic> json) =>
               ?.map((e) => HomeCategory.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      sections:
+          (json['sections'] as List<dynamic>?)
+              ?.map((e) => HomeSection.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$HomeResponseToJson(_HomeResponse instance) =>
     <String, dynamic>{
       'banners': instance.banners,
       'quick_categories': instance.quickCategories,
+      'sections': instance.sections,
     };

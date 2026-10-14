@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HomeResponse {
 
- List<AppBanner> get banners;@JsonKey(name: 'quick_categories') List<HomeCategory> get quickCategories;
+ List<AppBanner> get banners;@JsonKey(name: 'quick_categories') List<HomeCategory> get quickCategories; List<HomeSection> get sections;
 /// Create a copy of HomeResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $HomeResponseCopyWith<HomeResponse> get copyWith => _$HomeResponseCopyWithImpl<H
 @override
 bool operator ==(Object other) {
   final _this = this as HomeResponse;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeResponse&&const DeepCollectionEquality().equals(other.banners, _this.banners)&&const DeepCollectionEquality().equals(other.quickCategories, _this.quickCategories));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeResponse&&const DeepCollectionEquality().equals(other.banners, _this.banners)&&const DeepCollectionEquality().equals(other.quickCategories, _this.quickCategories)&&const DeepCollectionEquality().equals(other.sections, _this.sections));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as HomeResponse;
-  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.banners),const DeepCollectionEquality().hash(_this.quickCategories));
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.banners),const DeepCollectionEquality().hash(_this.quickCategories),const DeepCollectionEquality().hash(_this.sections));
 }
 
 @override
 String toString() {
   final _this = this as HomeResponse;
-  return 'HomeResponse(banners: ${_this.banners}, quickCategories: ${_this.quickCategories})';
+  return 'HomeResponse(banners: ${_this.banners}, quickCategories: ${_this.quickCategories}, sections: ${_this.sections})';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $HomeResponseCopyWith<$Res>  {
   factory $HomeResponseCopyWith(HomeResponse value, $Res Function(HomeResponse) _then) = _$HomeResponseCopyWithImpl;
 @useResult
 $Res call({
- List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories
+ List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories, List<HomeSection> sections
 });
 
 
@@ -71,11 +71,12 @@ class _$HomeResponseCopyWithImpl<$Res>
 
 /// Create a copy of HomeResponse
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? banners = null,Object? quickCategories = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? banners = null,Object? quickCategories = null,Object? sections = null,}) {
   return _then(HomeResponse(
 banners: null == banners ? _self.banners : banners // ignore: cast_nullable_to_non_nullable
 as List<AppBanner>,quickCategories: null == quickCategories ? _self.quickCategories : quickCategories // ignore: cast_nullable_to_non_nullable
-as List<HomeCategory>,
+as List<HomeCategory>,sections: null == sections ? _self.sections : sections // ignore: cast_nullable_to_non_nullable
+as List<HomeSection>,
   ));
 }
 
@@ -160,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeSection> sections)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HomeResponse() when $default != null:
-return $default(_that.banners,_that.quickCategories);case _:
+return $default(_that.banners,_that.quickCategories,_that.sections);case _:
   return orElse();
 
 }
@@ -181,10 +182,10 @@ return $default(_that.banners,_that.quickCategories);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeSection> sections)  $default,) {final _that = this;
 switch (_that) {
 case _HomeResponse():
-return $default(_that.banners,_that.quickCategories);case _:
+return $default(_that.banners,_that.quickCategories,_that.sections);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +202,10 @@ return $default(_that.banners,_that.quickCategories);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeSection> sections)?  $default,) {final _that = this;
 switch (_that) {
 case _HomeResponse() when $default != null:
-return $default(_that.banners,_that.quickCategories);case _:
+return $default(_that.banners,_that.quickCategories,_that.sections);case _:
   return null;
 
 }
@@ -216,7 +217,7 @@ return $default(_that.banners,_that.quickCategories);case _:
 @JsonSerializable()
 
 class _HomeResponse implements HomeResponse {
-  const _HomeResponse({ List<AppBanner> banners = const [], @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories = const []}): _banners = banners,_quickCategories = quickCategories;
+  const _HomeResponse({ List<AppBanner> banners = const [], @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories = const [],  List<HomeSection> sections = const []}): _banners = banners,_quickCategories = quickCategories,_sections = sections;
   factory _HomeResponse.fromJson(Map<String, dynamic> json) => _$HomeResponseFromJson(json);
 
  final  List<AppBanner> _banners;
@@ -233,6 +234,13 @@ class _HomeResponse implements HomeResponse {
   return EqualUnmodifiableListView(_quickCategories);
 }
 
+ final  List<HomeSection> _sections;
+@override@JsonKey() List<HomeSection> get sections {
+  if (_sections is EqualUnmodifiableListView) return _sections;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_sections);
+}
+
 
 /// Create a copy of HomeResponse
 /// with the given fields replaced by the non-null parameter values.
@@ -247,18 +255,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeResponse&&const DeepCollectionEquality().equals(other.banners, _banners)&&const DeepCollectionEquality().equals(other.quickCategories, _quickCategories));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeResponse&&const DeepCollectionEquality().equals(other.banners, _banners)&&const DeepCollectionEquality().equals(other.quickCategories, _quickCategories)&&const DeepCollectionEquality().equals(other.sections, _sections));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_banners),const DeepCollectionEquality().hash(_quickCategories));
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_banners),const DeepCollectionEquality().hash(_quickCategories),const DeepCollectionEquality().hash(_sections));
 }
 
 @override
 String toString() {
-    return 'HomeResponse(banners: $banners, quickCategories: $quickCategories)';
+    return 'HomeResponse(banners: $banners, quickCategories: $quickCategories, sections: $sections)';
 }
 
 
@@ -269,7 +277,7 @@ abstract mixin class _$HomeResponseCopyWith<$Res> implements $HomeResponseCopyWi
   factory _$HomeResponseCopyWith(_HomeResponse value, $Res Function(_HomeResponse) _then) = __$HomeResponseCopyWithImpl;
 @override @useResult
 $Res call({
- List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories
+ List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories, List<HomeSection> sections
 });
 
 
@@ -286,11 +294,12 @@ class __$HomeResponseCopyWithImpl<$Res>
 
 /// Create a copy of HomeResponse
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? banners = null,Object? quickCategories = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? banners = null,Object? quickCategories = null,Object? sections = null,}) {
   return _then(_HomeResponse(
 banners: null == banners ? _self._banners : banners // ignore: cast_nullable_to_non_nullable
 as List<AppBanner>,quickCategories: null == quickCategories ? _self._quickCategories : quickCategories // ignore: cast_nullable_to_non_nullable
-as List<HomeCategory>,
+as List<HomeCategory>,sections: null == sections ? _self._sections : sections // ignore: cast_nullable_to_non_nullable
+as List<HomeSection>,
   ));
 }
 

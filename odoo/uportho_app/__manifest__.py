@@ -9,6 +9,7 @@
         'security/ir.model.access.csv',
         'views/app_banner_views.xml',
         'views/app_benefit_views.xml',
+        'views/app_section_views.xml',
         'views/product_public_category_views.xml',
         'views/product_template_views.xml',
         'views/menus.xml',

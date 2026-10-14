@@ -7,3 +7,6 @@ access_app_benefit_user,uportho.app.benefit user read,model_uportho_app_benefit,
 access_app_benefit_designer,uportho.app.benefit designer,model_uportho_app_benefit,website.group_website_designer,1,1,1,1
 access_app_device_admin,uportho.app.device admin,model_uportho_app_device,base.group_system,1,1,1,1
 access_app_favorite_admin,uportho.app.favorite admin,model_uportho_app_favorite,base.group_system,1,1,1,1
+access_app_section_portal,uportho.app.section portal read,model_uportho_app_section,base.group_portal,1,0,0,0
+access_app_section_user,uportho.app.section user read,model_uportho_app_section,base.group_user,1,0,0,0
+access_app_section_designer,uportho.app.section designer,model_uportho_app_section,website.group_website_designer,1,1,1,1

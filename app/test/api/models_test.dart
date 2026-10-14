@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/models/home_response.dart';
-import 'package:uportho_app/api/models/price.dart';
 import 'package:uportho_app/api/models/user_profile.dart';
 
 Map<String, dynamic> fixture(String name) =>

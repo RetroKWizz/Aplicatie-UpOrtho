@@ -9,9 +9,13 @@ import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/widgets/banner_card.dart';
 import '../../design_system/widgets/category_chip.dart';
+import '../../design_system/widgets/product_card.dart';
 import '../../design_system/widgets/section_header.dart';
 import '../../providers.dart';
 import '../auth/auth_controller.dart';
+import '../favorites/favorites_controller.dart';
+import '../product_badge_palette.dart';
+import '../product_rating_label.dart';
 import 'banner_link.dart';
 import 'home_controller.dart';
 
@@ -124,7 +128,15 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
         ],
-        if (data.banners.isEmpty && data.quickCategories.isEmpty)
+        // Randurile de produse, in ordinea pusa in Odoo. Serverul nu trimite un rand
+        // ramas fara produse, deci aici nu exista titlu peste gol.
+        for (final section in data.sections)
+          _ProductRow(
+            section: section,
+            absoluteUrl: absoluteUrl,
+            headersFor: headersFor,
+          ),
+        if (data.banners.isEmpty && data.quickCategories.isEmpty && data.sections.isEmpty)
           const Padding(
             padding: EdgeInsets.all(32),
             child: Center(child: Text('Nu exista continut inca. Adauga bannere si categorii din Odoo.')),
@@ -253,6 +265,87 @@ class _HeroCarouselState extends State<_HeroCarousel> {
             ],
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Un rand de produse de pe Acasa: titlul pus in Odoo, apoi cardurile, care se trag
+/// lateral. Acelasi card ca in catalog - un produs nu are voie sa arate altfel aici
+/// decat acolo.
+class _ProductRow extends ConsumerWidget {
+  const _ProductRow({
+    required this.section,
+    required this.absoluteUrl,
+    required this.headersFor,
+  });
+
+  final HomeSection section;
+  final String Function(String) absoluteUrl;
+  final Map<String, String>? Function(String url) headersFor;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final favorites = ref.watch(favoritesControllerProvider).value?.ids ?? const <int>{};
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              Expanded(child: SectionHeader(section.title)),
+              // "Vezi toate" are unde duce doar cand randul e facut dintr-o categorie;
+              // la produse alese de mana nu exista o lista care sa le cuprinda.
+              if (section.categoryId case final int categoryId)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: TextButton(
+                    onPressed: () => context.go('/catalog?category_id=$categoryId'),
+                    child: const Text('Vezi toate'),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 268,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            itemCount: section.products.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (_, index) {
+              final product = section.products[index];
+              final imageUrl =
+                  product.imageUrl == null ? null : absoluteUrl(product.imageUrl!);
+              return SizedBox(
+                width: 168,
+                child: ProductCard(
+                  title: product.name,
+                  code: product.defaultCode,
+                  imageUrl: imageUrl,
+                  httpHeaders: imageUrl == null ? null : headersFor(imageUrl),
+                  priceFormatted: product.price.formatted,
+                  listAmountFormatted: product.price.listFormatted,
+                  discountLabel: product.price.discountPct == null
+                      ? null
+                      : '-${product.price.discountPct}%',
+                  badgeText: product.badge?.text,
+                  badgeColor:
+                      product.badge == null ? null : productBadgeBackground(product.badge!),
+                  badgeTextColor:
+                      product.badge == null ? null : productBadgeForeground(product.badge!),
+                  ratingLabel: productRatingLabel(product.rating),
+                  isFavorite: favorites.contains(product.id),
+                  onToggleFavorite: () =>
+                      ref.read(favoritesControllerProvider.notifier).toggle(product.id),
+                  onTap: () => context.push('/catalog/${product.id}'),
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
   }

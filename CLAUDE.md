@@ -100,6 +100,23 @@ noua si se debifeaza cea veche; nu mai trebuie atins niciun parametru.
 potrivire, iar "prima" e ordinea din baza — cu doua liste bifate, care castiga e
 imprevizibil si se poate schimba singur.
 
+**Acasa are randuri de produse, puse din Odoo.** `uportho.app.section` (Website →
+Aplicatie mobila → Sectiuni pe Acasa): titlu, de unde vin produsele (o categorie,
+produse alese de mana, sau cele cu eticheta de oferta din tema - `dr_label_id`), cate
+produse si in ce ordine. Produsele trec prin **acelasi domeniu si aceeasi ordine ca
+`/products`**, deci un rand de pe Acasa nu poate arata alt pret, alta ordine sau
+produse pe care catalogul nu le-ar da; un produs depublicat dispare din rand fara sa
+stearga nimeni nimic. Un rand ramas fara produse nu se trimite deloc - un titlu peste
+un rand gol e mai rau decat lipsa lui. `controllers/home` importa din `controllers/
+catalog` **in interiorul functiei**: la nivel de fisier cele doua se importa reciproc
+si modulul nu mai porneste.
+
+**Bannerul poate purta textul in chiar imaginea lui** (`image_only`). Atunci aplicatia
+nu mai deseneaza titlu, subtitlu, buton si val intunecat peste poza, iar poza se arata
+INTREAGA (`BoxFit.contain`), nu taiata - pe staging, taiata, "Ortho Club" ramanea fara
+prima litera. Formatele fara benzi: hero 16:9, promo 4:3. Bifa nu inseamna nimic fara
+imagine, altfel bannerul ar fi un dreptunghi gol.
+
 Modele de continut care inlocuiesc Odoo Studio: `uportho.app.banner`, plus campuri
 `app_home_visible` / `app_home_sequence` / `app_home_icon` pe `product.public.category`
 si `app_badge_text` / `app_badge_color` / `app_badge_date_end` pe `product.template`.

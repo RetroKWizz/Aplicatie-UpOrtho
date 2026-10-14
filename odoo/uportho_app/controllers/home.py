@@ -138,6 +138,37 @@ def serialize_quick_category(category):
     }
 
 
+def serialize_section(section, website):
+    """Un rand de produse de pe Acasa, sau `None` cand n-are ce arata.
+
+    Produsele trec prin ACELASI domeniu ca `/products` (publicat, pe website-ul
+    potrivit) si prin aceeasi ordine a magazinului: un rand de pe Acasa nu poate arata
+    produse pe care catalogul nu le-ar da, nici intr-o ordine proprie. Un produs
+    depublicat dispare din rand fara sa stearga nimeni nimic.
+
+    Un rand ramas fara produse nu se trimite deloc - un titlu peste un rand gol e mai
+    rau decat lipsa lui."""
+    # Importul sta aici, nu sus: `catalog` importa la randul lui din acest modul
+    # (`_current_website`, `_image_response`), iar la nivel de fisier cele doua s-ar
+    # astepta una pe alta si modulul n-ar mai porni.
+    from .catalog import _products_domain, _products_order, _serialize_templates
+
+    extra = section._extra_domain()
+    if extra is None:
+        return None
+    domain = _products_domain(website, None, None) + extra
+    templates = request.env['product.template'].search(
+        domain, limit=section.limit, order=_products_order(website))
+    if not templates:
+        return None
+    return {
+        'id': section.id,
+        'title': section.name,
+        'category_id': section.category_id.id if section.source == 'category' else None,
+        'products': _serialize_templates(templates, website),
+    }
+
+
 def _image_response(record, field_name):
     """Serveste un camp binar al unei inregistrari ca raspuns HTTP.
 
@@ -177,9 +208,14 @@ class AppHome(http.Controller):
         website = _current_website()
         banners = request.env['uportho.app.banner']._search_active_now(website)
         categories = request.env['product.public.category']._search_app_home(website)
+        sections = request.env['uportho.app.section']._search_active_now(website)
         return json_ok({
             'banners': [serialize_banner(b) for b in banners],
             'quick_categories': [serialize_quick_category(c) for c in categories],
+            'sections': [
+                block for block in (serialize_section(s, website) for s in sections)
+                if block is not None
+            ],
         })
 
     @app_route('/banners/<int:banner_id>/image', methods=['GET'])

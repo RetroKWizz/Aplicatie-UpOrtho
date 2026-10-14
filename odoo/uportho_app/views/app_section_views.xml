@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_app_section_list" model="ir.ui.view">
+        <field name="name">uportho.app.section.list</field>
+        <field name="model">uportho.app.section</field>
+        <field name="arch" type="xml">
+            <list default_order="sequence">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="source"/>
+                <field name="category_id"/>
+                <field name="limit"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="website_id"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_app_section_form" model="ir.ui.view">
+        <field name="name">uportho.app.section.form</field>
+        <field name="model">uportho.app.section</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Noutati"/></h1>
+                    </div>
+                    <group>
+                        <group string="Ce produse">
+                            <field name="source"/>
+                            <field name="category_id" invisible="source != 'category'" required="source == 'category'"/>
+                            <field name="limit"/>
+                        </group>
+                        <group string="Cand si unde">
+                            <field name="sequence"/>
+                            <field name="date_start"/>
+                            <field name="date_end"/>
+                            <field name="website_id"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <field name="product_ids" invisible="source != 'manual'" required="source == 'manual'">
+                        <list>
+                            <field name="name"/>
+                            <field name="default_code"/>
+                            <field name="list_price"/>
+                            <field name="is_published" widget="boolean_toggle"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_app_section" model="ir.actions.act_window">
+        <field name="name">Sectiuni pe Acasa</field>
+        <field name="res_model">uportho.app.section</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Adauga un rand de produse pe Acasa</p>
+            <p>Alege un titlu si de unde vin produsele: dintr-o categorie, alese de mana,
+               sau cele care au eticheta de oferta in magazin.</p>
+        </field>
+    </record>
+</odoo>

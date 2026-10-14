@@ -87,4 +87,35 @@ void main() {
     expect(find.textContaining('Nu exista continut inca'), findsOneWidget);
     expect(find.byType(PageView), findsNothing);
   });
+
+  testWidgets('randurile de produse apar cu titlul lor si cu preturile de la server',
+      (tester) async {
+    await pump(tester, homeFixture());
+
+    expect(find.text('Noutati'), findsOneWidget);
+    expect(find.text('Bracket metalic Roth .022'), findsOneWidget);
+    expect(find.text('148,50 lei'), findsWidgets);
+    // Randul facut dintr-o categorie are unde sa duca mai departe.
+    expect(find.text('Vezi toate'), findsOneWidget);
+  });
+
+  testWidgets('un rand de produse alese de mana nu arata "Vezi toate"', (tester) async {
+    // Nu exista o lista care sa le cuprinda, deci butonul n-ar avea unde sa duca.
+    final home = homeFixture();
+    ((home['sections'] as List).first as Map<String, dynamic>)['category_id'] = null;
+
+    await pump(tester, home);
+
+    expect(find.text('Noutati'), findsOneWidget);
+    expect(find.text('Vezi toate'), findsNothing);
+  });
+
+  testWidgets('fara sectiuni, Acasa ramane cu bannere si categorii', (tester) async {
+    final home = {...homeFixture(), 'sections': <dynamic>[]};
+
+    await pump(tester, home);
+
+    expect(find.text('Noutati'), findsNothing);
+    expect(find.text('Categorii'), findsOneWidget);
+  });
 }

@@ -291,3 +291,80 @@ class TestBannerImageOnly(AppHttpCase):
         banners = self._banners()
 
         self.assertFalse(banners[self.fara_poza.id]['image_only'])
+
+
+@tagged('post_install', '-at_install')
+class TestHomeSections(AppHttpCase):
+    """Randurile de produse de pe Acasa.
+
+    Produsele lor trec prin acelasi domeniu ca `/products`: un rand nu poate arata
+    produse pe care catalogul nu le-ar da."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Template = cls.env['product.template']
+        cls.categorie = cls.env['product.public.category'].create({'name': 'Categorie sectiune test'})
+        cls.publicat = Template.create({
+            'name': 'Produs sectiune publicat', 'list_price': 10.0, 'is_published': True,
+            'public_categ_ids': [(6, 0, [cls.categorie.id])]})
+        cls.nepublicat = Template.create({
+            'name': 'Produs sectiune nepublicat', 'list_price': 20.0, 'is_published': False,
+            'public_categ_ids': [(6, 0, [cls.categorie.id])]})
+        cls.sectiune = cls.env['uportho.app.section'].create({
+            'name': 'Noutati test', 'source': 'category', 'category_id': cls.categorie.id})
+
+    def _sections(self):
+        self.api_login()
+        return {s['title']: s for s in self.api_get('/home').json()['sections']}
+
+    def test_randul_arata_produsele_categoriei(self):
+        sections = self._sections()
+
+        self.assertIn('Noutati test', sections)
+        names = [p['name'] for p in sections['Noutati test']['products']]
+        self.assertIn('Produs sectiune publicat', names)
+
+    def test_un_produs_depublicat_dispare_din_rand(self):
+        """Fara sa stearga nimeni nimic din sectiune."""
+        sections = self._sections()
+
+        names = [p['name'] for p in sections['Noutati test']['products']]
+        self.assertNotIn('Produs sectiune nepublicat', names)
+
+    def test_produsele_au_aceeasi_forma_ca_in_catalog(self):
+        sections = self._sections()
+        product = sections['Noutati test']['products'][0]
+        contract = load_contract('products.json')['products'][0]
+
+        self.assertEqual(set(product), set(contract))
+
+    def test_un_rand_ramas_gol_nu_se_trimite(self):
+        """Un titlu peste un rand gol e mai rau decat lipsa lui."""
+        goala = self.env['product.public.category'].create({'name': 'Categorie fara produse test'})
+        self.env['uportho.app.section'].create({
+            'name': 'Rand gol test', 'source': 'category', 'category_id': goala.id})
+
+        self.assertNotIn('Rand gol test', self._sections())
+
+    def test_produsele_alese_de_mana_trec_tot_prin_domeniul_catalogului(self):
+        self.env['uportho.app.section'].create({
+            'name': 'De mana test', 'source': 'manual',
+            'product_ids': [(6, 0, [self.publicat.id, self.nepublicat.id])]})
+
+        names = [p['name'] for p in self._sections()['De mana test']['products']]
+        self.assertEqual(names, ['Produs sectiune publicat'])
+
+    def test_limita_taie_randul(self):
+        Template = self.env['product.template']
+        for index in range(3):
+            Template.create({
+                'name': 'Produs limita test %s' % index, 'list_price': 5.0, 'is_published': True,
+                'public_categ_ids': [(6, 0, [self.categorie.id])]})
+        self.sectiune.limit = 2
+
+        self.assertEqual(len(self._sections()['Noutati test']['products']), 2)
+
+    def test_sectiunea_fara_categorie_e_refuzata(self):
+        with self.assertRaises(Exception):
+            self.env['uportho.app.section'].create({'name': 'Fara categorie', 'source': 'category'})
