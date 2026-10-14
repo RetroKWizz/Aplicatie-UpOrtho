@@ -16,6 +16,9 @@ _ProductsResponse _$ProductsResponseFromJson(Map<String, dynamic> json) =>
       total: (json['total'] as num).toInt(),
       offset: (json['offset'] as num).toInt(),
       limit: (json['limit'] as num).toInt(),
+      filters: json['filters'] == null
+          ? const ProductFilters()
+          : ProductFilters.fromJson(json['filters'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$ProductsResponseToJson(_ProductsResponse instance) =>
@@ -24,4 +27,5 @@ Map<String, dynamic> _$ProductsResponseToJson(_ProductsResponse instance) =>
       'total': instance.total,
       'offset': instance.offset,
       'limit': instance.limit,
+      'filters': instance.filters,
     };

@@ -47,5 +47,38 @@
   ],
   "total": 2,
   "offset": 0,
-  "limit": 20
+  "limit": 20,
+  "filters": {
+    "attributes": [
+      {
+        "id": 95,
+        "name": "Brand",
+        "display_type": "radio",
+        "values": [
+          { "id": 1201, "name": "Dynaflex", "color": null, "count": 1, "selected": false },
+          { "id": 1202, "name": "Ormco", "color": null, "count": 1, "selected": false }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Slot",
+        "display_type": "radio",
+        "values": [
+          { "id": 1310, "name": ".022", "color": null, "count": 1, "selected": true }
+        ]
+      }
+    ],
+    "price": {
+      "min": 25.00,
+      "max": 330.00,
+      "selected_min": null,
+      "selected_max": null
+    },
+    "sorts": [
+      { "key": "recommended", "name": "Recomandate", "selected": true },
+      { "key": "price_asc", "name": "Pret crescator", "selected": false },
+      { "key": "price_desc", "name": "Pret descrescator", "selected": false },
+      { "key": "name_asc", "name": "Nume A-Z", "selected": false }
+    ]
+  }
 }

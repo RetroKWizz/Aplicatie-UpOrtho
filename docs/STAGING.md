@@ -106,10 +106,18 @@ Arhiva de desfasurare e chiar in repo: **`uportho_app.tar.gz`** din radacina. Co
 modulul intreg (**72 de fisiere**, ~200 KB), fara `__pycache__`. Se regenereaza cu:
 
 ```bash
-tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' --exclude='*.pyc' uportho_app
+COPYFILE_DISABLE=1 tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' --exclude='*.pyc' uportho_app
 ```
 
 Repo-ul e public, deci arhiva se poate lua direct de pe server, fara acreditari.
+
+`COPYFILE_DISABLE=1` nu e cosmetic: fara el, `tar` de pe macOS pune in arhiva si
+fisierele AppleDouble (`._nume`) cu atributele extinse ale fiecarui fisier. Dezarhivate
+pe Linux, ele ajung pe disc langa cele reale — pe 13 octombrie 2026 au iesit **78 de
+fisiere `._*` pe langa cele 72 reale**, inclusiv `._manifest__.py` in radacina
+modulului. Odoo le ignora (citeste doar `__manifest__.py` si ce listeaza el), deci n-au
+stricat nimic, dar nu au ce cauta pe server. Verificarea de mai jos numara fisierele
+tocmai ca sa se vada daca reapar.
 
 **Arhiva e verificata, nu presupusa.** Inainte de fiecare urcare se dezarhiveaza intr-un
 folder temporar si se compara cu sursa; ultima verificare (14 septembrie 2026) a iesit
@@ -117,7 +125,7 @@ identica, iar `sha256` era
 `1f4be50ba0abf8ef4da9343a0d3a87b408d8a818e0b35cf227b1806194301f4b`:
 
 ```bash
-tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' --exclude='*.pyc' uportho_app
+COPYFILE_DISABLE=1 tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' --exclude='*.pyc' uportho_app
 T=$(mktemp -d); tar xzf uportho_app.tar.gz -C $T 2>/dev/null
 diff -r --exclude='__pycache__' --exclude='*.pyc' odoo/uportho_app $T/uportho_app && echo OK
 ```

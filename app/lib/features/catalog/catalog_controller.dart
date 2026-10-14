@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../api/api_exception.dart';
 import '../../api/models/catalog_category.dart';
 import '../../api/models/product.dart';
+import '../../api/models/product_filters.dart';
 import '../../providers.dart';
 import '../auth/auth_controller.dart';
 import 'catalog_repository.dart';
+import 'product_filter_selection.dart';
 
 /// Numarul de produse cerute pe pagina. Catalogul real are ~925 de produse -
 /// ecranul pagineaza (scroll infinit), nu aduce niciodata totul dintr-o cerere.
@@ -30,8 +32,18 @@ class _SearchQueryNotifier extends Notifier<String> {
   String build() => '';
 }
 
+/// Ce filtre a ales clientul. Separat de raspunsul serverului (`CatalogState.filters`,
+/// care spune ce SE POATE alege): ecranul bifeaza imediat valoarea apasata, fara sa
+/// astepte reteaua.
+class _FilterSelectionNotifier extends Notifier<ProductFilterSelection> {
+  @override
+  ProductFilterSelection build() => ProductFilterSelection.empty;
+}
+
 final catalogCategoryFilterProvider = NotifierProvider<_CategoryFilterNotifier, int?>(_CategoryFilterNotifier.new);
 final catalogSearchQueryProvider = NotifierProvider<_SearchQueryNotifier, String>(_SearchQueryNotifier.new);
+final catalogFilterSelectionProvider =
+    NotifierProvider<_FilterSelectionNotifier, ProductFilterSelection>(_FilterSelectionNotifier.new);
 
 final catalogCategoriesProvider = FutureProvider<List<CatalogCategory>>(
   (ref) => ref.watch(catalogRepositoryProvider).fetchCategories(),
@@ -46,6 +58,7 @@ class CatalogState {
     required this.products,
     required this.total,
     required this.limit,
+    this.filters = const ProductFilters(),
     this.isLoadingMore = false,
     this.loadMoreError,
   });
@@ -53,6 +66,10 @@ class CatalogState {
   final List<Product> products;
   final int total;
   final int limit;
+
+  /// Ce filtre se pot alege pentru cererea curenta, asa cum le-a calculat serverul din
+  /// rezultat. Se schimba de la o categorie la alta; aplicatia nu le deduce singura.
+  final ProductFilters filters;
   /// A doua pagina (si urmatoarele) se incarca in fundal, sub grila deja afisata -
   /// nu inlocuieste starea intreaga cu AsyncLoading (ar goli ecranul).
   final bool isLoadingMore;
@@ -113,9 +130,25 @@ class CatalogController extends AsyncNotifier<CatalogState> {
   }
 
   /// Schimba categoria si reincarca de la prima pagina. `null` = "toate".
+  ///
+  /// Filtrele pe atribute si pe pret se sterg la schimbarea categoriei: ele sunt
+  /// calculate din rezultat, deci un brand ales in Bracketi poate sa nu existe deloc
+  /// in Adezivi, iar clientul ar vedea o grila goala fara sa inteleaga de ce. Sortarea
+  /// ramane - e o preferinta, nu un filtru.
   Future<void> setCategory(int? categoryId) async {
     if (ref.read(catalogCategoryFilterProvider) == categoryId) return;
     ref.read(catalogCategoryFilterProvider.notifier).state = categoryId;
+    final selection = ref.read(catalogFilterSelectionProvider);
+    if (!selection.cleared().isEmpty || selection.activeCount > 0) {
+      ref.read(catalogFilterSelectionProvider.notifier).state = selection.cleared();
+    }
+    await _reload();
+  }
+
+  /// Aplica o selectie noua de filtre si reincarca de la prima pagina.
+  Future<void> setFilters(ProductFilterSelection selection) async {
+    if (ref.read(catalogFilterSelectionProvider) == selection) return;
+    ref.read(catalogFilterSelectionProvider.notifier).state = selection;
     await _reload();
   }
 
@@ -136,10 +169,16 @@ class CatalogController extends AsyncNotifier<CatalogState> {
       final response = await ref.read(catalogRepositoryProvider).fetchProducts(
             categoryId: ref.read(catalogCategoryFilterProvider),
             query: ref.read(catalogSearchQueryProvider),
+            filters: ref.read(catalogFilterSelectionProvider),
             offset: 0,
             limit: catalogPageSize,
           );
-      return CatalogState(products: response.products, total: response.total, limit: response.limit);
+      return CatalogState(
+        products: response.products,
+        total: response.total,
+        limit: response.limit,
+        filters: response.filters,
+      );
     });
   }
 
@@ -152,12 +191,14 @@ class CatalogController extends AsyncNotifier<CatalogState> {
       products: current.products,
       total: current.total,
       limit: current.limit,
+      filters: current.filters,
       isLoadingMore: true,
     ));
     try {
       final response = await ref.read(catalogRepositoryProvider).fetchProducts(
             categoryId: ref.read(catalogCategoryFilterProvider),
             query: ref.read(catalogSearchQueryProvider),
+            filters: ref.read(catalogFilterSelectionProvider),
             offset: current.products.length,
             limit: current.limit,
           );
@@ -165,6 +206,7 @@ class CatalogController extends AsyncNotifier<CatalogState> {
         products: [...current.products, ...response.products],
         total: response.total,
         limit: response.limit,
+        filters: response.filters,
       ));
     } catch (error) {
       final message = error is ApiException ? error.message : 'Nu s-au putut incarca mai multe produse.';
@@ -172,6 +214,7 @@ class CatalogController extends AsyncNotifier<CatalogState> {
         products: current.products,
         total: current.total,
         limit: current.limit,
+        filters: current.filters,
         loadMoreError: message,
       ));
     }

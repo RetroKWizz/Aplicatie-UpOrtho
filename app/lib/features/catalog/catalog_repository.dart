@@ -1,6 +1,7 @@
 import '../../api/api_client.dart';
 import '../../api/models/catalog_category.dart';
 import '../../api/models/products_response.dart';
+import 'product_filter_selection.dart';
 
 /// Repository pentru catalog: `/categories` si `/products`. Nu stie despre UI,
 /// paginare sau filtre active - primeste totul ca parametri, o data pe apel.
@@ -16,6 +17,7 @@ class CatalogRepository {
   Future<ProductsResponse> fetchProducts({
     int? categoryId,
     String? query,
+    ProductFilterSelection filters = ProductFilterSelection.empty,
     required int offset,
     required int limit,
   }) async {
@@ -26,6 +28,7 @@ class CatalogRepository {
     if (query != null && query.trim().isNotEmpty) {
       parts.add('q=${Uri.encodeQueryComponent(query.trim())}');
     }
+    parts.addAll(filters.queryParts());
     parts.add('offset=$offset');
     parts.add('limit=$limit');
     final json = await _api.get('/products?${parts.join('&')}');

@@ -799,3 +799,162 @@ class TestControllersProductsOrdering(AppHttpCase):
         self.assertEqual(
             catalog_controller._sanitized_order('website_sequence asc, id asc', Template),
             'website_sequence asc, id asc')
+
+
+@tagged('post_install', '-at_install')
+class TestProductFilters(AppHttpCase):
+    """Filtrele catalogului: aceleasi atribute pe care le filtreaza si magazinul.
+
+    Nu exista o lista configurata de filtre - ce apare se calculeaza din rezultat, deci
+    testele isi creeaza propriile produse si filtreaza mereu pe id-urile lor, ca sa nu
+    depinda de ce a mai ramas in baza din verificari manuale."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Attribute = cls.env['product.attribute']
+        Value = cls.env['product.attribute.value']
+        cls.brand = Attribute.create({'name': 'Brand filtru test', 'display_type': 'radio'})
+        cls.brand_a = Value.create({'name': 'Dynaflex test', 'attribute_id': cls.brand.id})
+        cls.brand_b = Value.create({'name': 'Ormco test', 'attribute_id': cls.brand.id})
+        cls.slot = Attribute.create({'name': 'Slot filtru test', 'display_type': 'radio'})
+        cls.slot_018 = Value.create({'name': '.018 test', 'attribute_id': cls.slot.id})
+        cls.slot_022 = Value.create({'name': '.022 test', 'attribute_id': cls.slot.id})
+
+        cls.category = cls.env['product.public.category'].create({'name': 'Categorie filtru test'})
+
+        def product(name, price, brand_value, slot_value):
+            return cls.env['product.template'].create({
+                'name': name,
+                'list_price': price,
+                'is_published': True,
+                'public_categ_ids': [(6, 0, [cls.category.id])],
+                'attribute_line_ids': [
+                    (0, 0, {'attribute_id': cls.brand.id, 'value_ids': [(6, 0, [brand_value.id])]}),
+                    (0, 0, {'attribute_id': cls.slot.id, 'value_ids': [(6, 0, [slot_value.id])]}),
+                ],
+            })
+
+        cls.p_a018 = product('Filtru test A 018', 10.0, cls.brand_a, cls.slot_018)
+        cls.p_a022 = product('Filtru test A 022', 20.0, cls.brand_a, cls.slot_022)
+        cls.p_b022 = product('Filtru test B 022', 30.0, cls.brand_b, cls.slot_022)
+        cls.all_ids = {cls.p_a018.id, cls.p_a022.id, cls.p_b022.id}
+
+    def _get(self, params=''):
+        base = '/products?limit=100&category_id=%s' % self.category.id
+        return self.api_get(base + params).json()
+
+    def _ids(self, body):
+        return {p['id'] for p in body['products']} & self.all_ids
+
+    def _facet(self, body, attribute):
+        for facet in body['filters']['attributes']:
+            if facet['id'] == attribute.id:
+                return facet
+        return None
+
+    def test_response_shape_matches_contract(self):
+        self.api_login()
+        body = self._get()
+        contract = load_contract('products.json')
+        self.assertEqual(set(body.keys()), set(contract.keys()))
+        self.assertEqual(set(body['filters'].keys()), set(contract['filters'].keys()))
+        self.assertEqual(
+            set(body['filters']['attributes'][0].keys()),
+            set(contract['filters']['attributes'][0].keys()))
+        self.assertEqual(
+            set(body['filters']['attributes'][0]['values'][0].keys()),
+            set(contract['filters']['attributes'][0]['values'][0].keys()))
+        self.assertEqual(set(body['filters']['price'].keys()), set(contract['filters']['price'].keys()))
+        self.assertEqual(
+            set(body['filters']['sorts'][0].keys()), set(contract['filters']['sorts'][0].keys()))
+
+    def test_filter_by_one_attribute_value(self):
+        self.api_login()
+        body = self._get('&attribute_value=%s-%s' % (self.brand.id, self.brand_a.id))
+        self.assertEqual(self._ids(body), {self.p_a018.id, self.p_a022.id})
+
+    def test_two_values_of_same_attribute_are_or(self):
+        self.api_login()
+        body = self._get('&attribute_value=%s-%s&attribute_value=%s-%s' % (
+            self.brand.id, self.brand_a.id, self.brand.id, self.brand_b.id))
+        self.assertEqual(self._ids(body), self.all_ids)
+
+    def test_two_different_attributes_are_and(self):
+        self.api_login()
+        body = self._get('&attribute_value=%s-%s&attribute_value=%s-%s' % (
+            self.brand.id, self.brand_a.id, self.slot.id, self.slot_022.id))
+        self.assertEqual(self._ids(body), {self.p_a022.id})
+
+    def test_facets_are_contextual(self):
+        """Un atribut care nu exista in rezultat nu apare ca filtru gol."""
+        self.api_login()
+        body = self._get('&attribute_value=%s-%s' % (self.slot.id, self.slot_018.id))
+        brands = self._facet(body, self.brand)
+        shown = {v['id'] for v in brands['values']}
+        self.assertIn(self.brand_a.id, shown)
+        self.assertNotIn(self.brand_b.id, shown, 'Ormco nu are niciun produs cu slot .018')
+
+    def test_own_attribute_selection_does_not_shrink_its_own_facet(self):
+        """Dupa ce alegi un brand, celelalte branduri trebuie sa ramana alegibile."""
+        self.api_login()
+        body = self._get('&attribute_value=%s-%s' % (self.brand.id, self.brand_a.id))
+        brands = self._facet(body, self.brand)
+        by_id = {v['id']: v for v in brands['values']}
+        self.assertIn(self.brand_b.id, by_id, 'al doilea brand a disparut din filtru')
+        self.assertTrue(by_id[self.brand_a.id]['selected'])
+        self.assertFalse(by_id[self.brand_b.id]['selected'])
+
+    def test_facet_counts_follow_the_other_filters(self):
+        self.api_login()
+        body = self._get('&attribute_value=%s-%s' % (self.slot.id, self.slot_022.id))
+        by_id = {v['id']: v for v in self._facet(body, self.brand)['values']}
+        self.assertEqual(by_id[self.brand_a.id]['count'], 1)
+        self.assertEqual(by_id[self.brand_b.id]['count'], 1)
+
+    def test_price_filter(self):
+        self.api_login()
+        self.assertEqual(self._ids(self._get('&min_price=15')), {self.p_a022.id, self.p_b022.id})
+        self.assertEqual(self._ids(self._get('&max_price=15')), {self.p_a018.id})
+        self.assertEqual(self._ids(self._get('&min_price=15&max_price=25')), {self.p_a022.id})
+
+    def test_price_bounds_ignore_the_price_filter(self):
+        """Capetele glisorului raman cele ale rezultatului nefiltrat pe pret, altfel
+        glisorul s-ar strange la fiecare miscare si nu ar mai putea fi largit inapoi."""
+        self.api_login()
+        body = self._get('&min_price=15&max_price=25')
+        self.assertEqual(body['filters']['price']['min'], 10.0)
+        self.assertEqual(body['filters']['price']['max'], 30.0)
+        self.assertEqual(body['filters']['price']['selected_min'], 15.0)
+        self.assertEqual(body['filters']['price']['selected_max'], 25.0)
+
+    def test_sort_by_price(self):
+        self.api_login()
+        ascending = [p['id'] for p in self._get('&sort=price_asc')['products'] if p['id'] in self.all_ids]
+        self.assertEqual(ascending, [self.p_a018.id, self.p_a022.id, self.p_b022.id])
+        descending = [p['id'] for p in self._get('&sort=price_desc')['products'] if p['id'] in self.all_ids]
+        self.assertEqual(descending, list(reversed(ascending)))
+
+    def test_default_sort_is_the_shop_setting(self):
+        self.api_login()
+        body = self._get()
+        selected = [s['key'] for s in body['filters']['sorts'] if s['selected']]
+        self.assertEqual(selected, ['recommended'])
+
+    def test_unknown_sort_is_rejected(self):
+        self.api_login()
+        response = self.api_get('/products?sort=ieftin')
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()['error']['code'], 'validation_error')
+
+    def test_malformed_attribute_value_is_rejected(self):
+        self.api_login()
+        for raw in ('95', '95-', 'a-b', '95-12-3'):
+            response = self.api_get('/products?attribute_value=' + raw)
+            self.assertEqual(response.status_code, 422, f'ar fi trebuit respins: {raw!r}')
+            self.assertEqual(response.json()['error']['code'], 'validation_error')
+
+    def test_non_numeric_price_is_rejected(self):
+        self.api_login()
+        self.assertEqual(self.api_get('/products?min_price=ieftin').status_code, 422)
+        self.assertEqual(self.api_get('/products?max_price=scump').status_code, 422)

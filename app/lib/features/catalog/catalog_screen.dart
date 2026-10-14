@@ -14,6 +14,7 @@ import '../favorites/favorites_controller.dart';
 import '../product_badge_palette.dart';
 import '../product_rating_label.dart';
 import 'catalog_controller.dart';
+import 'catalog_filter_sheet.dart';
 
 /// Ecranul de catalog: cautare, filtrare pe categorie, grila de produse cu
 /// paginare (scroll infinit - vezi comentariul de pe `_onScroll`).
@@ -127,6 +128,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
             error: (_, _) => const SizedBox.shrink(),
             data: (list) => _CategoryChips(categories: list, selectedId: selectedCategoryId),
           ),
+          const _FilterBar(),
           const SizedBox(height: 4),
           Expanded(
             child: catalog.when(
@@ -273,6 +275,67 @@ class _LoadMoreError extends StatelessWidget {
           Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 6),
           TextButton(onPressed: onRetry, child: const Text('Reincearca')),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bara de sub categorii: butonul de filtre (cu numarul de filtre active) si cel de
+/// sortare. Aceleasi filtre ca pe site, dar aici incap pe un ecran de telefon - de
+/// aceea sunt doua butoane care deschid ecrane proprii, nu o bara laterala.
+class _FilterBar extends ConsumerWidget {
+  const _FilterBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selection = ref.watch(catalogFilterSelectionProvider);
+    final state = ref.watch(catalogControllerProvider).value;
+    final filters = state?.filters;
+    // Fara niciun filtru disponibil si fara vreunul activ, bara n-ar face decat sa
+    // ocupe spatiu pe un ecran mic.
+    final hasAnything = filters != null &&
+        (filters.attributes.isNotEmpty || filters.price.usable || filters.sorts.isNotEmpty);
+    if (!hasAnything && selection.isEmpty) return const SizedBox.shrink();
+
+    final activeSort = filters?.sorts
+        .where((s) => s.key == (selection.sort ?? ''))
+        .map((s) => s.name)
+        .firstOrNull;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => showCatalogFilterSheet(context),
+              icon: const Icon(Icons.tune, size: 18),
+              label: Text(
+                selection.activeCount == 0 ? 'Filtre' : 'Filtre (${selection.activeCount})',
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: selection.activeCount == 0 ? AppColors.textPrimary : AppColors.primary,
+                side: BorderSide(
+                  color: selection.activeCount == 0 ? AppColors.primaryLight : AppColors.primary,
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => showCatalogSortSheet(context),
+              icon: const Icon(Icons.swap_vert, size: 18),
+              label: Text(activeSort ?? 'Sorteaza', overflow: TextOverflow.ellipsis),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: activeSort == null ? AppColors.textPrimary : AppColors.primary,
+                side: BorderSide(color: activeSort == null ? AppColors.primaryLight : AppColors.primary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
         ],
       ),
     );

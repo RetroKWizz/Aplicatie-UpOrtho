@@ -1,8 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'product.dart';
+import 'product_filters.dart';
 
 export 'product.dart';
+export 'product_filters.dart';
 
 part 'products_response.freezed.dart';
 part 'products_response.g.dart';
@@ -17,6 +19,10 @@ abstract class ProductsResponse with _$ProductsResponse {
     required int total,
     required int offset,
     required int limit,
+
+    /// Filtrele disponibile pentru cererea curenta. Vin odata cu produsele; sunt
+    /// calculate din rezultat, deci se schimba de la o categorie la alta.
+    @Default(ProductFilters()) ProductFilters filters,
   }) = _ProductsResponse;
 
   factory ProductsResponse.fromJson(Map<String, dynamic> json) => _$ProductsResponseFromJson(json);

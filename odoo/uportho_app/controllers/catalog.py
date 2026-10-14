@@ -37,6 +37,22 @@ PRODUCTS_ORDER_FALLBACK = 'website_sequence, id desc'
 PRODUCTS_ORDER_TIEBREAKER = 'id desc'
 ORDER_DIRECTIONS = ('asc', 'desc')
 
+# Sortarile pe care le poate cere aplicatia. Cheia e ce trimite telefonul, a doua
+# valoare e ordinea ceruta lui Odoo, a treia e eticheta pe care o afiseaza ecranul -
+# tinuta aici, nu in aplicatie, ca o traducere sa nu ceara release in App Store.
+#
+# `recommended` nu are ordine proprie: cade pe sortarea configurata a magazinului
+# (`_products_order`), deci ramane implicitul si urmeaza orice schimbare facuta in
+# Odoo. Pretul se sorteaza dupa `list_price`, acelasi camp pe care filtreaza si bara
+# de pret a magazinului - vezi comentariul din `_products_domain`.
+SORT_OPTIONS = (
+    ('recommended', None, 'Recomandate'),
+    ('price_asc', 'list_price asc', 'Pret crescator'),
+    ('price_desc', 'list_price desc', 'Pret descrescator'),
+    ('name_asc', 'name asc', 'Nume A-Z'),
+)
+DEFAULT_SORT = SORT_OPTIONS[0][0]
+
 
 def _flagged_club_pricelist():
     """Lista Ortho Club asa cum o marcheaza clientul: prima lista de preturi activa
@@ -286,7 +302,26 @@ def _products_order(website):
     return fallback
 
 
-def _products_domain(website, category_id, query):
+def _attribute_domain(pairs):
+    """Domeniul filtrului pe atribute, cu intelesul magazinului.
+
+    SI intre atribute diferite, SAU intre valorile aceluiasi atribut: "Dynaflex SAU
+    Ormco" dar "si slot .022". Un singur termen `in` per atribut face exact asta,
+    fiindca `attribute_line_ids.value_ids` e un many2many - potrivirea e pe oricare
+    din valorile date.
+
+    Campul e acelasi pe care il filtreaza si magazinul, deci un produs care apare in
+    `/shop?attribute_value=95-1234` apare si aici."""
+    by_attribute = {}
+    for attribute_id, value_id in pairs:
+        by_attribute.setdefault(attribute_id, []).append(value_id)
+    return [
+        ('attribute_line_ids.value_ids', 'in', value_ids)
+        for value_ids in by_attribute.values()
+    ]
+
+
+def _products_domain(website, category_id, query, pairs=(), min_price=None, max_price=None):
     domain = [
         ('is_published', '=', True),
         '|', ('website_id', '=', False), ('website_id', '=', website.id),
@@ -299,6 +334,17 @@ def _products_domain(website, category_id, query):
         # caracterul '%'.
         domain = domain + [
             '|', ('name', 'ilike', escape_psql(query)), ('default_code', 'ilike', escape_psql(query))]
+    domain = domain + _attribute_domain(pairs)
+    # `list_price`, nu pretul clientului: exact campul pe care filtreaza bara de pret a
+    # magazinului (`COALESCE(MIN(list_price), 0) * conversion_rate` in
+    # `website_sale.WebsiteSale.shop`). E un pret de catalog, deci poate diferi de ce
+    # plateste un client cu lista proprie - dar asa se comporta si site-ul, iar o
+    # filtrare pe pretul fiecarui client ar cere calcularea in Python a preturilor
+    # intregului set la fiecare cerere.
+    if min_price is not None:
+        domain = domain + [('list_price', '>=', min_price)]
+    if max_price is not None:
+        domain = domain + [('list_price', '<=', max_price)]
     return domain
 
 
@@ -441,6 +487,154 @@ def _parse_limit(raw):
     return min(value, MAX_LIMIT)
 
 
+def _parse_attribute_values(raw):
+    """Perechile cerute, in formatul magazinului: `attribute_value=<atribut>-<valoare>`.
+
+    Acelasi nume de parametru si acelasi format ca pe site (`theme_prime` citeste
+    `request.httprequest.args.getlist('attribute_value')` si sparge fiecare valoare pe
+    '-'), ca un filtru sa insemne acelasi lucru in amandoua. Se accepta si repetat, si
+    separat prin virgula, fiindca un client HTTP le poate trimite oricum."""
+    if raw in (None, ''):
+        return []
+    items = raw if isinstance(raw, (list, tuple)) else [raw]
+    pairs = []
+    for item in items:
+        for chunk in str(item).split(','):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            parts = chunk.split('-')
+            if len(parts) != 2 or not all(p.isdigit() for p in parts):
+                raise ApiError(
+                    422, 'validation_error',
+                    "attribute_value trebuie sa fie perechi 'id_atribut-id_valoare'.")
+            pairs.append((int(parts[0]), int(parts[1])))
+    return pairs
+
+
+def _parse_price(raw, name):
+    """Capatul unui interval de pret. Lipsa inseamna "fara limita"; o valoare negativa
+    sau zero inseamna tot "fara limita", ca pe site, unde glisorul nu poate cobori sub
+    minimul disponibil."""
+    if raw in (None, ''):
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise ApiError(422, 'validation_error', '%s trebuie sa fie numeric.' % name)
+    return value if value > 0 else None
+
+
+def _parse_sort(raw):
+    """Cheia de sortare ceruta de aplicatie, validata contra listei de mai sus.
+
+    O cheie necunoscuta e 422, nu o cadere tacuta pe implicit: altfel o greseala de
+    scriere in aplicatie ar arata produsele in alta ordine decat a cerut clientul,
+    fara ca nimeni sa afle."""
+    if raw in (None, ''):
+        return DEFAULT_SORT
+    key = str(raw)
+    if key not in {option[0] for option in SORT_OPTIONS}:
+        raise ApiError(
+            422, 'validation_error',
+            'sort trebuie sa fie una din: %s.' % ', '.join(o[0] for o in SORT_OPTIONS))
+    return key
+
+
+def _order_for_sort(sort_key, website):
+    """Ordinea trimisa lui Odoo, cu acelasi criteriu stabil la final ca ordinea implicita.
+
+    Fara departajarea stabila, doua produse cu acelasi pret pot veni in ordine diferita
+    la doua pagini succesive, iar scroll-ul infinit ar dubla unul si l-ar sari pe
+    celalalt - exact bug-ul pentru care exista PRODUCTS_ORDER_TIEBREAKER."""
+    raw = dict((o[0], o[1]) for o in SORT_OPTIONS)[sort_key]
+    if raw is None:
+        return _products_order(website)
+    Template = website.env['product.template']
+    order = _sanitized_order(raw, Template)
+    return order or _products_order(website)
+
+
+def _price_bounds(domain):
+    """Pretul minim si maxim disponibil in rezultat, intr-o singura interogare.
+
+    Aceeasi forma ca in `website_sale.WebsiteSale.shop`: MIN/MAX peste `list_price`,
+    pe domeniul filtrat, cu regulile de acces aplicate. Fara asta, aplicatia ar trebui
+    sa citeasca toate produsele doar ca sa afle capetele glisorului."""
+    Template = request.env['product.template']
+    query = Template._where_calc(domain)
+    Template._apply_ir_rules(query, 'read')
+    sql = query.select(
+        'COALESCE(MIN("product_template"."list_price"), 0)',
+        'COALESCE(MAX("product_template"."list_price"), 0)',
+    )
+    row = request.env.execute_query(sql)[0]
+    return {'min': row[0] or 0.0, 'max': row[1] or 0.0}
+
+
+def _attribute_facets(website, category_id, query, pairs, min_price, max_price):
+    """Atributele care chiar exista in rezultatul curent, cu numarul de produse per valoare.
+
+    Nu exista o lista configurata de filtre: ce apare se calculeaza din rezultat, deci
+    in Bracketi ies Prescriptie si Slot, iar in Adezivi Tip polimerizare, fara ca
+    nimeni sa bifeze ceva in Odoo.
+
+    Pentru fiecare atribut, numaratorile se calculeaza ignorand selectia facuta CHIAR
+    pe acel atribut, dar pastrand restul filtrelor. Altfel, dupa ce alegi un brand,
+    lista de branduri ar ramane cu un singur rand si nu ai mai putea alege al doilea."""
+    by_attribute = {}
+    for attribute_id, value_id in pairs:
+        by_attribute.setdefault(attribute_id, []).append(value_id)
+
+    Template = request.env['product.template']
+    Line = request.env['product.template.attribute.line'].sudo()
+
+    def template_ids(active_pairs):
+        return Template.search(_products_domain(
+            website, category_id, query, active_pairs, min_price, max_price)).ids
+
+    full_ids = template_ids(pairs)
+    # Atributele de aratat: cele prezente in rezultatul complet, plus cele deja alese
+    # (o alegere care nu mai are niciun produs trebuie sa ramana vizibila, altfel
+    # clientul nu o mai poate anula).
+    present = set(Line.search([('product_tmpl_id', 'in', full_ids)]).mapped('attribute_id').ids)
+    present |= set(by_attribute)
+    if not present:
+        return []
+
+    facets = []
+    for attribute in request.env['product.attribute'].sudo().browse(sorted(present)).exists():
+        if attribute.id in by_attribute:
+            ids = template_ids([(a, v) for a, v in pairs if a != attribute.id])
+        else:
+            ids = full_ids
+        counts = {}
+        for line in Line.search([('product_tmpl_id', 'in', ids), ('attribute_id', '=', attribute.id)]):
+            for value in line.value_ids:
+                counts[value.id] = counts.get(value.id, 0) + 1
+        selected = set(by_attribute.get(attribute.id, ()))
+        values = [
+            {
+                'id': value.id,
+                'name': value.name,
+                'color': value.html_color or None,
+                'count': counts.get(value.id, 0),
+                'selected': value.id in selected,
+            }
+            for value in attribute.value_ids
+            if counts.get(value.id) or value.id in selected
+        ]
+        if not values:
+            continue
+        facets.append({
+            'id': attribute.id,
+            'name': attribute.name,
+            'display_type': attribute.display_type,
+            'values': values,
+        })
+    return facets
+
+
 def _serialize_templates(templates, website):
     """Produsele in forma de card, cu preturile contului: acelasi drum ca `/products`,
     ca o lista de favorite sa nu poata arata alte preturi decat catalogul."""
@@ -477,7 +671,15 @@ class AppCatalog(http.Controller):
     def products(self, **kw):
         website = _current_website()
         category_id = _parse_category_id(kw.get('category_id'))
-        domain = _products_domain(website, category_id, kw.get('q'))
+        query = kw.get('q')
+        # `attribute_value` poate veni repetat; Odoo aduna repetitiile intr-o lista doar
+        # prin httprequest.args, nu prin **kw, care pastreaza ultima valoare.
+        pairs = _parse_attribute_values(
+            request.httprequest.args.getlist('attribute_value') or kw.get('attribute_value'))
+        min_price = _parse_price(kw.get('min_price'), 'min_price')
+        max_price = _parse_price(kw.get('max_price'), 'max_price')
+        sort = _parse_sort(kw.get('sort'))
+        domain = _products_domain(website, category_id, query, pairs, min_price, max_price)
         offset = _parse_offset(kw.get('offset'))
         limit = _parse_limit(kw.get('limit'))
 
@@ -486,8 +688,9 @@ class AppCatalog(http.Controller):
         # Aceeasi ordine ca in magazin, citita din setarea website-ului si cu un
         # criteriu stabil la final - vezi _products_order. Se aplica identic listei
         # nefiltrate, celei filtrate pe categorie si cautarii: domeniul difera,
-        # ordinea nu.
-        order = _products_order(website)
+        # ordinea nu. Clientul o poate schimba doar cu una din cheile din SORT_OPTIONS,
+        # iar implicitul ramane sortarea magazinului.
+        order = _order_for_sort(sort, website)
         templates = Template.search(domain, offset=offset, limit=limit, order=order)
 
         partner = request.env.user.partner_id
@@ -516,6 +719,22 @@ class AppCatalog(http.Controller):
             'total': total,
             'offset': offset,
             'limit': limit,
+            # Filtrele vin in acelasi raspuns cu produsele, ca bannerul si categoriile
+            # in `/home`: un singur apel, deci ecranul nu arata produse fara filtre
+            # pentru o clipa. Capetele de pret se calculeaza pe domeniul FARA filtrul
+            # de pret, altfel glisorul s-ar strange la fiecare miscare si nu ar mai
+            # putea fi largit inapoi.
+            'filters': {
+                'attributes': _attribute_facets(
+                    website, category_id, query, pairs, min_price, max_price),
+                'price': dict(
+                    _price_bounds(_products_domain(website, category_id, query, pairs)),
+                    selected_min=min_price, selected_max=max_price),
+                'sorts': [
+                    {'key': key, 'name': label, 'selected': key == sort}
+                    for key, _order, label in SORT_OPTIONS
+                ],
+            },
         })
 
     @app_route('/products/<int:product_id>/image', methods=['GET'])

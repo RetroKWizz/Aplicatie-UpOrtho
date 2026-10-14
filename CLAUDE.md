@@ -427,7 +427,10 @@ odoo-update uportho_app                            # reporneste si actualizeaza 
 ```
 
 `uportho_app.tar.gz` din radacina repo-ului e chiar arhiva de desfasurare; se
-regenereaza cu `tar czf uportho_app.tar.gz -C odoo --exclude='__pycache__' uportho_app`.
+regenereaza cu `COPYFILE_DISABLE=1 tar czf uportho_app.tar.gz -C odoo
+--exclude='__pycache__' --exclude='*.pyc' uportho_app`. **`COPYFILE_DISABLE=1` e
+obligatoriu**: fara el, tar-ul de pe macOS baga in arhiva fisierele AppleDouble
+(`._nume`), care ajung pe disc pe server — 78 de fisiere in plus langa cele 72 reale.
 
 **Reteta completa de refacere — `docs/STAGING.md`**, sectiunea "Cum se reface, de la
 zero, dupa ce build-ul dispare": modul, parametri de sistem, contul de test si adresa
