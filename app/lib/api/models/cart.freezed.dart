@@ -1036,7 +1036,10 @@ $PriceCopyWith<$Res> get remaining {
 /// @nodoc
 mixin _$Cart {
 
-@JsonKey(name: 'order_id') int? get orderId; int get quantity; List<CartLine> get lines; CartAmounts get amounts;@JsonKey(name: 'free_delivery') FreeDeliveryProgress? get freeDelivery; String? get warning;/// Avertismentele stranse de server la ultima modificare (stoc ajustat, cantitate
+@JsonKey(name: 'order_id') int? get orderId; int get quantity; List<CartLine> get lines; CartAmounts get amounts;@JsonKey(name: 'free_delivery') FreeDeliveryProgress? get freeDelivery;/// Cat a economisit clientul fata de preturile taiate, pe tot cosul. Suma e
+/// calculata de server din chiar diferentele aratate pe randuri (aplicatia nu
+/// face aritmetica pe bani); lipseste cand nu e nimic de economisit.
+ Price? get savings; String? get warning;/// Avertismentele stranse de server la ultima modificare (stoc ajustat, cantitate
 /// redusa). Vin o singura data, in raspunsul modificarii - un `GET /cart` de dupa
 /// nu le mai contine.
  List<String> get warnings;
@@ -1053,20 +1056,20 @@ $CartCopyWith<Cart> get copyWith => _$CartCopyWithImpl<Cart>(this as Cart, _$ide
 @override
 bool operator ==(Object other) {
   final _this = this as Cart;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Cart&&(identical(other.orderId, _this.orderId) || other.orderId == _this.orderId)&&(identical(other.quantity, _this.quantity) || other.quantity == _this.quantity)&&const DeepCollectionEquality().equals(other.lines, _this.lines)&&(identical(other.amounts, _this.amounts) || other.amounts == _this.amounts)&&(identical(other.freeDelivery, _this.freeDelivery) || other.freeDelivery == _this.freeDelivery)&&(identical(other.warning, _this.warning) || other.warning == _this.warning)&&const DeepCollectionEquality().equals(other.warnings, _this.warnings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Cart&&(identical(other.orderId, _this.orderId) || other.orderId == _this.orderId)&&(identical(other.quantity, _this.quantity) || other.quantity == _this.quantity)&&const DeepCollectionEquality().equals(other.lines, _this.lines)&&(identical(other.amounts, _this.amounts) || other.amounts == _this.amounts)&&(identical(other.freeDelivery, _this.freeDelivery) || other.freeDelivery == _this.freeDelivery)&&(identical(other.savings, _this.savings) || other.savings == _this.savings)&&(identical(other.warning, _this.warning) || other.warning == _this.warning)&&const DeepCollectionEquality().equals(other.warnings, _this.warnings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Cart;
-  return Object.hash(runtimeType,_this.orderId,_this.quantity,const DeepCollectionEquality().hash(_this.lines),_this.amounts,_this.freeDelivery,_this.warning,const DeepCollectionEquality().hash(_this.warnings));
+  return Object.hash(runtimeType,_this.orderId,_this.quantity,const DeepCollectionEquality().hash(_this.lines),_this.amounts,_this.freeDelivery,_this.savings,_this.warning,const DeepCollectionEquality().hash(_this.warnings));
 }
 
 @override
 String toString() {
   final _this = this as Cart;
-  return 'Cart(orderId: ${_this.orderId}, quantity: ${_this.quantity}, lines: ${_this.lines}, amounts: ${_this.amounts}, freeDelivery: ${_this.freeDelivery}, warning: ${_this.warning}, warnings: ${_this.warnings})';
+  return 'Cart(orderId: ${_this.orderId}, quantity: ${_this.quantity}, lines: ${_this.lines}, amounts: ${_this.amounts}, freeDelivery: ${_this.freeDelivery}, savings: ${_this.savings}, warning: ${_this.warning}, warnings: ${_this.warnings})';
 }
 
 
@@ -1077,11 +1080,11 @@ abstract mixin class $CartCopyWith<$Res>  {
   factory $CartCopyWith(Cart value, $Res Function(Cart) _then) = _$CartCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'order_id') int? orderId, int quantity, List<CartLine> lines, CartAmounts amounts,@JsonKey(name: 'free_delivery') FreeDeliveryProgress? freeDelivery, String? warning, List<String> warnings
+@JsonKey(name: 'order_id') int? orderId, int quantity, List<CartLine> lines, CartAmounts amounts,@JsonKey(name: 'free_delivery') FreeDeliveryProgress? freeDelivery, Price? savings, String? warning, List<String> warnings
 });
 
 
-$CartAmountsCopyWith<$Res> get amounts;$FreeDeliveryProgressCopyWith<$Res>? get freeDelivery;
+$CartAmountsCopyWith<$Res> get amounts;$FreeDeliveryProgressCopyWith<$Res>? get freeDelivery;$PriceCopyWith<$Res>? get savings;
 
 }
 /// @nodoc
@@ -1094,14 +1097,15 @@ class _$CartCopyWithImpl<$Res>
 
 /// Create a copy of Cart
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? orderId = freezed,Object? quantity = null,Object? lines = null,Object? amounts = null,Object? freeDelivery = freezed,Object? warning = freezed,Object? warnings = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? orderId = freezed,Object? quantity = null,Object? lines = null,Object? amounts = null,Object? freeDelivery = freezed,Object? savings = freezed,Object? warning = freezed,Object? warnings = null,}) {
   return _then(Cart(
 orderId: freezed == orderId ? _self.orderId : orderId // ignore: cast_nullable_to_non_nullable
 as int?,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as int,lines: null == lines ? _self.lines : lines // ignore: cast_nullable_to_non_nullable
 as List<CartLine>,amounts: null == amounts ? _self.amounts : amounts // ignore: cast_nullable_to_non_nullable
 as CartAmounts,freeDelivery: freezed == freeDelivery ? _self.freeDelivery : freeDelivery // ignore: cast_nullable_to_non_nullable
-as FreeDeliveryProgress?,warning: freezed == warning ? _self.warning : warning // ignore: cast_nullable_to_non_nullable
+as FreeDeliveryProgress?,savings: freezed == savings ? _self.savings : savings // ignore: cast_nullable_to_non_nullable
+as Price?,warning: freezed == warning ? _self.warning : warning // ignore: cast_nullable_to_non_nullable
 as String?,warnings: null == warnings ? _self.warnings : warnings // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
@@ -1126,6 +1130,18 @@ $FreeDeliveryProgressCopyWith<$Res>? get freeDelivery {
 
   return $FreeDeliveryProgressCopyWith<$Res>(_self.freeDelivery!, (value) {
     return _then(_self.copyWith(freeDelivery: value));
+  });
+}/// Create a copy of Cart
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PriceCopyWith<$Res>? get savings {
+    if (_self.savings == null) {
+    return null;
+  }
+
+  return $PriceCopyWith<$Res>(_self.savings!, (value) {
+    return _then(_self.copyWith(savings: value));
   });
 }
 }
@@ -1209,10 +1225,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'order_id')  int? orderId,  int quantity,  List<CartLine> lines,  CartAmounts amounts, @JsonKey(name: 'free_delivery')  FreeDeliveryProgress? freeDelivery,  String? warning,  List<String> warnings)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'order_id')  int? orderId,  int quantity,  List<CartLine> lines,  CartAmounts amounts, @JsonKey(name: 'free_delivery')  FreeDeliveryProgress? freeDelivery,  Price? savings,  String? warning,  List<String> warnings)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Cart() when $default != null:
-return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.freeDelivery,_that.warning,_that.warnings);case _:
+return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.freeDelivery,_that.savings,_that.warning,_that.warnings);case _:
   return orElse();
 
 }
@@ -1230,10 +1246,10 @@ return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.fre
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'order_id')  int? orderId,  int quantity,  List<CartLine> lines,  CartAmounts amounts, @JsonKey(name: 'free_delivery')  FreeDeliveryProgress? freeDelivery,  String? warning,  List<String> warnings)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'order_id')  int? orderId,  int quantity,  List<CartLine> lines,  CartAmounts amounts, @JsonKey(name: 'free_delivery')  FreeDeliveryProgress? freeDelivery,  Price? savings,  String? warning,  List<String> warnings)  $default,) {final _that = this;
 switch (_that) {
 case _Cart():
-return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.freeDelivery,_that.warning,_that.warnings);case _:
+return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.freeDelivery,_that.savings,_that.warning,_that.warnings);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1250,10 +1266,10 @@ return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.fre
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'order_id')  int? orderId,  int quantity,  List<CartLine> lines,  CartAmounts amounts, @JsonKey(name: 'free_delivery')  FreeDeliveryProgress? freeDelivery,  String? warning,  List<String> warnings)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'order_id')  int? orderId,  int quantity,  List<CartLine> lines,  CartAmounts amounts, @JsonKey(name: 'free_delivery')  FreeDeliveryProgress? freeDelivery,  Price? savings,  String? warning,  List<String> warnings)?  $default,) {final _that = this;
 switch (_that) {
 case _Cart() when $default != null:
-return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.freeDelivery,_that.warning,_that.warnings);case _:
+return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.freeDelivery,_that.savings,_that.warning,_that.warnings);case _:
   return null;
 
 }
@@ -1265,7 +1281,7 @@ return $default(_that.orderId,_that.quantity,_that.lines,_that.amounts,_that.fre
 @JsonSerializable()
 
 class _Cart extends Cart {
-  const _Cart({@JsonKey(name: 'order_id') this.orderId, this.quantity = 0,  List<CartLine> lines = const [], required this.amounts, @JsonKey(name: 'free_delivery') this.freeDelivery, this.warning,  List<String> warnings = const []}): _lines = lines,_warnings = warnings,super._();
+  const _Cart({@JsonKey(name: 'order_id') this.orderId, this.quantity = 0,  List<CartLine> lines = const [], required this.amounts, @JsonKey(name: 'free_delivery') this.freeDelivery, this.savings, this.warning,  List<String> warnings = const []}): _lines = lines,_warnings = warnings,super._();
   factory _Cart.fromJson(Map<String, dynamic> json) => _$CartFromJson(json);
 
 @override@JsonKey(name: 'order_id') final  int? orderId;
@@ -1279,6 +1295,10 @@ class _Cart extends Cart {
 
 @override final  CartAmounts amounts;
 @override@JsonKey(name: 'free_delivery') final  FreeDeliveryProgress? freeDelivery;
+/// Cat a economisit clientul fata de preturile taiate, pe tot cosul. Suma e
+/// calculata de server din chiar diferentele aratate pe randuri (aplicatia nu
+/// face aritmetica pe bani); lipseste cand nu e nimic de economisit.
+@override final  Price? savings;
 @override final  String? warning;
 /// Avertismentele stranse de server la ultima modificare (stoc ajustat, cantitate
 /// redusa). Vin o singura data, in raspunsul modificarii - un `GET /cart` de dupa
@@ -1307,18 +1327,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Cart&&(identical(other.orderId, orderId) || other.orderId == orderId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&const DeepCollectionEquality().equals(other.lines, _lines)&&(identical(other.amounts, amounts) || other.amounts == amounts)&&(identical(other.freeDelivery, freeDelivery) || other.freeDelivery == freeDelivery)&&(identical(other.warning, warning) || other.warning == warning)&&const DeepCollectionEquality().equals(other.warnings, _warnings));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Cart&&(identical(other.orderId, orderId) || other.orderId == orderId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&const DeepCollectionEquality().equals(other.lines, _lines)&&(identical(other.amounts, amounts) || other.amounts == amounts)&&(identical(other.freeDelivery, freeDelivery) || other.freeDelivery == freeDelivery)&&(identical(other.savings, savings) || other.savings == savings)&&(identical(other.warning, warning) || other.warning == warning)&&const DeepCollectionEquality().equals(other.warnings, _warnings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,orderId,quantity,const DeepCollectionEquality().hash(_lines),amounts,freeDelivery,warning,const DeepCollectionEquality().hash(_warnings));
+    return Object.hash(runtimeType,orderId,quantity,const DeepCollectionEquality().hash(_lines),amounts,freeDelivery,savings,warning,const DeepCollectionEquality().hash(_warnings));
 }
 
 @override
 String toString() {
-    return 'Cart(orderId: $orderId, quantity: $quantity, lines: $lines, amounts: $amounts, freeDelivery: $freeDelivery, warning: $warning, warnings: $warnings)';
+    return 'Cart(orderId: $orderId, quantity: $quantity, lines: $lines, amounts: $amounts, freeDelivery: $freeDelivery, savings: $savings, warning: $warning, warnings: $warnings)';
 }
 
 
@@ -1329,11 +1349,11 @@ abstract mixin class _$CartCopyWith<$Res> implements $CartCopyWith<$Res> {
   factory _$CartCopyWith(_Cart value, $Res Function(_Cart) _then) = __$CartCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'order_id') int? orderId, int quantity, List<CartLine> lines, CartAmounts amounts,@JsonKey(name: 'free_delivery') FreeDeliveryProgress? freeDelivery, String? warning, List<String> warnings
+@JsonKey(name: 'order_id') int? orderId, int quantity, List<CartLine> lines, CartAmounts amounts,@JsonKey(name: 'free_delivery') FreeDeliveryProgress? freeDelivery, Price? savings, String? warning, List<String> warnings
 });
 
 
-@override $CartAmountsCopyWith<$Res> get amounts;@override $FreeDeliveryProgressCopyWith<$Res>? get freeDelivery;
+@override $CartAmountsCopyWith<$Res> get amounts;@override $FreeDeliveryProgressCopyWith<$Res>? get freeDelivery;@override $PriceCopyWith<$Res>? get savings;
 
 }
 /// @nodoc
@@ -1346,14 +1366,15 @@ class __$CartCopyWithImpl<$Res>
 
 /// Create a copy of Cart
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? orderId = freezed,Object? quantity = null,Object? lines = null,Object? amounts = null,Object? freeDelivery = freezed,Object? warning = freezed,Object? warnings = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? orderId = freezed,Object? quantity = null,Object? lines = null,Object? amounts = null,Object? freeDelivery = freezed,Object? savings = freezed,Object? warning = freezed,Object? warnings = null,}) {
   return _then(_Cart(
 orderId: freezed == orderId ? _self.orderId : orderId // ignore: cast_nullable_to_non_nullable
 as int?,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as int,lines: null == lines ? _self._lines : lines // ignore: cast_nullable_to_non_nullable
 as List<CartLine>,amounts: null == amounts ? _self.amounts : amounts // ignore: cast_nullable_to_non_nullable
 as CartAmounts,freeDelivery: freezed == freeDelivery ? _self.freeDelivery : freeDelivery // ignore: cast_nullable_to_non_nullable
-as FreeDeliveryProgress?,warning: freezed == warning ? _self.warning : warning // ignore: cast_nullable_to_non_nullable
+as FreeDeliveryProgress?,savings: freezed == savings ? _self.savings : savings // ignore: cast_nullable_to_non_nullable
+as Price?,warning: freezed == warning ? _self.warning : warning // ignore: cast_nullable_to_non_nullable
 as String?,warnings: null == warnings ? _self._warnings : warnings // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
@@ -1379,6 +1400,18 @@ $FreeDeliveryProgressCopyWith<$Res>? get freeDelivery {
 
   return $FreeDeliveryProgressCopyWith<$Res>(_self.freeDelivery!, (value) {
     return _then(_self.copyWith(freeDelivery: value));
+  });
+}/// Create a copy of Cart
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PriceCopyWith<$Res>? get savings {
+    if (_self.savings == null) {
+    return null;
+  }
+
+  return $PriceCopyWith<$Res>(_self.savings!, (value) {
+    return _then(_self.copyWith(savings: value));
   });
 }
 }

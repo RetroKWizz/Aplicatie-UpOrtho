@@ -199,3 +199,28 @@ class TestControllersCart(AppHttpCase):
         self.api_login()
         order_id = self._add(2).json()['order_id']
         self.assertEqual(self._cart()['order_id'], order_id)
+
+    def test_fara_reducere_nu_exista_economie(self):
+        """Ecranul nu trebuie sa scrie "ai economisit 0,00 lei": fara reducere, blocul
+        lipseste cu totul din raspuns."""
+        self.api_login()
+        body = self._add(1).json()
+
+        self.assertIsNone(body['savings'])
+
+    def test_economia_e_suma_diferentelor_de_pe_randuri(self):
+        """Se aduna chiar diferentele aratate pe fiecare rand - pret taiat minus pret
+        platit, ori cantitatea - ca rezumatul sa nu poata contrazice randurile."""
+        self.api_login()
+        self._add(4)
+        order = self.env['sale.order'].browse(self._cart()['order_id'])
+        order.order_line.write({'discount': 20.0})
+
+        body = self._cart()
+        line = body['lines'][0]
+        unit = line['unit_price']
+        asteptat = (unit['list_amount'] - unit['amount']) * line['quantity']
+
+        self.assertIsNotNone(body['savings'])
+        self.assertAlmostEqual(body['savings']['amount'], asteptat, places=2)
+        self.assertIsNone(body['savings']['list_amount'])

@@ -25,9 +25,37 @@ class CheckoutScreen extends ConsumerStatefulWidget {
   ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
+/// Un pas din finalizare. Lista se compune din checkout: cand magazinul nu cere
+/// livrare (doar ridicare, produse fara transport), pasul de livrare nu exista deloc.
+enum _Step { adrese, livrare, plata }
+
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   PaymentOption? _selectedPayment;
   bool _sending = false;
+
+  /// Pasul la care se uita clientul acum. Nu se sare inainte peste un pas necompletat,
+  /// dar inapoi se poate oricand, din capul paginii sau din "Schimba".
+  _Step _step = _Step.adrese;
+
+  List<_Step> _steps(Checkout checkout) => [
+        _Step.adrese,
+        if (checkout.deliveryRequired) _Step.livrare,
+        _Step.plata,
+      ];
+
+  static String _stepLabel(_Step step) => switch (step) {
+        _Step.adrese => 'Adrese',
+        _Step.livrare => 'Livrare',
+        _Step.plata => 'Plata',
+      };
+
+  /// Daca pasul e completat. De asta atarna si butonul de jos, si bifa verde din cap.
+  bool _done(_Step step, Checkout checkout, PaymentOption? selected) => switch (step) {
+        _Step.adrese =>
+          checkout.addresses.deliveryId != null && checkout.addresses.invoiceId != null,
+        _Step.livrare => checkout.selectedDeliveryMethodId != null,
+        _Step.plata => selected != null && checkout.blockers.isEmpty,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -47,41 +75,68 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   Widget _buildBody(Checkout checkout) {
     final selected = _resolveSelection(checkout);
+    final steps = _steps(checkout);
+    // Pasul curent poate sa nu mai existe dupa un raspuns nou de la server (ex.
+    // livrarea devine inutila): atunci cadem pe ultimul pas care exista.
+    final step = steps.contains(_step) ? _step : steps.last;
+    final index = steps.indexOf(step);
+    final isLast = index == steps.length - 1;
+    final done = _done(step, checkout, selected);
+
     return Column(
       children: [
+        _StepHeader(
+          steps: [for (final s in steps) _stepLabel(s)],
+          current: index,
+          doneUpTo: [
+            for (final s in steps) _done(s, checkout, selected),
+          ],
+          onTap: (tapped) => setState(() => _step = steps[tapped]),
+        ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _Section(
-                title: 'Adresa de livrare',
-                child: _AddressPicker(
-                  // Ca pe site: la livrare se aleg doar adresele pe care magazinul le
-                  // accepta acolo.
-                  addresses: checkout.addresses.available.where((a) => a.forDelivery).toList(),
-                  selectedId: checkout.addresses.deliveryId,
-                  addLabel: 'Adauga adresa de livrare',
-                  onPick: (id) => _run(
-                    () => ref.read(checkoutControllerProvider.notifier).chooseDeliveryAddress(id),
-                  ),
-                  onAdd: () => _addAddress('delivery'),
+              // Ce s-a ales deja ramane scris sus, cu "Schimba" - altfel, la pasul de
+              // plata, nu mai stii unde pleaca marfa.
+              if (step != _Step.adrese)
+                _ChosenSummary(
+                  checkout: checkout,
+                  showDelivery: step == _Step.plata && checkout.deliveryRequired,
+                  onChangeAddresses: () => setState(() => _step = _Step.adrese),
+                  onChangeDelivery: () => setState(() => _step = _Step.livrare),
                 ),
-              ),
-              _Section(
-                title: 'Adresa de facturare',
-                child: _AddressPicker(
-                  addresses: checkout.addresses.available.where((a) => a.forBilling).toList(),
-                  selectedId: checkout.addresses.invoiceId,
-                  addLabel: 'Adauga adresa de facturare',
-                  onPick: (id) => _run(
-                    () => ref.read(checkoutControllerProvider.notifier).chooseInvoiceAddress(id),
-                  ),
-                  onAdd: () => _addAddress('invoice'),
-                ),
-              ),
-              if (checkout.deliveryRequired)
+              if (step == _Step.adrese) ...[
                 _Section(
-                  title: 'Metoda de livrare',
+                  title: 'Adresa de livrare',
+                  child: _AddressPicker(
+                    // Ca pe site: la livrare se aleg doar adresele pe care magazinul le
+                    // accepta acolo.
+                    addresses: checkout.addresses.available.where((a) => a.forDelivery).toList(),
+                    selectedId: checkout.addresses.deliveryId,
+                    addLabel: 'Adauga adresa de livrare',
+                    onPick: (id) => _run(
+                      () => ref.read(checkoutControllerProvider.notifier).chooseDeliveryAddress(id),
+                    ),
+                    onAdd: () => _addAddress('delivery'),
+                  ),
+                ),
+                _Section(
+                  title: 'Adresa de facturare',
+                  child: _AddressPicker(
+                    addresses: checkout.addresses.available.where((a) => a.forBilling).toList(),
+                    selectedId: checkout.addresses.invoiceId,
+                    addLabel: 'Adauga adresa de facturare',
+                    onPick: (id) => _run(
+                      () => ref.read(checkoutControllerProvider.notifier).chooseInvoiceAddress(id),
+                    ),
+                    onAdd: () => _addAddress('invoice'),
+                  ),
+                ),
+              ],
+              if (step == _Step.livrare)
+                _Section(
+                  title: 'Cum primesti comanda',
                   child: _DeliveryPicker(
                     checkout: checkout,
                     onPick: (id) => _run(
@@ -89,14 +144,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ),
                   ),
                 ),
-              _Section(
-                title: 'Metoda de plata',
-                child: _PaymentPicker(
-                  options: checkout.paymentOptions,
-                  selected: selected,
-                  onPick: (option) => setState(() => _selectedPayment = option),
+              if (step == _Step.plata)
+                _Section(
+                  title: 'Metoda de plata',
+                  child: _PaymentPicker(
+                    options: checkout.paymentOptions,
+                    selected: selected,
+                    onPick: (option) => setState(() => _selectedPayment = option),
+                  ),
                 ),
-              ),
               // Blocajul pentru plata e deja scris in sectiunea ei; repetat aici, acelasi
               // mesaj aparea de doua ori pe ecran.
               for (final blocker in
@@ -121,9 +177,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ),
         _CheckoutFooter(
           checkout: checkout,
-          canSend: checkout.blockers.isEmpty && selected != null && !_sending,
-          sending: _sending,
-          onSend: selected == null ? null : () => _confirm(selected),
+          label: isLast ? 'Trimite comanda' : 'Continua',
+          canSend: done && !_sending && (!isLast || checkout.blockers.isEmpty),
+          sending: _sending && isLast,
+          onSend: !done
+              ? null
+              : isLast
+                  ? (selected == null ? null : () => _confirm(selected))
+                  : () => setState(() => _step = steps[index + 1]),
         ),
       ],
     );
@@ -411,12 +472,14 @@ class _PaymentPicker extends StatelessWidget {
 class _CheckoutFooter extends StatelessWidget {
   const _CheckoutFooter({
     required this.checkout,
+    required this.label,
     required this.canSend,
     required this.sending,
     required this.onSend,
   });
 
   final Checkout checkout;
+  final String label;
   final bool canSend;
   final bool sending;
   final VoidCallback? onSend;
@@ -458,7 +521,7 @@ class _CheckoutFooter extends StatelessWidget {
                           width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Trimite comanda'),
+                      : Text(label),
                 ),
               ),
             ],
@@ -490,6 +553,254 @@ class _CheckoutError extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Capul paginii de finalizare: pasii, cu bifa pe cei completati.
+///
+/// Un pas deja completat se poate apasa, ca sa te intorci; unul mai departe decat ai
+/// ajuns nu - butonul de jos e singurul drum inainte, si el se aprinde doar cand
+/// pasul curent chiar e completat.
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({
+    required this.steps,
+    required this.current,
+    required this.doneUpTo,
+    required this.onTap,
+  });
+
+  final List<String> steps;
+  final int current;
+  final List<bool> doneUpTo;
+  final ValueChanged<int> onTap;
+
+  static const _green = Color(0xFF1C6B3A);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        child: Row(
+          children: [
+            for (var index = 0; index < steps.length; index++) ...[
+              if (index > 0)
+                Expanded(
+                  child: Container(
+                    height: 2,
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    color: doneUpTo[index - 1] ? _green.withValues(alpha: 0.25) : const Color(0xFFEEF0F5),
+                  ),
+                ),
+              _StepChip(
+                label: steps[index],
+                number: index + 1,
+                done: doneUpTo[index] && index != current,
+                current: index == current,
+                onTap: index < current || doneUpTo[index] ? () => onTap(index) : null,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepChip extends StatelessWidget {
+  const _StepChip({
+    required this.label,
+    required this.number,
+    required this.done,
+    required this.current,
+    required this.onTap,
+  });
+
+  final String label;
+  final int number;
+  final bool done;
+  final bool current;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = done
+        ? _StepHeader._green
+        : current
+            ? AppColors.primary
+            : AppColors.textSecondary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: done || current ? color : const Color(0xFFEEF0F5),
+                shape: BoxShape.circle,
+              ),
+              child: done
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : Text(
+                      '$number',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: current ? Colors.white : AppColors.textSecondary,
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: done || current ? FontWeight.w700 : FontWeight.w400,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ce s-a ales la pasii de dinainte, scris scurt, cu "Schimba" langa fiecare.
+class _ChosenSummary extends StatelessWidget {
+  const _ChosenSummary({
+    required this.checkout,
+    required this.showDelivery,
+    required this.onChangeAddresses,
+    required this.onChangeDelivery,
+  });
+
+  final Checkout checkout;
+  final bool showDelivery;
+  final VoidCallback onChangeAddresses;
+  final VoidCallback onChangeDelivery;
+
+  Address? _byId(int? id) {
+    if (id == null) return null;
+    for (final address in checkout.addresses.available) {
+      if (address.id == id) return address;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final delivery = _byId(checkout.addresses.deliveryId);
+    final invoice = _byId(checkout.addresses.invoiceId);
+    final method = checkout.deliveryMethods
+        .where((m) => m.id == checkout.selectedDeliveryMethodId)
+        .firstOrNull;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (delivery != null)
+              _SummaryBlock(
+                icon: Icons.location_on_outlined,
+                label: 'Livrare la',
+                title: delivery.name,
+                subtitle: delivery.oneLine,
+                onChange: onChangeAddresses,
+              ),
+            if (invoice != null) ...[
+              if (delivery != null) const Divider(height: 18),
+              _SummaryBlock(
+                icon: Icons.receipt_long_outlined,
+                label: 'Factura pe',
+                title: invoice.name,
+                subtitle: invoice.oneLine,
+                onChange: onChangeAddresses,
+              ),
+            ],
+            if (showDelivery && method != null) ...[
+              const Divider(height: 18),
+              _SummaryBlock(
+                icon: Icons.local_shipping_outlined,
+                label: 'Cum primesti',
+                title: method.name,
+                subtitle: method.free ? 'Gratuit' : method.price.formatted,
+                onChange: onChangeDelivery,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryBlock extends StatelessWidget {
+  const _SummaryBlock({
+    required this.icon,
+    required this.label,
+    required this.title,
+    required this.subtitle,
+    required this.onChange,
+  });
+
+  final IconData icon;
+  final String label;
+  final String title;
+  final String subtitle;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: onChange,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Schimba', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        if (subtitle.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(subtitle,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          ),
+      ],
     );
   }
 }

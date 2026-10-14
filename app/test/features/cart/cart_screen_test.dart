@@ -86,6 +86,30 @@ void main() {
     expect(find.text('87,50 lei'), findsNothing);
   });
 
+  testWidgets('economia totala apare ca o singura cifra, calculata de server',
+      (tester) async {
+    // (87,50 - 70,00) x 4 = 70,00 lei. Suma vine gata facuta de la server: aplicatia
+    // nu inmulteste si nu aduna bani (CLAUDE.md).
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/cart', ApiResponse(status: 200, json: cartFixture()));
+
+    await pumpCart(tester, transport);
+
+    expect(find.text('Ai economisit'), findsOneWidget);
+    expect(find.text('70,00 lei'), findsWidgets);
+  });
+
+  testWidgets('fara nimic de economisit, randul lipseste cu totul', (tester) async {
+    // Mai bine niciun rand decat "Ai economisit 0,00 lei".
+    final json = {...cartFixture(), 'savings': null};
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/cart', ApiResponse(status: 200, json: json));
+
+    await pumpCart(tester, transport);
+
+    expect(find.text('Ai economisit'), findsNothing);
+  });
+
   testWidgets('progresul catre livrarea gratuita arata cat mai lipseste', (tester) async {
     final transport = FakeTransport();
     transport.when('GET', '/api/app/v1/cart', ApiResponse(status: 200, json: cartFixture()));

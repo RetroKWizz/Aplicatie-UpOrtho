@@ -71,6 +71,10 @@ abstract class Cart with _$Cart {
     @Default([]) List<CartLine> lines,
     required CartAmounts amounts,
     @JsonKey(name: 'free_delivery') FreeDeliveryProgress? freeDelivery,
+    /// Cat a economisit clientul fata de preturile taiate, pe tot cosul. Suma e
+    /// calculata de server din chiar diferentele aratate pe randuri (aplicatia nu
+    /// face aritmetica pe bani); lipseste cand nu e nimic de economisit.
+    Price? savings,
     String? warning,
     /// Avertismentele stranse de server la ultima modificare (stoc ajustat, cantitate
     /// redusa). Vin o singura data, in raspunsul modificarii - un `GET /cart` de dupa

@@ -100,5 +100,14 @@
     },
     "reached": false
   },
+  "savings": {
+    "amount": 70.0,
+    "currency": "RON",
+    "formatted": "70,00 lei",
+    "with_vat": true,
+    "list_amount": null,
+    "list_formatted": null,
+    "discount_pct": null
+  },
   "warning": null
 }

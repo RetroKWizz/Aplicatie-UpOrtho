@@ -75,10 +75,13 @@ class _HomeContent extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 12),
       children: [
-        for (final banner in heroes)
+        if (heroes.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _bannerCard(context, banner, hero: true),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+            child: _HeroCarousel(
+              banners: heroes,
+              buildCard: (banner) => _bannerCard(context, banner, hero: true),
+            ),
           ),
         if (data.quickCategories.isNotEmpty) ...[
           const SectionHeader('Categorii'),
@@ -104,18 +107,20 @@ class _HomeContent extends StatelessWidget {
         ],
         if (promos.isNotEmpty) ...[
           const SectionHeader('Oferte'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 4 / 3,
-              children: [
-                for (final banner in promos) _bannerCard(context, banner),
-              ],
+          // Un rand care se trage lateral, nu o grila: ofertele sunt putine si rare
+          // (pe instanta reala, una singura), iar o grila de doua coloane cu un singur
+          // card lasa jumatate de ecran gol.
+          SizedBox(
+            height: 190,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: promos.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, index) => SizedBox(
+                width: 240,
+                child: _bannerCard(context, promos[index]),
+              ),
             ),
           ),
         ],
@@ -178,6 +183,77 @@ class _ErrorView extends StatelessWidget {
           FilledButton(onPressed: onRetry, child: const Text('Reincearca')),
         ],
       ),
+    );
+  }
+}
+
+/// Caruselul de bannere mari: cate unul pe ecran, cu puncte dedesubt.
+///
+/// Un singur banner nu primeste puncte - un rand de un punct nu spune nimic. Pagina
+/// urmatoare se vede cu marginea afara (`viewportFraction` sub 1), ca sa se stie din
+/// prima privire ca mai e ceva de tras; fara asta, al doilea banner e invizibil si
+/// nimeni nu-l deschide.
+class _HeroCarousel extends StatefulWidget {
+  const _HeroCarousel({required this.banners, required this.buildCard});
+
+  final List<AppBanner> banners;
+  final Widget Function(AppBanner banner) buildCard;
+
+  @override
+  State<_HeroCarousel> createState() => _HeroCarouselState();
+}
+
+class _HeroCarouselState extends State<_HeroCarousel> {
+  late final PageController _controller = PageController(
+    viewportFraction: widget.banners.length > 1 ? 0.9 : 1.0,
+  );
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final single = widget.banners.length == 1;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.banners.length,
+            onPageChanged: (page) => setState(() => _page = page),
+            itemBuilder: (_, index) => Padding(
+              padding: EdgeInsets.symmetric(horizontal: single ? 16 : 6),
+              child: widget.buildCard(widget.banners[index]),
+            ),
+          ),
+        ),
+        if (!single) ...[
+          const SizedBox(height: 10),
+          Row(
+            key: const Key('hero-dots'),
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var index = 0; index < widget.banners.length; index++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: index == _page ? 18 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: index == _page ? AppColors.primary : AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

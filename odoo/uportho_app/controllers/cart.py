@@ -124,6 +124,29 @@ def serialize_cart_line(line, currency):
     }
 
 
+def cart_savings(lines, currency):
+    """Cat a economisit clientul fata de preturile taiate, pe tot cosul.
+
+    Se aduna chiar diferentele pe care le arata fiecare rand - pret taiat minus pret
+    platit, inmultit cu cantitatea afisata - deci cifra din rezumat nu poate sa nu fie
+    de acord cu randurile de deasupra ei.
+
+    Socoteala se face AICI, nu in aplicatie: regula "aplicatia nu face niciodata
+    aritmetica pe bani" (CLAUDE.md) e tot motivul pentru care preturile vin
+    preformatate. `None` cand nu e nimic de economisit - atunci ecranul nu arata
+    randul deloc, ca sa nu scrie "ai economisit 0,00 lei"."""
+    total = 0.0
+    for line in lines:
+        price, list_price = _line_unit_prices(line)
+        if list_price is None:
+            continue
+        total += (list_price - price) * line._get_displayed_quantity()
+    total = currency.round(total)
+    if total <= 0:
+        return None
+    return serialize_price(total, None, currency)
+
+
 def _free_delivery(order, currency):
     """Progresul catre livrarea gratuita, exact cum il calculeaza tema magazinului
     (`droggol_theme_common.sale_order._get_free_delivery_details`): pragul celui mai
@@ -180,6 +203,7 @@ def serialize_cart(order):
             'total': serialize_price(order.amount_total, None, currency) if order else zero,
         },
         'free_delivery': _free_delivery(order, currency),
+        'savings': cart_savings(lines, currency),
         'warning': (order.shop_warning or None) if order else None,
     }
     return data

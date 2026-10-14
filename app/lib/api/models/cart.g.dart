@@ -81,6 +81,9 @@ _Cart _$CartFromJson(Map<String, dynamic> json) => _Cart(
       : FreeDeliveryProgress.fromJson(
           json['free_delivery'] as Map<String, dynamic>,
         ),
+  savings: json['savings'] == null
+      ? null
+      : Price.fromJson(json['savings'] as Map<String, dynamic>),
   warning: json['warning'] as String?,
   warnings:
       (json['warnings'] as List<dynamic>?)?.map((e) => e as String).toList() ??
@@ -93,6 +96,7 @@ Map<String, dynamic> _$CartToJson(_Cart instance) => <String, dynamic>{
   'lines': instance.lines,
   'amounts': instance.amounts,
   'free_delivery': instance.freeDelivery,
+  'savings': instance.savings,
   'warning': instance.warning,
   'warnings': instance.warnings,
 };

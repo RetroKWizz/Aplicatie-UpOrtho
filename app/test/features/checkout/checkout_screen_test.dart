@@ -37,6 +37,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 20));
   }
 
+
+  /// Finalizarea merge pe pasi: Adrese -> Livrare -> Plata. Testele care se uita la
+  /// un pas mai departe apasa "Continua" pana acolo, exact ca un client.
+  Future<void> continua(WidgetTester tester, {int ori = 1}) async {
+    for (var i = 0; i < ori; i++) {
+      await tester.tap(find.widgetWithText(FilledButton, 'Continua'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+  }
+
   testWidgets('checkout-ul arata adresa, curierii cu tarif si metodele de plata',
       (tester) async {
     final transport = FakeTransport();
@@ -45,17 +56,26 @@ void main() {
 
     await pumpCheckout(tester, transport);
 
-    // Adresa principala a contului intra in amandoua listele, ca pe site.
+    // Pasul 1: adresele. Adresa principala a contului intra in amandoua listele, ca pe site.
     expect(find.text('Adresa de livrare'), findsOneWidget);
     expect(find.text('Adresa de facturare'), findsOneWidget);
     expect(find.text('Cabinet Dentar Exemplu SRL'), findsNWidgets(2));
+
+    await continua(tester);
+
+    // Pasul 2: curierii, cu tariful lor.
     expect(find.text('Fan Courier'), findsOneWidget);
     expect(find.text('24,99 lei'), findsOneWidget);
     // Curierul fara cost e etichetat, nu scris cu "0,00 lei".
     expect(find.text('Gratuit'), findsOneWidget);
+
+    await continua(tester);
+
+    // Pasul 3: platile, cu ce s-a ales deja scris deasupra.
     expect(find.text('Transfer bancar'), findsOneWidget);
     expect(find.text('Card'), findsOneWidget);
     expect(find.text('VISA **** 4242'), findsOneWidget, reason: 'cardul salvat');
+    expect(find.text('LIVRARE LA'), findsOneWidget, reason: 'rezumatul pasilor dinainte');
   });
 
   testWidgets('alegerea unui curier trimite carrier_id serverului', (tester) async {
@@ -66,6 +86,7 @@ void main() {
         ApiResponse(status: 200, json: checkoutFixture()));
 
     await pumpCheckout(tester, transport);
+    await continua(tester);
     await tester.tap(find.text('Ridicare din sediu'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
@@ -85,6 +106,7 @@ void main() {
     transport.when('GET', '/api/app/v1/checkout', ApiResponse(status: 200, json: json));
 
     await pumpCheckout(tester, transport);
+    await continua(tester);
 
     expect(find.text('Fan Courier'), findsOneWidget);
     expect(find.text('Nu livram in aceasta localitate.'), findsOneWidget);
@@ -108,10 +130,11 @@ void main() {
     );
 
     await pumpCheckout(tester, transport);
+    await continua(tester);
 
+    // Pasul de livrare nu e completat, deci nu se merge mai departe si motivul e scris.
     expect(find.text('Alege metoda de livrare.'), findsOneWidget);
-    final button =
-        tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Trimite comanda'));
+    final button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Continua'));
     expect(button.onPressed, isNull);
   });
 
@@ -122,6 +145,7 @@ void main() {
     transport.when('GET', '/api/app/v1/checkout', ApiResponse(status: 200, json: json));
 
     await pumpCheckout(tester, transport);
+    await continua(tester, ori: 2);
 
     final button =
         tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Trimite comanda'));
@@ -134,6 +158,7 @@ void main() {
         ApiResponse(status: 200, json: checkoutFixture()));
 
     await pumpCheckout(tester, transport);
+    await continua(tester, ori: 2);
 
     var button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Trimite comanda'));
     expect(button.onPressed, isNull);
@@ -171,6 +196,7 @@ void main() {
         ApiResponse(status: 200, json: (checkoutFixture()['cart'] as Map).cast<String, dynamic>()));
 
     await pumpCheckout(tester, transport);
+    await continua(tester, ori: 2);
     await tester.tap(find.text('VISA **** 4242'));
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Trimite comanda'));
@@ -193,6 +219,7 @@ void main() {
     transport.when('GET', '/api/app/v1/checkout', ApiResponse(status: 200, json: json));
 
     await pumpCheckout(tester, transport);
+    await continua(tester, ori: 2);
 
     expect(find.text('VISA **** 4242'), findsOneWidget);
     expect(find.text('MASTERCARD **** 8888'), findsOneWidget);
@@ -223,5 +250,54 @@ void main() {
 
     expect(find.text('Total de plata'), findsOneWidget);
     expect(find.text('280,00 lei'), findsOneWidget);
+  });
+
+  testWidgets('pasii se vad in capul paginii, iar inapoi se poate oricand',
+      (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/checkout',
+        ApiResponse(status: 200, json: checkoutFixture()));
+
+    await pumpCheckout(tester, transport);
+
+    expect(find.text('Adrese'), findsOneWidget);
+    expect(find.text('Livrare'), findsOneWidget);
+    expect(find.text('Plata'), findsOneWidget);
+
+    await continua(tester, ori: 2);
+    expect(find.text('Transfer bancar'), findsOneWidget);
+
+    // Un pas completat se poate apasa ca sa te intorci la el.
+    await tester.tap(find.text('Adrese'));
+    await tester.pump();
+    expect(find.text('Adresa de livrare'), findsOneWidget);
+  });
+
+  testWidgets('fara livrare ceruta, pasul de livrare nu exista deloc', (tester) async {
+    // Magazinul poate sa nu ceara transport (doar ridicare, produse fara livrare):
+    // atunci un pas gol intre adrese si plata ar fi doar un tap in plus.
+    final json = {...checkoutFixture(), 'delivery_required': false};
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/checkout', ApiResponse(status: 200, json: json));
+
+    await pumpCheckout(tester, transport);
+
+    expect(find.text('Livrare'), findsNothing);
+    await continua(tester);
+    expect(find.text('Transfer bancar'), findsOneWidget);
+  });
+
+  testWidgets('"Schimba" din rezumat duce inapoi la adrese', (tester) async {
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/checkout',
+        ApiResponse(status: 200, json: checkoutFixture()));
+
+    await pumpCheckout(tester, transport);
+    await continua(tester, ori: 2);
+
+    await tester.tap(find.text('Schimba').first);
+    await tester.pump();
+
+    expect(find.text('Adresa de livrare'), findsOneWidget);
   });
 }

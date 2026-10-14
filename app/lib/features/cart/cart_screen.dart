@@ -91,6 +91,9 @@ class _CartBody extends ConsumerWidget {
                   busy: busyLineId == line.id,
                   onChanged: (quantity) => onQuantityChanged(line, quantity),
                 ),
+              // Cat a castigat clientul, o singura cifra, singura verde din ecran.
+              // Suma vine calculata de server din chiar diferentele de pe randuri.
+              if (cart.savings case final savings?) _SavingsCard(savings: savings),
             ],
           ),
         ),
@@ -125,16 +128,23 @@ class _CartLineTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 64,
-              height: 64,
-              child: imageUrl == null
-                  ? const Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary)
-                  : CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      httpHeaders: headersFor(imageUrl),
-                      fit: BoxFit.contain,
-                    ),
+            // Un produs fara poza - "Livrare gratuita" e chiar o linie de comanda -
+            // primeste un patrat linistit, nu chenarul rosu de eroare al Flutter-ului.
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 64,
+                height: 64,
+                color: const Color(0xFFF1F1F4),
+                child: imageUrl == null
+                    ? const _LinePlaceholder()
+                    : CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        httpHeaders: headersFor(imageUrl),
+                        fit: BoxFit.contain,
+                        errorWidget: (_, _, _) => const _LinePlaceholder(),
+                      ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -188,6 +198,47 @@ class _CartLineTile extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Patratul care tine locul unei poze lipsa sau necitite.
+class _LinePlaceholder extends StatelessWidget {
+  const _LinePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary, size: 24),
+    );
+  }
+}
+
+/// "Ai economisit X" - singura cifra verde din cos. Lipseste complet cand nu e nimic
+/// de economisit: serverul nu trimite blocul, ca sa nu scrie nimeni "0,00 lei".
+class _SavingsCard extends StatelessWidget {
+  const _SavingsCard({required this.savings});
+  final Price savings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: AppColors.success.withValues(alpha: 0.10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Color(0xFF1C6B3A), size: 20),
+            const SizedBox(width: 10),
+            const Expanded(child: Text('Ai economisit')),
+            Text(
+              savings.formatted,
+              style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1C6B3A)),
             ),
           ],
         ),
