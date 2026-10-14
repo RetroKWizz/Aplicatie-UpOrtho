@@ -3,6 +3,7 @@ import hashlib
 
 from odoo.tests.common import tagged
 
+from ..controllers.home import category_icon_field
 from .common import AppHttpCase
 from .test_controllers_base import load_contract
 
@@ -199,3 +200,50 @@ class TestHomeWebsiteSelection(AppHttpCase):
         with self.assertLogs('odoo.addons.uportho_app.controllers.home', level='WARNING'):
             ids = self._banner_ids()
         self.assertIn(self.banner_a.id, ids)
+
+
+@tagged('post_install', '-at_install')
+class TestCategoryIconFallback(AppHttpCase):
+    """Iconita categoriei cade pe poza din magazin cand nu are una scrisa pentru
+    aplicatie. Pe instanta reala toate cele 6 categorii de pe Acasa aveau poza de pe
+    site si niciuna n-avea iconita de aplicatie: fara rezerva asta, Acasa arata
+    acelasi patrat generic la toate."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Category = cls.env['product.public.category']
+        cls.doar_poza_magazin = Category.create({
+            'name': 'Doar poza de magazin', 'app_home_visible': True,
+            'app_home_sequence': 1, 'image_1920': base64.b64encode(PNG_1PX)})
+        cls.amandoua = Category.create({
+            'name': 'Si iconita si poza', 'app_home_visible': True, 'app_home_sequence': 2,
+            'app_home_icon': base64.b64encode(PNG_1PX),
+            'image_1920': base64.b64encode(PNG_1PX_RED)})
+        cls.fara_nimic = Category.create({
+            'name': 'Fara nicio poza', 'app_home_visible': True, 'app_home_sequence': 3})
+
+    def test_iconita_proprie_bate_poza_de_magazin(self):
+        self.assertEqual(category_icon_field(self.amandoua), 'app_home_icon')
+
+    def test_fara_iconita_se_ia_poza_de_magazin(self):
+        self.assertEqual(category_icon_field(self.doar_poza_magazin), 'image_1920')
+
+    def test_fara_nicio_poza_nu_exista_iconita(self):
+        self.assertIsNone(category_icon_field(self.fara_nimic))
+
+    def test_home_trimite_url_pentru_categoria_cu_poza_de_magazin(self):
+        self.api_login()
+        categories = {c['id']: c for c in self.api_get('/home').json()['quick_categories']}
+
+        self.assertIsNotNone(categories[self.doar_poza_magazin.id]['icon_url'])
+        self.assertIsNone(categories[self.fara_nimic.id]['icon_url'])
+
+    def test_ruta_serveste_poza_de_magazin_si_refuza_categoria_fara_poza(self):
+        """Ruta face aceeasi alegere ca `/home`, altfel ar da 404 pentru un URL pe
+        care tot noi l-am trimis."""
+        self.api_login()
+
+        self.assertEqual(
+            self.api_get(f'/categories/{self.doar_poza_magazin.id}/icon').status_code, 200)
+        self.assertEqual(self.api_get(f'/categories/{self.fara_nimic.id}/icon').status_code, 404)

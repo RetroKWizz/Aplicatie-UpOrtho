@@ -111,12 +111,27 @@ def serialize_banner(banner):
     }
 
 
+def category_icon_field(category):
+    """Din ce camp se serveste iconita categoriei, sau `None` daca n-are nicio poza.
+
+    Intai iconita scrisa pentru aplicatie (`app_home_icon`), apoi **poza categoriei
+    din magazin** (`image_1920`). Pe instanta reala toate categoriile de pe Acasa au
+    deja poza de pe site si niciuna n-avea iconita de aplicatie, deci fara rezerva
+    asta Acasa arata acelasi patrat generic la toate - desi pozele existau la un camp
+    distanta. Iconita proprie ramane pentru cand poza din magazin nu e buna pe un
+    patrat mic."""
+    if category.app_home_icon:
+        return 'app_home_icon'
+    return 'image_1920' if category.image_1920 else None
+
+
 def serialize_quick_category(category):
+    has_icon = category_icon_field(category) is not None
     return {
         'id': category.id,
         'name': category.name,
         'icon_url': f'{API_PREFIX}/categories/{category.id}/icon?unique={image_unique(category)}'
-                    if category.app_home_icon else None,
+                    if has_icon else None,
     }
 
 
@@ -170,4 +185,11 @@ class AppHome(http.Controller):
 
     @app_route('/categories/<int:category_id>/icon', methods=['GET'])
     def category_icon(self, category_id, **kw):
-        return _image_response(request.env['product.public.category'].browse(category_id), 'app_home_icon')
+        """Iconita categoriei: campul de aplicatie daca exista, altfel poza din
+        magazin. Aceeasi alegere ca in `/home`, ca ruta sa nu dea 404 pentru un URL
+        pe care tot noi l-am trimis."""
+        category = request.env['product.public.category'].browse(category_id)
+        field_name = category_icon_field(category.sudo().exists())
+        if field_name is None:
+            raise ApiError(404, 'not_found', 'Imaginea nu exista.')
+        return _image_response(category, field_name)
