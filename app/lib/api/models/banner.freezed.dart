@@ -292,7 +292,11 @@ as String?,
 /// @nodoc
 mixin _$AppBanner {
 
- int get id; String get title; String? get subtitle;@JsonKey(name: 'cta_text') String? get ctaText;@JsonKey(unknownEnumValue: BannerPlacement.promo) BannerPlacement get placement;@JsonKey(name: 'image_url') String? get imageUrl; BannerLink get link;
+ int get id; String get title; String? get subtitle;@JsonKey(name: 'cta_text') String? get ctaText;@JsonKey(unknownEnumValue: BannerPlacement.promo) BannerPlacement get placement;/// Imaginea poarta deja titlul si subtitlul (facuta in afara, in Canva sau
+/// Photoshop). Atunci cardul arata doar poza: scris peste, textul aplicatiei se
+/// suprapunea peste cel din imagine. Titlul ramane eticheta pentru cititoarele
+/// de ecran.
+@JsonKey(name: 'image_only') bool get imageOnly;@JsonKey(name: 'image_url') String? get imageUrl; BannerLink get link;
 /// Create a copy of AppBanner
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -306,20 +310,20 @@ $AppBannerCopyWith<AppBanner> get copyWith => _$AppBannerCopyWithImpl<AppBanner>
 @override
 bool operator ==(Object other) {
   final _this = this as AppBanner;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppBanner&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.title, _this.title) || other.title == _this.title)&&(identical(other.subtitle, _this.subtitle) || other.subtitle == _this.subtitle)&&(identical(other.ctaText, _this.ctaText) || other.ctaText == _this.ctaText)&&(identical(other.placement, _this.placement) || other.placement == _this.placement)&&(identical(other.imageUrl, _this.imageUrl) || other.imageUrl == _this.imageUrl)&&(identical(other.link, _this.link) || other.link == _this.link));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppBanner&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.title, _this.title) || other.title == _this.title)&&(identical(other.subtitle, _this.subtitle) || other.subtitle == _this.subtitle)&&(identical(other.ctaText, _this.ctaText) || other.ctaText == _this.ctaText)&&(identical(other.placement, _this.placement) || other.placement == _this.placement)&&(identical(other.imageOnly, _this.imageOnly) || other.imageOnly == _this.imageOnly)&&(identical(other.imageUrl, _this.imageUrl) || other.imageUrl == _this.imageUrl)&&(identical(other.link, _this.link) || other.link == _this.link));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as AppBanner;
-  return Object.hash(runtimeType,_this.id,_this.title,_this.subtitle,_this.ctaText,_this.placement,_this.imageUrl,_this.link);
+  return Object.hash(runtimeType,_this.id,_this.title,_this.subtitle,_this.ctaText,_this.placement,_this.imageOnly,_this.imageUrl,_this.link);
 }
 
 @override
 String toString() {
   final _this = this as AppBanner;
-  return 'AppBanner(id: ${_this.id}, title: ${_this.title}, subtitle: ${_this.subtitle}, ctaText: ${_this.ctaText}, placement: ${_this.placement}, imageUrl: ${_this.imageUrl}, link: ${_this.link})';
+  return 'AppBanner(id: ${_this.id}, title: ${_this.title}, subtitle: ${_this.subtitle}, ctaText: ${_this.ctaText}, placement: ${_this.placement}, imageOnly: ${_this.imageOnly}, imageUrl: ${_this.imageUrl}, link: ${_this.link})';
 }
 
 
@@ -330,7 +334,7 @@ abstract mixin class $AppBannerCopyWith<$Res>  {
   factory $AppBannerCopyWith(AppBanner value, $Res Function(AppBanner) _then) = _$AppBannerCopyWithImpl;
 @useResult
 $Res call({
- int id, String title, String? subtitle,@JsonKey(name: 'cta_text') String? ctaText,@JsonKey(unknownEnumValue: BannerPlacement.promo) BannerPlacement placement,@JsonKey(name: 'image_url') String? imageUrl, BannerLink link
+ int id, String title, String? subtitle,@JsonKey(name: 'cta_text') String? ctaText,@JsonKey(unknownEnumValue: BannerPlacement.promo) BannerPlacement placement,@JsonKey(name: 'image_only') bool imageOnly,@JsonKey(name: 'image_url') String? imageUrl, BannerLink link
 });
 
 
@@ -347,14 +351,15 @@ class _$AppBannerCopyWithImpl<$Res>
 
 /// Create a copy of AppBanner
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? subtitle = freezed,Object? ctaText = freezed,Object? placement = null,Object? imageUrl = freezed,Object? link = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? subtitle = freezed,Object? ctaText = freezed,Object? placement = null,Object? imageOnly = null,Object? imageUrl = freezed,Object? link = null,}) {
   return _then(AppBanner(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,subtitle: freezed == subtitle ? _self.subtitle : subtitle // ignore: cast_nullable_to_non_nullable
 as String?,ctaText: freezed == ctaText ? _self.ctaText : ctaText // ignore: cast_nullable_to_non_nullable
 as String?,placement: null == placement ? _self.placement : placement // ignore: cast_nullable_to_non_nullable
-as BannerPlacement,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as BannerPlacement,imageOnly: null == imageOnly ? _self.imageOnly : imageOnly // ignore: cast_nullable_to_non_nullable
+as bool,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,link: null == link ? _self.link : link // ignore: cast_nullable_to_non_nullable
 as BannerLink,
   ));
@@ -450,10 +455,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String title,  String? subtitle, @JsonKey(name: 'cta_text')  String? ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo)  BannerPlacement placement, @JsonKey(name: 'image_url')  String? imageUrl,  BannerLink link)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String title,  String? subtitle, @JsonKey(name: 'cta_text')  String? ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo)  BannerPlacement placement, @JsonKey(name: 'image_only')  bool imageOnly, @JsonKey(name: 'image_url')  String? imageUrl,  BannerLink link)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppBanner() when $default != null:
-return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placement,_that.imageUrl,_that.link);case _:
+return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placement,_that.imageOnly,_that.imageUrl,_that.link);case _:
   return orElse();
 
 }
@@ -471,10 +476,10 @@ return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placemen
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String title,  String? subtitle, @JsonKey(name: 'cta_text')  String? ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo)  BannerPlacement placement, @JsonKey(name: 'image_url')  String? imageUrl,  BannerLink link)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String title,  String? subtitle, @JsonKey(name: 'cta_text')  String? ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo)  BannerPlacement placement, @JsonKey(name: 'image_only')  bool imageOnly, @JsonKey(name: 'image_url')  String? imageUrl,  BannerLink link)  $default,) {final _that = this;
 switch (_that) {
 case _AppBanner():
-return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placement,_that.imageUrl,_that.link);case _:
+return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placement,_that.imageOnly,_that.imageUrl,_that.link);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -491,10 +496,10 @@ return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placemen
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String title,  String? subtitle, @JsonKey(name: 'cta_text')  String? ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo)  BannerPlacement placement, @JsonKey(name: 'image_url')  String? imageUrl,  BannerLink link)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String title,  String? subtitle, @JsonKey(name: 'cta_text')  String? ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo)  BannerPlacement placement, @JsonKey(name: 'image_only')  bool imageOnly, @JsonKey(name: 'image_url')  String? imageUrl,  BannerLink link)?  $default,) {final _that = this;
 switch (_that) {
 case _AppBanner() when $default != null:
-return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placement,_that.imageUrl,_that.link);case _:
+return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placement,_that.imageOnly,_that.imageUrl,_that.link);case _:
   return null;
 
 }
@@ -506,7 +511,7 @@ return $default(_that.id,_that.title,_that.subtitle,_that.ctaText,_that.placemen
 @JsonSerializable()
 
 class _AppBanner implements AppBanner {
-  const _AppBanner({required this.id, required this.title, this.subtitle, @JsonKey(name: 'cta_text') this.ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo) required this.placement, @JsonKey(name: 'image_url') this.imageUrl, required this.link});
+  const _AppBanner({required this.id, required this.title, this.subtitle, @JsonKey(name: 'cta_text') this.ctaText, @JsonKey(unknownEnumValue: BannerPlacement.promo) required this.placement, @JsonKey(name: 'image_only') this.imageOnly = false, @JsonKey(name: 'image_url') this.imageUrl, required this.link});
   factory _AppBanner.fromJson(Map<String, dynamic> json) => _$AppBannerFromJson(json);
 
 @override final  int id;
@@ -514,6 +519,11 @@ class _AppBanner implements AppBanner {
 @override final  String? subtitle;
 @override@JsonKey(name: 'cta_text') final  String? ctaText;
 @override@JsonKey(unknownEnumValue: BannerPlacement.promo) final  BannerPlacement placement;
+/// Imaginea poarta deja titlul si subtitlul (facuta in afara, in Canva sau
+/// Photoshop). Atunci cardul arata doar poza: scris peste, textul aplicatiei se
+/// suprapunea peste cel din imagine. Titlul ramane eticheta pentru cititoarele
+/// de ecran.
+@override@JsonKey(name: 'image_only') final  bool imageOnly;
 @override@JsonKey(name: 'image_url') final  String? imageUrl;
 @override final  BannerLink link;
 
@@ -530,18 +540,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppBanner&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.subtitle, subtitle) || other.subtitle == subtitle)&&(identical(other.ctaText, ctaText) || other.ctaText == ctaText)&&(identical(other.placement, placement) || other.placement == placement)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.link, link) || other.link == link));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppBanner&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.subtitle, subtitle) || other.subtitle == subtitle)&&(identical(other.ctaText, ctaText) || other.ctaText == ctaText)&&(identical(other.placement, placement) || other.placement == placement)&&(identical(other.imageOnly, imageOnly) || other.imageOnly == imageOnly)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.link, link) || other.link == link));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,title,subtitle,ctaText,placement,imageUrl,link);
+    return Object.hash(runtimeType,id,title,subtitle,ctaText,placement,imageOnly,imageUrl,link);
 }
 
 @override
 String toString() {
-    return 'AppBanner(id: $id, title: $title, subtitle: $subtitle, ctaText: $ctaText, placement: $placement, imageUrl: $imageUrl, link: $link)';
+    return 'AppBanner(id: $id, title: $title, subtitle: $subtitle, ctaText: $ctaText, placement: $placement, imageOnly: $imageOnly, imageUrl: $imageUrl, link: $link)';
 }
 
 
@@ -552,7 +562,7 @@ abstract mixin class _$AppBannerCopyWith<$Res> implements $AppBannerCopyWith<$Re
   factory _$AppBannerCopyWith(_AppBanner value, $Res Function(_AppBanner) _then) = __$AppBannerCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String title, String? subtitle,@JsonKey(name: 'cta_text') String? ctaText,@JsonKey(unknownEnumValue: BannerPlacement.promo) BannerPlacement placement,@JsonKey(name: 'image_url') String? imageUrl, BannerLink link
+ int id, String title, String? subtitle,@JsonKey(name: 'cta_text') String? ctaText,@JsonKey(unknownEnumValue: BannerPlacement.promo) BannerPlacement placement,@JsonKey(name: 'image_only') bool imageOnly,@JsonKey(name: 'image_url') String? imageUrl, BannerLink link
 });
 
 
@@ -569,14 +579,15 @@ class __$AppBannerCopyWithImpl<$Res>
 
 /// Create a copy of AppBanner
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? subtitle = freezed,Object? ctaText = freezed,Object? placement = null,Object? imageUrl = freezed,Object? link = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? subtitle = freezed,Object? ctaText = freezed,Object? placement = null,Object? imageOnly = null,Object? imageUrl = freezed,Object? link = null,}) {
   return _then(_AppBanner(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,subtitle: freezed == subtitle ? _self.subtitle : subtitle // ignore: cast_nullable_to_non_nullable
 as String?,ctaText: freezed == ctaText ? _self.ctaText : ctaText // ignore: cast_nullable_to_non_nullable
 as String?,placement: null == placement ? _self.placement : placement // ignore: cast_nullable_to_non_nullable
-as BannerPlacement,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as BannerPlacement,imageOnly: null == imageOnly ? _self.imageOnly : imageOnly // ignore: cast_nullable_to_non_nullable
+as bool,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,link: null == link ? _self.link : link // ignore: cast_nullable_to_non_nullable
 as BannerLink,
   ));

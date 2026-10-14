@@ -39,6 +39,7 @@ _AppBanner _$AppBannerFromJson(Map<String, dynamic> json) => _AppBanner(
     json['placement'],
     unknownValue: BannerPlacement.promo,
   ),
+  imageOnly: json['image_only'] as bool? ?? false,
   imageUrl: json['image_url'] as String?,
   link: BannerLink.fromJson(json['link'] as Map<String, dynamic>),
 );
@@ -50,6 +51,7 @@ Map<String, dynamic> _$AppBannerToJson(_AppBanner instance) =>
       'subtitle': instance.subtitle,
       'cta_text': instance.ctaText,
       'placement': _$BannerPlacementEnumMap[instance.placement]!,
+      'image_only': instance.imageOnly,
       'image_url': instance.imageUrl,
       'link': instance.link,
     };

@@ -247,3 +247,47 @@ class TestCategoryIconFallback(AppHttpCase):
         self.assertEqual(
             self.api_get(f'/categories/{self.doar_poza_magazin.id}/icon').status_code, 200)
         self.assertEqual(self.api_get(f'/categories/{self.fara_nimic.id}/icon').status_code, 404)
+
+
+@tagged('post_install', '-at_install')
+class TestBannerImageOnly(AppHttpCase):
+    """Un banner a carui imagine poarta deja textul.
+
+    Pe staging, imaginea bannerului Ortho Club avea scris pe ea chiar "Ortho Club" si
+    subtitlul, iar aplicatia isi desena titlul si subtitlul peste: doua texte
+    suprapuse, bannerul arata rupt."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Banner = cls.env['uportho.app.banner']
+        cls.cu_text_in_poza = Banner.create({
+            'name': 'Banner cu text in poza', 'subtitle': 'Nu se arata',
+            'placement': 'hero', 'image': base64.b64encode(PNG_1PX), 'image_only': True})
+        cls.obisnuit = Banner.create({
+            'name': 'Banner obisnuit', 'subtitle': 'Se arata',
+            'placement': 'hero', 'image': base64.b64encode(PNG_1PX)})
+        cls.fara_poza = Banner.create({
+            'name': 'Bifat dar fara poza', 'placement': 'hero', 'image_only': True})
+
+    def _banners(self):
+        self.api_login()
+        return {b['id']: b for b in self.api_get('/home').json()['banners']}
+
+    def test_bifa_ajunge_in_raspuns(self):
+        banners = self._banners()
+
+        self.assertTrue(banners[self.cu_text_in_poza.id]['image_only'])
+        self.assertFalse(banners[self.obisnuit.id]['image_only'])
+
+    def test_titlul_se_trimite_oricum(self):
+        """Ramane eticheta citita de cititoarele de ecran, chiar daca nu se deseneaza."""
+        banners = self._banners()
+
+        self.assertEqual(banners[self.cu_text_in_poza.id]['title'], 'Banner cu text in poza')
+
+    def test_bifa_fara_poza_nu_inseamna_nimic(self):
+        """Altfel bannerul ar ramane un dreptunghi gol: nici poza, nici text."""
+        banners = self._banners()
+
+        self.assertFalse(banners[self.fara_poza.id]['image_only'])

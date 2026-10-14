@@ -11,6 +11,15 @@ class AppBanner(models.Model):
     subtitle = fields.Char(string='Subtitlu')
     cta_text = fields.Char(string='Text buton', default='Vezi produse')
     image = fields.Image(string='Imagine', max_width=1600, max_height=1600)
+    # O imagine pe care e deja scris textul (facuta in Canva, Photoshop) nu mai are
+    # nevoie de titlul si subtitlul aplicatiei peste ea: desenate oricum, cele doua
+    # texte se suprapun si bannerul arata rupt. Bifa spune aplicatiei sa arate doar
+    # poza; titlul ramane obligatoriu, dar devine numele din Odoo si eticheta citita
+    # de cititoarele de ecran, nu text desenat peste imagine.
+    image_only = fields.Boolean(
+        string='Imaginea contine deja textul',
+        help='Aplicatia arata doar imaginea, fara titlu, subtitlu si buton peste ea. '
+             'Bannerul ramane apasabil si duce in acelasi loc.')
     placement = fields.Selection(
         [('hero', 'Hero'), ('promo', 'Promo')], string='Plasare', required=True, default='hero')
     link_type = fields.Selection(

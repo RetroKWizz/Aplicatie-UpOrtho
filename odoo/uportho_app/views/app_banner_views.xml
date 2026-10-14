@@ -29,8 +29,9 @@
                     </div>
                     <group>
                         <group string="Continut">
-                            <field name="subtitle"/>
-                            <field name="cta_text"/>
+                            <field name="image_only"/>
+                            <field name="subtitle" invisible="image_only"/>
+                            <field name="cta_text" invisible="image_only"/>
                             <field name="placement"/>
                         </group>
                         <group string="Link">

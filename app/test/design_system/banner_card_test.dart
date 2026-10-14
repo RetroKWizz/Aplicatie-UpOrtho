@@ -99,4 +99,40 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Vezi toate ofertele disponibile'), findsOneWidget);
   });
+
+  testWidgets('cand imaginea poarta textul, cardul nu mai scrie nimic peste ea',
+      (tester) async {
+    // Imaginea bannerului Ortho Club de pe staging avea titlul si subtitlul scrise
+    // chiar in poza; aplicatia le desena pe ale ei peste, si se suprapuneau.
+    const cuText = AppBanner(
+      id: 3, title: 'Alatura-te Ortho Club', subtitle: 'Preturi speciale',
+      ctaText: 'Vezi beneficii', placement: BannerPlacement.hero, imageOnly: true,
+      imageUrl: '/api/app/v1/banners/3/image', link: BannerLink(type: BannerLinkType.none),
+    );
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: BannerCard(banner: cuText, imageUrl: 'https://x/img')),
+    ));
+
+    expect(find.text('Alatura-te Ortho Club'), findsNothing);
+    expect(find.text('Preturi speciale'), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(CachedNetworkImage), findsOneWidget);
+  });
+
+  testWidgets('bifa fara imagine nu goleste bannerul', (tester) async {
+    // Fara poza, un card care nu scrie nici text ar fi un dreptunghi gol. Serverul
+    // nici nu trimite bifa in acest caz, dar aplicatia nu se bazeaza doar pe el.
+    const bifatFaraPoza = AppBanner(
+      id: 4, title: 'Titlu', subtitle: 'Sub', placement: BannerPlacement.hero,
+      imageOnly: true, link: BannerLink(type: BannerLinkType.none),
+    );
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: BannerCard(banner: bifatFaraPoza, imageUrl: null)),
+    ));
+
+    expect(find.text('Titlu'), findsOneWidget);
+    expect(find.text('Sub'), findsOneWidget);
+  });
 }

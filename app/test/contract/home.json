@@ -6,8 +6,13 @@
       "subtitle": "Preturi speciale pentru membri",
       "cta_text": "Vezi beneficii",
       "placement": "hero",
+      "image_only": false,
       "image_url": "/api/app/v1/banners/1/image?unique=3a1f9c2",
-      "link": { "type": "category", "category_id": 12, "url": null }
+      "link": {
+        "type": "category",
+        "category_id": 12,
+        "url": null
+      }
     },
     {
       "id": 2,
@@ -15,12 +20,25 @@
       "subtitle": null,
       "cta_text": "Vezi produse",
       "placement": "promo",
+      "image_only": false,
       "image_url": null,
-      "link": { "type": "none", "category_id": null, "url": null }
+      "link": {
+        "type": "none",
+        "category_id": null,
+        "url": null
+      }
     }
   ],
   "quick_categories": [
-    { "id": 12, "name": "Bracketi", "icon_url": "/api/app/v1/categories/12/icon?unique=8be4d17" },
-    { "id": 13, "name": "Arcuri", "icon_url": null }
+    {
+      "id": 12,
+      "name": "Bracketi",
+      "icon_url": "/api/app/v1/categories/12/icon?unique=8be4d17"
+    },
+    {
+      "id": 13,
+      "name": "Arcuri",
+      "icon_url": null
+    }
   ]
 }

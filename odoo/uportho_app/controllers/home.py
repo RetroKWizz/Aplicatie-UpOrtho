@@ -101,6 +101,9 @@ def serialize_banner(banner):
         'subtitle': banner.subtitle or None,
         'cta_text': banner.cta_text or None,
         'placement': banner.placement,
+        # Cand imaginea poarta deja textul, aplicatia nu mai deseneaza nimic peste ea.
+        # Titlul tot se trimite: ramane eticheta citita de cititoarele de ecran.
+        'image_only': bool(banner.image_only and banner.image),
         'image_url': f'{API_PREFIX}/banners/{banner.id}/image?unique={image_unique(banner)}'
                      if banner.image else None,
         'link': {

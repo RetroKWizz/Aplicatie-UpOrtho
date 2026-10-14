@@ -43,6 +43,11 @@ abstract class AppBanner with _$AppBanner {
     String? subtitle,
     @JsonKey(name: 'cta_text') String? ctaText,
     @JsonKey(unknownEnumValue: BannerPlacement.promo) required BannerPlacement placement,
+    /// Imaginea poarta deja titlul si subtitlul (facuta in afara, in Canva sau
+    /// Photoshop). Atunci cardul arata doar poza: scris peste, textul aplicatiei se
+    /// suprapunea peste cel din imagine. Titlul ramane eticheta pentru cititoarele
+    /// de ecran.
+    @JsonKey(name: 'image_only') @Default(false) bool imageOnly,
     @JsonKey(name: 'image_url') String? imageUrl,
     required BannerLink link,
   }) = _AppBanner;
