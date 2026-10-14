@@ -958,3 +958,76 @@ class TestProductFilters(AppHttpCase):
         self.api_login()
         self.assertEqual(self.api_get('/products?min_price=ieftin').status_code, 422)
         self.assertEqual(self.api_get('/products?max_price=scump').status_code, 422)
+
+
+@tagged('post_install', '-at_install')
+class TestFilterSectionOrder(AppHttpCase):
+    """Ordinea sectiunilor de filtre: intai cele care spun ceva despre cele mai multe
+    produse din rezultat.
+
+    Pe catalogul real, ordonate dupa id-ul atributului, "Tooth" - zeci de valori, cate
+    unul-doua produse fiecare - ajungea inaintea Brandului si a Prescriptiei, adica
+    filtrul rar inaintea celui folosit de toata lumea."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Attribute = cls.env['product.attribute']
+        Value = cls.env['product.attribute.value']
+        # Atributul rar se creeaza PRIMUL, deci are id mai mic: ordonarea veche, dupa
+        # id, l-ar pune in fata. Testul pica daca cineva se intoarce la ea.
+        cls.rar = Attribute.create({'name': 'Atribut rar test'})
+        cls.rar_val = Value.create({'name': 'Rar', 'attribute_id': cls.rar.id})
+        cls.des = Attribute.create({'name': 'Atribut des test'})
+        cls.des_a = Value.create({'name': 'Des A', 'attribute_id': cls.des.id})
+        cls.des_b = Value.create({'name': 'Des B', 'attribute_id': cls.des.id})
+
+        cls.category = cls.env['product.public.category'].create({'name': 'Categorie ordine test'})
+
+        def product(name, values):
+            return cls.env['product.template'].create({
+                'name': name,
+                'list_price': 10.0,
+                'is_published': True,
+                'public_categ_ids': [(6, 0, [cls.category.id])],
+                'attribute_line_ids': [
+                    (0, 0, {'attribute_id': value.attribute_id.id, 'value_ids': [(6, 0, [value.id])]})
+                    for value in values
+                ],
+            })
+
+        # Trei produse au atributul "des", unul singur il are si pe cel "rar".
+        product('Ordine test 1', [cls.des_a])
+        product('Ordine test 2', [cls.des_b])
+        product('Ordine test 3', [cls.des_a, cls.rar_val])
+
+    def _facet_names(self):
+        self.api_login()
+        body = self.api_get('/products?limit=100&category_id=%s' % self.category.id).json()
+        return [f['name'] for f in body['filters']['attributes']]
+
+    def test_atributul_care_acopera_mai_multe_produse_vine_primul(self):
+        names = self._facet_names()
+
+        self.assertEqual(names.index('Atribut des test') + 1, names.index('Atribut rar test'))
+
+    def test_un_produs_cu_mai_multe_valori_ramane_un_produs(self):
+        """Numaram produse acoperite, nu suma valorilor: altfel un atribut cu multe
+        valori pe acelasi produs ar urca nemeritat."""
+        Value = self.env['product.attribute.value']
+        extra = Value.create({'name': 'Rar 2', 'attribute_id': self.rar.id})
+        self.env['product.template'].create({
+            'name': 'Ordine test 4',
+            'list_price': 10.0,
+            'is_published': True,
+            'public_categ_ids': [(6, 0, [self.category.id])],
+            'attribute_line_ids': [
+                (0, 0, {'attribute_id': self.rar.id,
+                        'value_ids': [(6, 0, [self.rar_val.id, extra.id])]}),
+            ],
+        })
+
+        names = self._facet_names()
+
+        # "rar" e acum pe 2 produse, "des" tot pe 3 - deci "des" ramane primul.
+        self.assertEqual(names[0], 'Atribut des test')

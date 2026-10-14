@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -177,17 +179,50 @@ class _PriceSection extends StatefulWidget {
   State<_PriceSection> createState() => _PriceSectionState();
 }
 
+/// Pozitia pe glisor (0..1) a unui pret, pe scara logaritmica.
+///
+/// Catalogul real merge de la 2 lei la 322.500 lei (un bundle cu laser costa chiar
+/// atat). Pe o scara liniara, tot ce e sub 2.000 de lei - adica aproape tot ce
+/// cumpara cineva - sta inghesuit in primul milimetru de glisor si nu se poate alege.
+/// Pe scara logaritmica mijlocul glisorului cade pe ~800 lei, iar un sfert pe ~40,
+/// deci intervalele obisnuite devin alegeri reale. Capetele raman exact preturile
+/// trimise de server.
+double pricePosition(double value, double min, double max) {
+  final low = math.max(min, 1.0);
+  final high = math.max(max, low + 1);
+  final span = math.log(high) - math.log(low);
+  if (span <= 0) return 0;
+  return ((math.log(value.clamp(low, high)) - math.log(low)) / span).clamp(0.0, 1.0);
+}
+
+/// Drumul invers: ce pret inseamna o pozitie de pe glisor.
+double priceAtPosition(double position, double min, double max) {
+  final low = math.max(min, 1.0);
+  final high = math.max(max, low + 1);
+  final span = math.log(high) - math.log(low);
+  if (span <= 0) return min;
+  final value = math.exp(math.log(low) + position.clamp(0.0, 1.0) * span);
+  // Rotunjire la o treapta pe masura sumei: 1 leu sub o suta, 10 lei pana la o mie,
+  // 100 mai sus. Un "1.247 lei" ales din deget nu spune nimic in plus fata de "1.200".
+  final step = value < 100 ? 1.0 : (value < 1000 ? 10.0 : 100.0);
+  return (value / step).round() * step;
+}
+
 class _PriceSectionState extends State<_PriceSection> {
   RangeValues? _dragging;
 
   @override
   Widget build(BuildContext context) {
     final bounds = widget.price;
+    final selectedMin = (widget.selection.minPrice ?? bounds.min).clamp(bounds.min, bounds.max);
+    final selectedMax = (widget.selection.maxPrice ?? bounds.max).clamp(bounds.min, bounds.max);
     final current = _dragging ??
         RangeValues(
-          (widget.selection.minPrice ?? bounds.min).clamp(bounds.min, bounds.max),
-          (widget.selection.maxPrice ?? bounds.max).clamp(bounds.min, bounds.max),
+          pricePosition(selectedMin, bounds.min, bounds.max),
+          pricePosition(selectedMax, bounds.min, bounds.max),
         );
+    final startPrice = priceAtPosition(current.start, bounds.min, bounds.max);
+    final endPrice = priceAtPosition(current.end, bounds.min, bounds.max);
     final hasSelection = widget.selection.minPrice != null || widget.selection.maxPrice != null;
 
     return _Section(
@@ -199,16 +234,16 @@ class _PriceSectionState extends State<_PriceSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${current.start.round()} - ${current.end.round()} lei',
+            '${startPrice.round()} - ${endPrice.round()} lei',
             style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
           ),
           RangeSlider(
             values: current,
-            min: bounds.min,
-            max: bounds.max,
-            // Etichetele se arata doar in timpul tragerii; valoarea curenta sta
-            // oricum scrisa deasupra.
-            labels: RangeLabels('${current.start.round()}', '${current.end.round()}'),
+            // Glisorul lucreaza in pozitii, nu in lei: scara e logaritmica, iar
+            // preturile se citesc din pozitie cu `priceAtPosition`.
+            min: 0,
+            max: 1,
+            labels: RangeLabels('${startPrice.round()}', '${endPrice.round()}'),
             activeColor: AppColors.primary,
             inactiveColor: AppColors.primaryLight,
             onChanged: (values) => setState(() => _dragging = values),
@@ -216,7 +251,10 @@ class _PriceSectionState extends State<_PriceSection> {
             // cereri pentru o singura miscare a glisorului.
             onChangeEnd: (values) {
               setState(() => _dragging = null);
-              widget.onChanged(values.start, values.end);
+              widget.onChanged(
+                priceAtPosition(values.start, bounds.min, bounds.max),
+                priceAtPosition(values.end, bounds.min, bounds.max),
+              );
             },
           ),
         ],
@@ -225,7 +263,28 @@ class _PriceSectionState extends State<_PriceSection> {
   }
 }
 
-class _AttributeSection extends StatelessWidget {
+/// Cate valori se arata inainte de "Vezi toate". Un atribut ca "Tooth" are zeci de
+/// valori, fiecare cu unul-doua produse: desfasurate, impingeau sub pliu atributele
+/// pe care le foloseste toata lumea.
+const attributeValuesCollapsed = 8;
+
+/// Valorile aratate dintr-un atribut: toate, sau doar primele cateva cand lista e
+/// lunga si clientul n-a cerut-o intreaga.
+///
+/// O valoare bifata tine lista deschisa oriunde ar fi in ea: altfel clientul ar avea
+/// un filtru activ pe care nu-l mai poate anula.
+List<AttributeFilterValue> visibleAttributeValues(
+  List<AttributeFilterValue> values, {
+  required bool expanded,
+  required bool Function(int valueId) isSelected,
+}) {
+  if (expanded || values.length <= attributeValuesCollapsed) return values;
+  final hidden = values.skip(attributeValuesCollapsed);
+  if (hidden.any((value) => isSelected(value.id))) return values;
+  return values.take(attributeValuesCollapsed).toList();
+}
+
+class _AttributeSection extends StatefulWidget {
   const _AttributeSection({
     required this.attribute,
     required this.selection,
@@ -237,24 +296,50 @@ class _AttributeSection extends StatelessWidget {
   final void Function(int valueId) onToggle;
 
   @override
+  State<_AttributeSection> createState() => _AttributeSectionState();
+}
+
+class _AttributeSectionState extends State<_AttributeSection> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final values = widget.attribute.values;
+    final shown = visibleAttributeValues(
+      values,
+      expanded: _expanded,
+      isSelected: (valueId) => widget.selection.isSelected(widget.attribute.id, valueId),
+    );
+    final collapsed = shown.length < values.length;
+
     return _Section(
-      title: attribute.name,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+      title: widget.attribute.name,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final value in attribute.values)
-            _ValueChip(
-              label: value.name,
-              count: value.count,
-              color: _parseColor(value.color),
-              selected: selection.isSelected(attribute.id, value.id),
-              // O valoare ramasa fara produse se poate doar DEBIFA, nu bifa: altfel
-              // clientul ar ajunge intr-o grila goala dintr-un singur tap.
-              onTap: value.count == 0 && !selection.isSelected(attribute.id, value.id)
-                  ? null
-                  : () => onToggle(value.id),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final value in shown)
+                _ValueChip(
+                  label: value.name,
+                  count: value.count,
+                  color: _parseColor(value.color),
+                  selected: widget.selection.isSelected(widget.attribute.id, value.id),
+                  // O valoare ramasa fara produse se poate doar DEBIFA, nu bifa: altfel
+                  // clientul ar ajunge intr-o grila goala dintr-un singur tap.
+                  onTap: value.count == 0 &&
+                          !widget.selection.isSelected(widget.attribute.id, value.id)
+                      ? null
+                      : () => widget.onToggle(value.id),
+                ),
+            ],
+          ),
+          if (collapsed)
+            TextButton(
+              onPressed: () => setState(() => _expanded = true),
+              child: Text('Vezi toate (${values.length})'),
             ),
         ],
       ),

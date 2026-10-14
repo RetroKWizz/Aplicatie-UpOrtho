@@ -609,7 +609,9 @@ def _attribute_facets(website, category_id, query, pairs, min_price, max_price):
         else:
             ids = full_ids
         counts = {}
+        covered = set()
         for line in Line.search([('product_tmpl_id', 'in', ids), ('attribute_id', '=', attribute.id)]):
+            covered.add(line.product_tmpl_id.id)
             for value in line.value_ids:
                 counts[value.id] = counts.get(value.id, 0) + 1
         selected = set(by_attribute.get(attribute.id, ()))
@@ -626,13 +628,25 @@ def _attribute_facets(website, category_id, query, pairs, min_price, max_price):
         ]
         if not values:
             continue
-        facets.append({
-            'id': attribute.id,
-            'name': attribute.name,
-            'display_type': attribute.display_type,
-            'values': values,
-        })
-    return facets
+        facets.append((
+            # Ordinea sectiunilor: intai cele care spun ceva despre cele mai multe
+            # produse din rezultat. Pe catalogul real, ordonate dupa id-ul atributului,
+            # "Tooth" (zeci de valori, cate 1-15 produse fiecare) ajungea inaintea
+            # Brandului si a Prescriptiei, adica filtrul rar inaintea celui folosit de
+            # toata lumea. Numaram produse ACOPERITE, nu suma valorilor: un produs cu
+            # trei valori ale aceluiasi atribut e tot un produs.
+            -len(covered),
+            attribute.sequence,
+            attribute.name or '',
+            {
+                'id': attribute.id,
+                'name': attribute.name,
+                'display_type': attribute.display_type,
+                'values': values,
+            },
+        ))
+    facets.sort(key=lambda facet: facet[:3])
+    return [facet[3] for facet in facets]
 
 
 def _serialize_templates(templates, website):

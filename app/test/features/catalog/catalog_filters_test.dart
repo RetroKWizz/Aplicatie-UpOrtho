@@ -8,6 +8,7 @@ import 'package:uportho_app/api/api_transport.dart';
 import 'package:uportho_app/api/models/products_response.dart';
 import 'package:uportho_app/api/session_store.dart';
 import 'package:uportho_app/features/catalog/catalog_controller.dart';
+import 'package:uportho_app/features/catalog/catalog_filter_sheet.dart';
 import 'package:uportho_app/features/catalog/product_filter_selection.dart';
 import 'package:uportho_app/providers.dart';
 
@@ -98,6 +99,75 @@ void main() {
       final b = ProductFilterSelection.empty.toggleValue(2, 1310).toggleValue(95, 1201);
       expect(a, b);
       expect(a.hashCode, b.hashCode);
+    });
+  });
+
+
+  group('glisorul de pret', () {
+    // Catalogul real merge de la 2 la 322.500 lei: pe scara liniara tot ce cumpara
+    // cineva de obicei statea inghesuit in primul milimetru de glisor.
+    const min = 2.0;
+    const max = 322500.0;
+
+    test('capetele glisorului raman exact preturile trimise de server', () {
+      expect(pricePosition(min, min, max), 0);
+      expect(pricePosition(max, min, max), 1);
+      expect(priceAtPosition(0, min, max), min);
+      expect(priceAtPosition(1, min, max), max);
+    });
+
+    test('mijlocul glisorului cade in zona in care chiar sunt produse', () {
+      final middle = priceAtPosition(0.5, min, max);
+      expect(middle, greaterThan(500));
+      expect(middle, lessThan(1200));
+    });
+
+    test('un sfert de glisor e deja sub o suta de lei', () {
+      expect(priceAtPosition(0.25, min, max), lessThan(100));
+    });
+
+    test('pozitia si pretul sunt drumuri inverse', () {
+      for (final price in [10.0, 150.0, 1500.0, 20000.0]) {
+        final back = priceAtPosition(pricePosition(price, min, max), min, max);
+        expect((back - price).abs() / price, lessThan(0.05));
+      }
+    });
+
+    test('suma aleasa se rotunjeste la o treapta pe masura ei', () {
+      expect(priceAtPosition(pricePosition(1247, min, max), min, max) % 100, 0);
+      expect(priceAtPosition(pricePosition(47, min, max), min, max) % 1, 0);
+    });
+
+    test('un interval degenerat nu arunca', () {
+      expect(pricePosition(5, 5, 5), 0);
+      expect(priceAtPosition(0.5, 5, 5), isNotNaN);
+    });
+  });
+
+  group('valorile unui atribut lung', () {
+    List<AttributeFilterValue> values(int count) => [
+          for (var i = 1; i <= count; i++) AttributeFilterValue(id: i, name: 'V$i'),
+        ];
+
+    test('o lista scurta se arata intreaga', () {
+      final shown = visibleAttributeValues(values(5),
+          expanded: false, isSelected: (_) => false);
+      expect(shown, hasLength(5));
+    });
+
+    test('o lista lunga se taie, pana cere clientul tot', () {
+      final all = values(20);
+      expect(visibleAttributeValues(all, expanded: false, isSelected: (_) => false),
+          hasLength(attributeValuesCollapsed));
+      expect(visibleAttributeValues(all, expanded: true, isSelected: (_) => false),
+          hasLength(20));
+    });
+
+    test('o valoare bifata din coada tine lista deschisa', () {
+      // Altfel clientul ar avea un filtru activ pe care nu-l mai poate anula.
+      final shown = visibleAttributeValues(values(20),
+          expanded: false, isSelected: (id) => id == 17);
+      expect(shown, hasLength(20));
     });
   });
 
