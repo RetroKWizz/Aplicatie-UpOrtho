@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/api_exception.dart';
+import '../../api/models/account.dart';
 import '../../design_system/colors.dart';
 import 'account_controller.dart';
-import 'account_screen.dart' show OrderTile;
 
 /// Lista completa de comenzi a contului.
 class OrdersScreen extends ConsumerWidget {
@@ -62,6 +62,36 @@ class _ErrorView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Un rand de comanda din lista.
+class OrderTile extends StatelessWidget {
+  const OrderTile({super.key, required this.order, required this.onTap});
+  final OrderSummary order;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(order.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text([
+        if (order.date case final String date) date,
+        order.stateLabel,
+      ].join(' \u2022 ')),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(order.total.formatted, style: const TextStyle(fontWeight: FontWeight.w700)),
+          if (order.invoiceCount > 0)
+            const Text('cu factura',
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        ],
+      ),
+      onTap: onTap,
     );
   }
 }

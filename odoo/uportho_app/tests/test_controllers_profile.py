@@ -1,8 +1,9 @@
 from datetime import timedelta
 
 from odoo import fields
-from odoo.tests.common import tagged
+from odoo.tests.common import TransactionCase, tagged
 
+from ..controllers.profile import build_club_block, format_club_date
 from .common import PORTAL_LOGIN, PORTAL_PASSWORD, AppHttpCase
 
 
@@ -291,3 +292,72 @@ class TestControllersLoyalty(AppHttpCase):
             'program_id': program.id, 'partner_id': stranger.id, 'points': 99.0})
 
         self.assertNotIn(card.id, [c['id'] for c in self.api_get('/loyalty').json()])
+
+
+@tagged('post_install', '-at_install')
+class TestOrthoClubBlock(TransactionCase):
+    """Starea de membru Ortho Club, calculata din bifa si data de pe partener.
+
+    Campurile vin din `terrabit_subscription_extension`, care nu exista pe baza de
+    test, deci regula se verifica pe functia pura - acolo traieste decizia. Ruta e
+    acoperita separat, pentru cazul "baza fara modul"."""
+
+    def setUp(self):
+        super().setUp()
+        self.today = fields.Date.from_string('2026-10-14')
+
+    def test_abonament_valabil_inseamna_membru(self):
+        block = build_club_block(True, fields.Date.from_string('2026-12-31'), self.today,
+                                 'Lista de preturi Ortho Club 2026 (RON)')
+
+        self.assertTrue(block['member'])
+        self.assertEqual(block['end_date'], '2026-12-31')
+        self.assertEqual(block['end_date_label'], '31 decembrie 2026')
+        self.assertEqual(block['pricelist'], 'Lista de preturi Ortho Club 2026 (RON)')
+
+    def test_bifa_ramasa_cu_data_trecuta_nu_mai_e_membru(self):
+        """Cazul a 56 de parteneri de pe staging: bifa pusa, data expirata. Bifa nu se
+        stinge singura, deci data decide."""
+        block = build_club_block(True, fields.Date.from_string('2025-12-31'), self.today, None)
+
+        self.assertFalse(block['member'])
+        self.assertEqual(block['end_date_label'], '31 decembrie 2025')
+
+    def test_ultima_zi_de_abonament_e_tot_valabila(self):
+        block = build_club_block(True, self.today, self.today, None)
+
+        self.assertTrue(block['member'])
+
+    def test_bifa_fara_data_ramane_membru_fara_termen(self):
+        block = build_club_block(True, None, self.today, 'Lista oarecare')
+
+        self.assertTrue(block['member'])
+        self.assertIsNone(block['end_date'])
+        self.assertIsNone(block['end_date_label'])
+
+    def test_abonamentul_anulat_sterge_blocul_cu_totul(self):
+        """Anularea sterge si bifa, si data. Un cont care n-a avut niciodata abonament
+        arata la fel - si nu are de ce sa vada "expirat"."""
+        self.assertIsNone(build_club_block(False, None, self.today, 'Lista publica'))
+
+    def test_bifa_scoasa_cu_data_ramasa_arata_expirat(self):
+        block = build_club_block(False, fields.Date.from_string('2027-01-01'), self.today, None)
+
+        self.assertFalse(block['member'])
+
+    def test_luna_se_scrie_in_cuvinte(self):
+        self.assertEqual(format_club_date(fields.Date.from_string('2026-01-09')),
+                         '9 ianuarie 2026')
+
+
+@tagged('post_install', '-at_install')
+class TestProfileClubRoute(AppHttpCase):
+    def test_raspunsul_are_blocul_de_club_chiar_si_fara_modulul_abonamentelor(self):
+        """Pe baza de test campurile lor lipsesc, deci blocul e `null` - cheia exista
+        totusi, ca aplicatia sa nu trateze absenta ei ca pe o eroare de contract."""
+        self.api_login()
+        body = self.api_get('/account/profile').json()
+
+        self.assertIn('club', body)
+        if 'has_valid_subscription' not in self.env['res.partner']._fields:
+            self.assertIsNone(body['club'])

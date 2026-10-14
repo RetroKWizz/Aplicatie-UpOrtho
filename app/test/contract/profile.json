@@ -18,6 +18,12 @@
     "company_name": "Cabinet Dentar Exemplu SRL",
     "can_edit_vat": false
   },
+  "club": {
+    "member": true,
+    "end_date": "2026-12-31",
+    "end_date_label": "31 decembrie 2026",
+    "pricelist": "Lista de preturi Ortho Club 2026 (RON)"
+  },
   "required": [
     "city",
     "country_id",

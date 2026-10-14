@@ -26,6 +26,64 @@ ZIP_FORM_FIELD = 'zipcode'
 # salveaza - doar ca pe langa validarea lui, nu prin ea.
 EXTRA_FIELDS = ('mobile', 'function')
 
+# Lunile scrise in cuvinte, pentru data de expirare a abonamentului. Textul il compune
+# serverul, ca si preturile: "31 decembrie 2026" se poate schimba fara release in store.
+CLUB_MONTHS = (
+    'ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
+    'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie',
+)
+
+
+def format_club_date(value):
+    return '%s %s %s' % (value.day, CLUB_MONTHS[value.month - 1], value.year)
+
+
+def build_club_block(has_subscription, end_date, today, pricelist_name):
+    """Starea de membru Ortho Club, din bifa si data de pe partener.
+
+    **Bifa singura nu e de ajuns.** `has_valid_subscription` nu se stinge cand trece
+    data: o pune abonamentul la confirmare si o scoate doar o anulare. Pe copia de
+    staging din 14 octombrie 2026, 882 de parteneri aveau bifa pusa si 56 dintre ei
+    aveau data de sfarsit deja trecuta - fara comparatia cu ziua curenta, acele 56 de
+    cabinete ar fi citit "membru activ" cu abonamentul expirat.
+
+    Fara data nu avem ce compara, deci bifa decide singura: un partener bifat manual,
+    fara data, ramane membru (cardul il arata fara termen), nu dispare din ecran.
+
+    Un cont care n-a avut niciodata abonament (fara bifa si fara data - anularea le
+    sterge pe amandoua) primeste `None`: ecranul nu arata nimic, nici macar "expirat"."""
+    if not has_subscription and not end_date:
+        return None
+    return {
+        'member': bool(has_subscription) and (end_date is None or end_date >= today),
+        'end_date': fields.Date.to_string(end_date) if end_date else None,
+        'end_date_label': format_club_date(end_date) if end_date else None,
+        'pricelist': pricelist_name or None,
+    }
+
+
+def serialize_club(partner):
+    """Blocul Ortho Club al contului, sau `None` pe o baza fara modulul abonamentelor.
+
+    Campurile sunt ale lor (`terrabit_subscription_extension`), deci prezenta lor se
+    verifica defensiv, ca la `is_compare_pricelist`: baza locala si testele nu le au.
+
+    Abonamentul sta pe partenerul comercial - pe copia de staging toti cei 882 de
+    abonati sunt parteneri de nivel zero, si niciun contact-copil nu are un parinte
+    abonat fara sa fie el insusi bifat, deci citirea de pe comercial nu pierde nimic.
+    Lista de preturi, in schimb, se citeste de pe partenerul propriu - **aceeasi** de
+    pe care se calculeaza preturile din catalog, altfel contul ar numi o lista si
+    rafturile ar arata alta."""
+    if 'has_valid_subscription' not in request.env['res.partner']._fields:
+        return None
+    commercial = partner.commercial_partner_id.sudo()
+    return build_club_block(
+        commercial.has_valid_subscription,
+        commercial.subscription_end_date,
+        fields.Date.context_today(commercial),
+        partner.sudo().property_product_pricelist.name,
+    )
+
 
 def _profile_partner():
     """Partenerul ale carui date se arata si se editeaza: chiar al utilizatorului
@@ -84,8 +142,12 @@ class AppProfile(CustomerPortal):
         se scrie in codul nostru: asa intra automat si ce adauga modulele clientului."""
         mandatory = list(self._get_mandatory_fields())
         optional = list(self._get_optional_fields())
+        partner = _profile_partner()
         return json_ok({
-            'profile': serialize_profile(_profile_partner()),
+            'profile': serialize_profile(partner),
+            # Starea de membru Ortho Club: doar de citit. Abonamentul se cumpara si se
+            # reinnoieste pe site, aplicatia nu-l poate schimba.
+            'club': serialize_club(partner),
             # Numele de camp se dau in vocabularul aplicatiei (`zip`), nu in cel al
             # formularului web (`zipcode`).
             'required': sorted({'zip' if f == ZIP_FORM_FIELD else f for f in mandatory}),

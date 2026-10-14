@@ -217,6 +217,21 @@ cheama si pagina `/my/security`. Nu se scrie parola direct: metoda lor verifica 
 veche, aplica regulile si **recalculeaza tokenul de sesiune** - fara ea clientul ar fi
 deconectat imediat dupa schimbare, pentru ca Odoo goleste cache-ul de credentiale.
 
+**Starea de membru Ortho Club NU se citeste din bifa.** Campurile sunt ale clientului
+(`terrabit_subscription_extension`): `res.partner.has_valid_subscription` si
+`res.partner.subscription_end_date`. Bifa o pune abonamentul la confirmare si o scoate
+doar o anulare — **nu se stinge cand trece data**. Pe copia de staging din 14 octombrie
+2026: 882 de parteneri aveau bifa, iar 56 dintre ei aveau data de sfarsit deja trecuta.
+De aceea `/account/profile` compara data cu ziua curenta si trimite `club.member` gata
+calculat; aplicatia nu interpreteaza bifa si nu compara ea datele. Abonamentul se
+citeste de pe **partenerul comercial** (toti cei 882 sunt parteneri de nivel zero, si
+niciun contact-copil n-are un parinte abonat fara sa fie el insusi bifat), iar lista de
+preturi afisata e cea a **partenerului propriu** — aceeasi de pe care se calculeaza
+preturile din catalog, altfel contul ar numi o lista si rafturile ar arata alta. Fara
+modulul lor (baza locala, teste) blocul e `null`; decizia sta intr-o functie pura,
+`controllers/profile.build_club_block`, tocmai ca sa poata fi testata acolo. Blocul e
+doar de citit: abonamentul se cumpara si se reinnoieste pe site.
+
 **Favoritele sunt singura lista care NU vine din magazin.** Modulul care ar aduce-o
 (`website_sale_wishlist`) nu e instalat pe instanta reala, deci nu exista nimic cu care
 sa se sincronizeze; traiesc in `uportho.app.favorite`, legate de partenerul comercial

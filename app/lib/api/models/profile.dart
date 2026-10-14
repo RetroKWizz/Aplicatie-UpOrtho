@@ -33,12 +33,34 @@ abstract class AccountProfile with _$AccountProfile {
   factory AccountProfile.fromJson(Map<String, dynamic> json) => _$AccountProfileFromJson(json);
 }
 
+/// Abonamentul Ortho Club al contului, asa cum il vede Odoo. Doar de citit: se
+/// cumpara si se reinnoieste pe site, aplicatia nu-l poate schimba.
+///
+/// `member` e raspunsul serverului la intrebarea "e valabil AZI", nu bifa din Odoo:
+/// bifa nu se stinge cand trece data. `endDateLabel` vine scris in cuvinte ("31
+/// decembrie 2026"), ca si preturile - aplicatia nu formateaza.
+@freezed
+abstract class OrthoClub with _$OrthoClub {
+  const factory OrthoClub({
+    @Default(false) bool member,
+    @JsonKey(name: 'end_date') String? endDate,
+    @JsonKey(name: 'end_date_label') String? endDateLabel,
+    String? pricelist,
+  }) = _OrthoClub;
+
+  factory OrthoClub.fromJson(Map<String, dynamic> json) => _$OrthoClubFromJson(json);
+}
+
 /// Profilul plus ce campuri cere si ce campuri lasa portalul sa fie modificate. Listele
 /// vin de la server, deci includ automat si ce adauga modulele clientului.
+///
+/// `club` lipseste (`null`) pe o baza fara modulul de abonamente al clientului si pe
+/// un cont care n-a avut niciodata abonament - ecranul nu arata atunci nimic.
 @freezed
 abstract class AccountProfileResponse with _$AccountProfileResponse {
   const factory AccountProfileResponse({
     required AccountProfile profile,
+    OrthoClub? club,
     @Default([]) List<String> required,
     @Default([]) List<String> editable,
   }) = _AccountProfileResponse;

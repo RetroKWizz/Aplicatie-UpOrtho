@@ -85,24 +85,74 @@ void main() {
     return container;
   }
 
-  testWidgets('contul arata comenzile, facturile si adresele', (tester) async {
+  /// Numarul scris in dreapta unui rand din meniu, cautat in chiar randul lui: un
+  /// `find.text('1')` pe tot ecranul ar trece si daca numarul ar sta pe alt rand.
+  Finder countOf(String label, String count) => find.descendant(
+        of: find.ancestor(of: find.text(label), matching: find.byType(ListTile)),
+        matching: find.text(count),
+      );
+
+  testWidgets('contul arata cate comenzi, facturi si adrese are', (tester) async {
     await pump(tester, const AccountScreen(), accountTransport());
 
-    expect(find.text('S12345'), findsOneWidget);
-    expect(find.text('FACT/2026/0042'), findsOneWidget);
-    // Adresele sunt impartite in facturare si livrare, iar adresa principala a
-    // contului apare in amandoua - exact ca pe site.
-    expect(find.text('Cabinet Dentar Exemplu SRL'), findsNWidgets(2));
-    expect(find.text('Facturare'), findsOneWidget);
-    expect(find.text('Livrare'), findsOneWidget);
-    expect(find.text('304,99 lei'), findsOneWidget);
+    expect(countOf('Comenzi', '1'), findsOneWidget);
+    expect(countOf('Facturi', '1'), findsOneWidget);
+    expect(countOf('Adrese', '1'), findsOneWidget);
+    expect(find.text('Favorite'), findsOneWidget);
+    expect(find.text('Datele contului'), findsOneWidget);
   });
 
-  testWidgets('cardurile Ortho Club apar cu punctele lor, formatate de server',
+  testWidgets('abonamentul valabil arata data si lista de preturi, din Odoo',
       (tester) async {
     await pump(tester, const AccountScreen(), accountTransport());
 
-    expect(find.text('Ortho Club si vouchere'), findsOneWidget);
+    expect(find.text('ORTHO CLUB'), findsOneWidget);
+    expect(find.text('Activ'), findsOneWidget);
+    expect(find.text('Membru pana la'), findsOneWidget);
+    expect(find.text('31 decembrie 2026'), findsOneWidget);
+    expect(find.text('Lista de preturi Ortho Club 2026 (RON)'), findsOneWidget);
+  });
+
+  testWidgets('abonamentul expirat o spune, cu data lui', (tester) async {
+    // Serverul decide daca mai e membru - bifa din Odoo nu se stinge cand trece
+    // data, iar aplicatia nu compara ea datele.
+    final profile = Map<String, dynamic>.from(fixture('profile.json'));
+    profile['club'] = {
+      'member': false,
+      'end_date': '2025-12-31',
+      'end_date_label': '31 decembrie 2025',
+      'pricelist': 'Lista de preturi publica 2026',
+    };
+    final transport = accountTransport();
+    transport.when('GET', '/api/app/v1/account/profile',
+        ApiResponse(status: 200, json: profile));
+
+    await pump(tester, const AccountScreen(), transport);
+
+    expect(find.text('Expirat'), findsOneWidget);
+    expect(find.text('Abonamentul tau Ortho Club a expirat la 31 decembrie 2025.'),
+        findsOneWidget);
+    expect(find.text('Membru pana la'), findsNothing);
+  });
+
+  testWidgets('un cont fara abonament nu vede nimic despre club', (tester) async {
+    final profile = Map<String, dynamic>.from(fixture('profile.json'));
+    profile['club'] = null;
+    final transport = accountTransport();
+    transport.when('GET', '/api/app/v1/account/profile',
+        ApiResponse(status: 200, json: profile));
+
+    await pump(tester, const AccountScreen(), transport);
+
+    expect(find.text('ORTHO CLUB'), findsNothing);
+    expect(find.text('Expirat'), findsNothing);
+  });
+
+  testWidgets('cardurile si voucherele apar cu punctele lor, formatate de server',
+      (tester) async {
+    await pump(tester, const AccountScreen(), accountTransport());
+
+    expect(find.text('Carduri si vouchere'), findsOneWidget);
     expect(find.text('Ortho Club 2026'), findsOneWidget);
     expect(find.text('150 puncte'), findsOneWidget);
     expect(find.text('250,00 lei'), findsOneWidget);
@@ -115,10 +165,10 @@ void main() {
 
     await pump(tester, const AccountScreen(), transport);
 
-    expect(find.text('Ortho Club si vouchere'), findsNothing);
+    expect(find.text('Carduri si vouchere'), findsNothing);
   });
 
-  testWidgets('o sectiune picata nu arunca tot ecranul pe eroare', (tester) async {
+  testWidgets('o lista picata lasa randul fara numar, nu arunca ecranul', (tester) async {
     final transport = accountTransport();
     transport.when(
       'GET',
@@ -130,14 +180,11 @@ void main() {
 
     await pump(tester, const AccountScreen(), transport);
 
-    expect(find.text('Facturile nu merg acum.'), findsOneWidget);
-    // Comenzile si adresele raman pe ecran.
-    expect(find.text('S12345'), findsOneWidget);
-    // Adresele sunt impartite in facturare si livrare, iar adresa principala a
-    // contului apare in amandoua - exact ca pe site.
-    expect(find.text('Cabinet Dentar Exemplu SRL'), findsNWidgets(2));
-    expect(find.text('Facturare'), findsOneWidget);
-    expect(find.text('Livrare'), findsOneWidget);
+    // Randul exista si duce mai departe; doar numarul lipseste, pentru ca nu-l stim.
+    expect(find.text('Facturi'), findsOneWidget);
+    expect(countOf('Facturi', '1'), findsNothing);
+    expect(countOf('Comenzi', '1'), findsOneWidget);
+    expect(find.text('ORTHO CLUB'), findsOneWidget);
   });
 
   testWidgets('detaliul comenzii arata liniile, totalurile si adresele', (tester) async {

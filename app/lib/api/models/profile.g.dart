@@ -48,10 +48,28 @@ Map<String, dynamic> _$AccountProfileToJson(_AccountProfile instance) =>
       'can_edit_vat': instance.canEditVat,
     };
 
+_OrthoClub _$OrthoClubFromJson(Map<String, dynamic> json) => _OrthoClub(
+  member: json['member'] as bool? ?? false,
+  endDate: json['end_date'] as String?,
+  endDateLabel: json['end_date_label'] as String?,
+  pricelist: json['pricelist'] as String?,
+);
+
+Map<String, dynamic> _$OrthoClubToJson(_OrthoClub instance) =>
+    <String, dynamic>{
+      'member': instance.member,
+      'end_date': instance.endDate,
+      'end_date_label': instance.endDateLabel,
+      'pricelist': instance.pricelist,
+    };
+
 _AccountProfileResponse _$AccountProfileResponseFromJson(
   Map<String, dynamic> json,
 ) => _AccountProfileResponse(
   profile: AccountProfile.fromJson(json['profile'] as Map<String, dynamic>),
+  club: json['club'] == null
+      ? null
+      : OrthoClub.fromJson(json['club'] as Map<String, dynamic>),
   required:
       (json['required'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
@@ -64,6 +82,7 @@ Map<String, dynamic> _$AccountProfileResponseToJson(
   _AccountProfileResponse instance,
 ) => <String, dynamic>{
   'profile': instance.profile,
+  'club': instance.club,
   'required': instance.required,
   'editable': instance.editable,
 };

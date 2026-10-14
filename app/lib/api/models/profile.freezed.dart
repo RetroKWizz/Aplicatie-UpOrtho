@@ -332,9 +332,288 @@ as bool,
 
 
 /// @nodoc
+mixin _$OrthoClub {
+
+ bool get member;@JsonKey(name: 'end_date') String? get endDate;@JsonKey(name: 'end_date_label') String? get endDateLabel; String? get pricelist;
+/// Create a copy of OrthoClub
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OrthoClubCopyWith<OrthoClub> get copyWith => _$OrthoClubCopyWithImpl<OrthoClub>(this as OrthoClub, _$identity);
+
+  /// Serializes this OrthoClub to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as OrthoClub;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrthoClub&&(identical(other.member, _this.member) || other.member == _this.member)&&(identical(other.endDate, _this.endDate) || other.endDate == _this.endDate)&&(identical(other.endDateLabel, _this.endDateLabel) || other.endDateLabel == _this.endDateLabel)&&(identical(other.pricelist, _this.pricelist) || other.pricelist == _this.pricelist));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as OrthoClub;
+  return Object.hash(runtimeType,_this.member,_this.endDate,_this.endDateLabel,_this.pricelist);
+}
+
+@override
+String toString() {
+  final _this = this as OrthoClub;
+  return 'OrthoClub(member: ${_this.member}, endDate: ${_this.endDate}, endDateLabel: ${_this.endDateLabel}, pricelist: ${_this.pricelist})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OrthoClubCopyWith<$Res>  {
+  factory $OrthoClubCopyWith(OrthoClub value, $Res Function(OrthoClub) _then) = _$OrthoClubCopyWithImpl;
+@useResult
+$Res call({
+ bool member,@JsonKey(name: 'end_date') String? endDate,@JsonKey(name: 'end_date_label') String? endDateLabel, String? pricelist
+});
+
+
+
+
+}
+/// @nodoc
+class _$OrthoClubCopyWithImpl<$Res>
+    implements $OrthoClubCopyWith<$Res> {
+  _$OrthoClubCopyWithImpl(this._self, this._then);
+
+  final OrthoClub _self;
+  final $Res Function(OrthoClub) _then;
+
+/// Create a copy of OrthoClub
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? member = null,Object? endDate = freezed,Object? endDateLabel = freezed,Object? pricelist = freezed,}) {
+  return _then(OrthoClub(
+member: null == member ? _self.member : member // ignore: cast_nullable_to_non_nullable
+as bool,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as String?,endDateLabel: freezed == endDateLabel ? _self.endDateLabel : endDateLabel // ignore: cast_nullable_to_non_nullable
+as String?,pricelist: freezed == pricelist ? _self.pricelist : pricelist // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OrthoClub].
+extension OrthoClubPatterns on OrthoClub {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OrthoClub value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OrthoClub() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OrthoClub value)  $default,){
+final _that = this;
+switch (_that) {
+case _OrthoClub():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OrthoClub value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OrthoClub() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool member, @JsonKey(name: 'end_date')  String? endDate, @JsonKey(name: 'end_date_label')  String? endDateLabel,  String? pricelist)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OrthoClub() when $default != null:
+return $default(_that.member,_that.endDate,_that.endDateLabel,_that.pricelist);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool member, @JsonKey(name: 'end_date')  String? endDate, @JsonKey(name: 'end_date_label')  String? endDateLabel,  String? pricelist)  $default,) {final _that = this;
+switch (_that) {
+case _OrthoClub():
+return $default(_that.member,_that.endDate,_that.endDateLabel,_that.pricelist);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool member, @JsonKey(name: 'end_date')  String? endDate, @JsonKey(name: 'end_date_label')  String? endDateLabel,  String? pricelist)?  $default,) {final _that = this;
+switch (_that) {
+case _OrthoClub() when $default != null:
+return $default(_that.member,_that.endDate,_that.endDateLabel,_that.pricelist);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OrthoClub implements OrthoClub {
+  const _OrthoClub({this.member = false, @JsonKey(name: 'end_date') this.endDate, @JsonKey(name: 'end_date_label') this.endDateLabel, this.pricelist});
+  factory _OrthoClub.fromJson(Map<String, dynamic> json) => _$OrthoClubFromJson(json);
+
+@override@JsonKey() final  bool member;
+@override@JsonKey(name: 'end_date') final  String? endDate;
+@override@JsonKey(name: 'end_date_label') final  String? endDateLabel;
+@override final  String? pricelist;
+
+/// Create a copy of OrthoClub
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OrthoClubCopyWith<_OrthoClub> get copyWith => __$OrthoClubCopyWithImpl<_OrthoClub>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OrthoClubToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OrthoClub&&(identical(other.member, member) || other.member == member)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.endDateLabel, endDateLabel) || other.endDateLabel == endDateLabel)&&(identical(other.pricelist, pricelist) || other.pricelist == pricelist));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,member,endDate,endDateLabel,pricelist);
+}
+
+@override
+String toString() {
+    return 'OrthoClub(member: $member, endDate: $endDate, endDateLabel: $endDateLabel, pricelist: $pricelist)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OrthoClubCopyWith<$Res> implements $OrthoClubCopyWith<$Res> {
+  factory _$OrthoClubCopyWith(_OrthoClub value, $Res Function(_OrthoClub) _then) = __$OrthoClubCopyWithImpl;
+@override @useResult
+$Res call({
+ bool member,@JsonKey(name: 'end_date') String? endDate,@JsonKey(name: 'end_date_label') String? endDateLabel, String? pricelist
+});
+
+
+
+
+}
+/// @nodoc
+class __$OrthoClubCopyWithImpl<$Res>
+    implements _$OrthoClubCopyWith<$Res> {
+  __$OrthoClubCopyWithImpl(this._self, this._then);
+
+  final _OrthoClub _self;
+  final $Res Function(_OrthoClub) _then;
+
+/// Create a copy of OrthoClub
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? member = null,Object? endDate = freezed,Object? endDateLabel = freezed,Object? pricelist = freezed,}) {
+  return _then(_OrthoClub(
+member: null == member ? _self.member : member // ignore: cast_nullable_to_non_nullable
+as bool,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as String?,endDateLabel: freezed == endDateLabel ? _self.endDateLabel : endDateLabel // ignore: cast_nullable_to_non_nullable
+as String?,pricelist: freezed == pricelist ? _self.pricelist : pricelist // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$AccountProfileResponse {
 
- AccountProfile get profile; List<String> get required; List<String> get editable;
+ AccountProfile get profile; OrthoClub? get club; List<String> get required; List<String> get editable;
 /// Create a copy of AccountProfileResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -348,20 +627,20 @@ $AccountProfileResponseCopyWith<AccountProfileResponse> get copyWith => _$Accoun
 @override
 bool operator ==(Object other) {
   final _this = this as AccountProfileResponse;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountProfileResponse&&(identical(other.profile, _this.profile) || other.profile == _this.profile)&&const DeepCollectionEquality().equals(other.required, _this.required)&&const DeepCollectionEquality().equals(other.editable, _this.editable));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountProfileResponse&&(identical(other.profile, _this.profile) || other.profile == _this.profile)&&(identical(other.club, _this.club) || other.club == _this.club)&&const DeepCollectionEquality().equals(other.required, _this.required)&&const DeepCollectionEquality().equals(other.editable, _this.editable));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as AccountProfileResponse;
-  return Object.hash(runtimeType,_this.profile,const DeepCollectionEquality().hash(_this.required),const DeepCollectionEquality().hash(_this.editable));
+  return Object.hash(runtimeType,_this.profile,_this.club,const DeepCollectionEquality().hash(_this.required),const DeepCollectionEquality().hash(_this.editable));
 }
 
 @override
 String toString() {
   final _this = this as AccountProfileResponse;
-  return 'AccountProfileResponse(profile: ${_this.profile}, required: ${_this.required}, editable: ${_this.editable})';
+  return 'AccountProfileResponse(profile: ${_this.profile}, club: ${_this.club}, required: ${_this.required}, editable: ${_this.editable})';
 }
 
 
@@ -372,11 +651,11 @@ abstract mixin class $AccountProfileResponseCopyWith<$Res>  {
   factory $AccountProfileResponseCopyWith(AccountProfileResponse value, $Res Function(AccountProfileResponse) _then) = _$AccountProfileResponseCopyWithImpl;
 @useResult
 $Res call({
- AccountProfile profile, List<String> required, List<String> editable
+ AccountProfile profile, OrthoClub? club, List<String> required, List<String> editable
 });
 
 
-$AccountProfileCopyWith<$Res> get profile;
+$AccountProfileCopyWith<$Res> get profile;$OrthoClubCopyWith<$Res>? get club;
 
 }
 /// @nodoc
@@ -389,10 +668,11 @@ class _$AccountProfileResponseCopyWithImpl<$Res>
 
 /// Create a copy of AccountProfileResponse
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? profile = null,Object? required = null,Object? editable = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? profile = null,Object? club = freezed,Object? required = null,Object? editable = null,}) {
   return _then(AccountProfileResponse(
 profile: null == profile ? _self.profile : profile // ignore: cast_nullable_to_non_nullable
-as AccountProfile,required: null == required ? _self.required : required // ignore: cast_nullable_to_non_nullable
+as AccountProfile,club: freezed == club ? _self.club : club // ignore: cast_nullable_to_non_nullable
+as OrthoClub?,required: null == required ? _self.required : required // ignore: cast_nullable_to_non_nullable
 as List<String>,editable: null == editable ? _self.editable : editable // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
@@ -405,6 +685,18 @@ $AccountProfileCopyWith<$Res> get profile {
   
   return $AccountProfileCopyWith<$Res>(_self.profile, (value) {
     return _then(_self.copyWith(profile: value));
+  });
+}/// Create a copy of AccountProfileResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OrthoClubCopyWith<$Res>? get club {
+    if (_self.club == null) {
+    return null;
+  }
+
+  return $OrthoClubCopyWith<$Res>(_self.club!, (value) {
+    return _then(_self.copyWith(club: value));
   });
 }
 }
@@ -488,10 +780,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AccountProfile profile,  List<String> required,  List<String> editable)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AccountProfile profile,  OrthoClub? club,  List<String> required,  List<String> editable)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AccountProfileResponse() when $default != null:
-return $default(_that.profile,_that.required,_that.editable);case _:
+return $default(_that.profile,_that.club,_that.required,_that.editable);case _:
   return orElse();
 
 }
@@ -509,10 +801,10 @@ return $default(_that.profile,_that.required,_that.editable);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AccountProfile profile,  List<String> required,  List<String> editable)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AccountProfile profile,  OrthoClub? club,  List<String> required,  List<String> editable)  $default,) {final _that = this;
 switch (_that) {
 case _AccountProfileResponse():
-return $default(_that.profile,_that.required,_that.editable);case _:
+return $default(_that.profile,_that.club,_that.required,_that.editable);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -529,10 +821,10 @@ return $default(_that.profile,_that.required,_that.editable);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AccountProfile profile,  List<String> required,  List<String> editable)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AccountProfile profile,  OrthoClub? club,  List<String> required,  List<String> editable)?  $default,) {final _that = this;
 switch (_that) {
 case _AccountProfileResponse() when $default != null:
-return $default(_that.profile,_that.required,_that.editable);case _:
+return $default(_that.profile,_that.club,_that.required,_that.editable);case _:
   return null;
 
 }
@@ -544,10 +836,11 @@ return $default(_that.profile,_that.required,_that.editable);case _:
 @JsonSerializable()
 
 class _AccountProfileResponse implements AccountProfileResponse {
-  const _AccountProfileResponse({required this.profile,  List<String> required = const [],  List<String> editable = const []}): _required = required,_editable = editable;
+  const _AccountProfileResponse({required this.profile, this.club,  List<String> required = const [],  List<String> editable = const []}): _required = required,_editable = editable;
   factory _AccountProfileResponse.fromJson(Map<String, dynamic> json) => _$AccountProfileResponseFromJson(json);
 
 @override final  AccountProfile profile;
+@override final  OrthoClub? club;
  final  List<String> _required;
 @override@JsonKey() List<String> get required {
   if (_required is EqualUnmodifiableListView) return _required;
@@ -576,18 +869,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AccountProfileResponse&&(identical(other.profile, profile) || other.profile == profile)&&const DeepCollectionEquality().equals(other.required, _required)&&const DeepCollectionEquality().equals(other.editable, _editable));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AccountProfileResponse&&(identical(other.profile, profile) || other.profile == profile)&&(identical(other.club, club) || other.club == club)&&const DeepCollectionEquality().equals(other.required, _required)&&const DeepCollectionEquality().equals(other.editable, _editable));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,profile,const DeepCollectionEquality().hash(_required),const DeepCollectionEquality().hash(_editable));
+    return Object.hash(runtimeType,profile,club,const DeepCollectionEquality().hash(_required),const DeepCollectionEquality().hash(_editable));
 }
 
 @override
 String toString() {
-    return 'AccountProfileResponse(profile: $profile, required: $required, editable: $editable)';
+    return 'AccountProfileResponse(profile: $profile, club: $club, required: $required, editable: $editable)';
 }
 
 
@@ -598,11 +891,11 @@ abstract mixin class _$AccountProfileResponseCopyWith<$Res> implements $AccountP
   factory _$AccountProfileResponseCopyWith(_AccountProfileResponse value, $Res Function(_AccountProfileResponse) _then) = __$AccountProfileResponseCopyWithImpl;
 @override @useResult
 $Res call({
- AccountProfile profile, List<String> required, List<String> editable
+ AccountProfile profile, OrthoClub? club, List<String> required, List<String> editable
 });
 
 
-@override $AccountProfileCopyWith<$Res> get profile;
+@override $AccountProfileCopyWith<$Res> get profile;@override $OrthoClubCopyWith<$Res>? get club;
 
 }
 /// @nodoc
@@ -615,10 +908,11 @@ class __$AccountProfileResponseCopyWithImpl<$Res>
 
 /// Create a copy of AccountProfileResponse
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? profile = null,Object? required = null,Object? editable = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? profile = null,Object? club = freezed,Object? required = null,Object? editable = null,}) {
   return _then(_AccountProfileResponse(
 profile: null == profile ? _self.profile : profile // ignore: cast_nullable_to_non_nullable
-as AccountProfile,required: null == required ? _self._required : required // ignore: cast_nullable_to_non_nullable
+as AccountProfile,club: freezed == club ? _self.club : club // ignore: cast_nullable_to_non_nullable
+as OrthoClub?,required: null == required ? _self._required : required // ignore: cast_nullable_to_non_nullable
 as List<String>,editable: null == editable ? _self._editable : editable // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
@@ -632,6 +926,18 @@ $AccountProfileCopyWith<$Res> get profile {
   
   return $AccountProfileCopyWith<$Res>(_self.profile, (value) {
     return _then(_self.copyWith(profile: value));
+  });
+}/// Create a copy of AccountProfileResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OrthoClubCopyWith<$Res>? get club {
+    if (_self.club == null) {
+    return null;
+  }
+
+  return $OrthoClubCopyWith<$Res>(_self.club!, (value) {
+    return _then(_self.copyWith(club: value));
   });
 }
 }
