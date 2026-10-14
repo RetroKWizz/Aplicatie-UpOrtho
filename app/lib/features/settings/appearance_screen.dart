@@ -23,19 +23,19 @@ class AppearanceScreen extends ConsumerWidget {
           _Option(
             choice: AppThemeChoice.system,
             selected: choice,
-            description: 'Se face intunecat cand si telefonul e intunecat',
+            description: 'Se schimba odata cu telefonul',
             preview: const _SystemPreview(),
           ),
           _Option(
             choice: AppThemeChoice.light,
             selected: choice,
-            description: 'Alb, cum arata acum',
+            description: 'Mereu alb',
             preview: const _ThemePreview(palette: AppPalette.light),
           ),
           _Option(
             choice: AppThemeChoice.dark,
             selected: choice,
-            description: 'Odihnitor seara, consuma mai putina baterie',
+            description: 'Mereu negru',
             preview: const _ThemePreview(palette: AppPalette.dark),
           ),
           Padding(

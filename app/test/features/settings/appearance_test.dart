@@ -25,7 +25,7 @@ void main() {
   }
 
   group('alegerea temei', () {
-    test('porneste pe "urmeaza telefonul"', () {
+    test('porneste pe setarile telefonului', () {
       expect(container().read(themeControllerProvider), AppThemeChoice.system);
     });
 
@@ -84,9 +84,9 @@ void main() {
     final c = container();
     await pump(tester, c);
 
-    expect(find.text('Urmeaza telefonul'), findsOneWidget);
-    expect(find.text('Luminos'), findsOneWidget);
-    expect(find.text('Intunecat'), findsOneWidget);
+    expect(find.text('Setarile telefonului'), findsOneWidget);
+    expect(find.text('Alb'), findsOneWidget);
+    expect(find.text('Negru'), findsOneWidget);
     expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
   });
 
@@ -94,7 +94,7 @@ void main() {
     final c = container();
     await pump(tester, c);
 
-    await tester.tap(find.text('Intunecat'));
+    await tester.tap(find.text('Negru'));
     await tester.pump();
 
     expect(c.read(themeControllerProvider), AppThemeChoice.dark);

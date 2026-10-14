@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Cum arata aplicatia. `system` inseamna "urmeaza telefonul": se face intunecat cand
-/// si telefonul e intunecat.
+/// Cum arata aplicatia. `system` inseamna ca urmeaza setarile telefonului: se face
+/// neagra cand si telefonul e pe intuneric.
 enum AppThemeChoice {
-  system('system', 'Urmeaza telefonul'),
-  light('light', 'Luminos'),
-  dark('dark', 'Intunecat');
+  system('system', 'Setarile telefonului'),
+  light('light', 'Alb'),
+  dark('dark', 'Negru');
 
   const AppThemeChoice(this.value, this.label);
 
