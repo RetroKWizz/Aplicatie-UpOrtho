@@ -26,15 +26,15 @@ class CategoryChip extends StatelessWidget {
             Container(
               width: 60,
               height: 60,
-              decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
               clipBehavior: Clip.antiAlias,
               child: iconUrl == null
-                  ? const Icon(Icons.grid_view_rounded, color: AppColors.primary)
+                  ? Icon(Icons.grid_view_rounded, color: AppColors.primary)
                   : CachedNetworkImage(
                       imageUrl: iconUrl!,
                       httpHeaders: httpHeaders,
                       fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => const Icon(Icons.grid_view_rounded, color: AppColors.primary),
+                      errorWidget: (_, _, _) => Icon(Icons.grid_view_rounded, color: AppColors.primary),
                     ),
             ),
             const SizedBox(height: 6),

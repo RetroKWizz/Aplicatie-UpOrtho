@@ -99,16 +99,16 @@ class VariantOrderTable extends StatelessWidget {
           // etichetele stau langa sumele lor, in fiecare rand.
           if (!compact) ...[
             const _HeaderRow(),
-            const Divider(height: 12, color: AppColors.primaryLight),
+            Divider(height: 12, color: AppColors.primaryLight),
           ],
           for (var index = 0; index < rows.length; index++) ...[
-            if (index > 0) const Divider(height: 20, color: AppColors.primaryLight),
+            if (index > 0) Divider(height: 20, color: AppColors.primaryLight),
             _Row(row: rows[index], onQuantityChanged: onQuantityChanged, compact: compact),
           ],
-          const Divider(height: 20, color: AppColors.primaryLight),
+          Divider(height: 20, color: AppColors.primaryLight),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text('Total',
                     style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
               ),
@@ -140,9 +140,9 @@ class _HeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const style = TextStyle(
+    final style = TextStyle(
         fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, height: 1.2);
-    return const Row(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(child: Text('Atribute', style: style)),
@@ -233,7 +233,7 @@ class _LabeledAmount extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
         const SizedBox(width: 4),
         Text(amount,
@@ -344,7 +344,7 @@ class _StepperButton extends StatelessWidget {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         foregroundColor: AppColors.primary,
         disabledForegroundColor: AppColors.textSecondary.withValues(alpha: 0.4),
-        side: const BorderSide(color: AppColors.primaryLight),
+        side: BorderSide(color: AppColors.primaryLight),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );

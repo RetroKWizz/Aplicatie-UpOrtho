@@ -11,6 +11,8 @@ import 'addresses_screen.dart';
 import 'favorites_screen.dart';
 import 'ortho_club_card.dart';
 import 'password_screen.dart';
+import '../settings/appearance_screen.dart';
+import '../settings/theme_controller.dart';
 import 'payment_methods_screen.dart';
 import 'profile_screen.dart';
 
@@ -34,6 +36,7 @@ class AccountScreen extends ConsumerWidget {
     final loyaltyCards =
         ref.watch(loyaltyProvider).value ?? const <LoyaltyCard>[];
     final cards = ref.watch(paymentMethodsProvider).value;
+    final theme = ref.watch(themeControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Contul meu')),
@@ -107,6 +110,14 @@ class AccountScreen extends ConsumerWidget {
                   trailingText: cards?.length.toString(),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                  ),
+                ),
+                _MenuItem(
+                  icon: Icons.brightness_6_outlined,
+                  label: 'Aspect',
+                  trailingText: theme.label,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AppearanceScreen()),
                   ),
                 ),
                 _MenuItem(
@@ -184,7 +195,7 @@ class _MenuCard extends StatelessWidget {
                   if (item.trailingText case final String text)
                     Text(text, style: AppTypography.caption),
                   const SizedBox(width: 4),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
                     color: AppColors.textSecondary,
                   ),
@@ -217,14 +228,14 @@ class _LoyaltyCards extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Carduri si vouchere',
               style: AppTypography.sectionTitle,
             ),
             for (final card in cards)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(
+                leading: Icon(
                   Icons.card_giftcard,
                   color: AppColors.primary,
                 ),

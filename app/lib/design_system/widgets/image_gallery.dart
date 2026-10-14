@@ -150,13 +150,13 @@ class _GalleryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = item.imageUrl == null
-        ? const Center(
+        ? Center(
             child: Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary, size: 40))
         : CachedNetworkImage(
             imageUrl: item.imageUrl!,
             httpHeaders: httpHeaders,
             fit: BoxFit.contain,
-            errorWidget: (_, _, _) => const Center(
+            errorWidget: (_, _, _) => Center(
                 child: Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary, size: 40)),
           );
 

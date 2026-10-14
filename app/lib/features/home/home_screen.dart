@@ -39,7 +39,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('UpOrtho', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+        title: Text('UpOrtho', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

@@ -2,34 +2,59 @@ import 'package:flutter/material.dart';
 
 import 'colors.dart';
 
-ThemeData buildAppTheme() {
-  final scheme = ColorScheme.fromSeed(seedColor: AppColors.primary, primary: AppColors.primary, surface: AppColors.surface);
+/// Tema aplicatiei, pentru o paleta data.
+///
+/// Culorile nu se scriu aici de doua ori: tot ce tine de suprafata si de text vine
+/// din `palette`, aceeasi pe care o folosesc si ecranele prin `AppColors`.
+ThemeData buildAppTheme(AppPalette palette, Brightness brightness) {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: palette.primary,
+    brightness: brightness,
+    primary: palette.primary,
+    surface: palette.surface,
+  );
   return ThemeData(
     useMaterial3: true,
+    brightness: brightness,
     colorScheme: scheme,
-    scaffoldBackgroundColor: AppColors.background,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.background,
-      foregroundColor: AppColors.textPrimary,
+    scaffoldBackgroundColor: palette.background,
+    cardTheme: CardThemeData(
+      color: palette.surface,
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: palette.background,
+      foregroundColor: palette.textPrimary,
       elevation: 0,
       centerTitle: false,
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: palette.primary,
+        // Pe tema intunecata violetul e deschis, deci textul alb peste el s-ar citi
+        // prost: pe fundal deschis scrie cu culoarea textului de fundal.
+        foregroundColor: brightness == Brightness.dark ? const Color(0xFF1B1B23) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.surface,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      fillColor: palette.surface,
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
     ),
-    navigationBarTheme: const NavigationBarThemeData(
-      backgroundColor: AppColors.surface,
-      indicatorColor: Color(0x2278449B), // AppColors.primary cu alfa redus (indicator de tab activ)
+    dividerTheme: DividerThemeData(
+      color: brightness == Brightness.dark ? const Color(0xFF2A2A34) : const Color(0xFFEEF0F5),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: palette.surface,
+      indicatorColor: palette.primary.withValues(alpha: 0.13),
     ),
   );
 }
+
+ThemeData buildLightTheme() => buildAppTheme(AppPalette.light, Brightness.light);
+ThemeData buildDarkTheme() => buildAppTheme(AppPalette.dark, Brightness.dark);

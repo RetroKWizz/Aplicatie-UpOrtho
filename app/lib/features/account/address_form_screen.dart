@@ -205,8 +205,8 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
         ],
         if (_existing case final AddressFormValues existing)
           if (!existing.canEditName || !existing.canEditVat)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 'Numele si codul fiscal nu mai pot fi schimbate dupa emiterea '
                 'facturilor. Pentru o corectie, contacteaza-ne.',

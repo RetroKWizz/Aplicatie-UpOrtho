@@ -81,17 +81,17 @@ class ProductCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    const ColoredBox(color: AppColors.background),
+                    ColoredBox(color: AppColors.background),
                     if (imageUrl != null)
                       CachedNetworkImage(
                         imageUrl: imageUrl!,
                         httpHeaders: httpHeaders,
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) =>
-                            const Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary),
+                            Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary),
                       )
                     else
-                      const Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary),
+                      Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary),
                     if (badgeText != null)
                       Positioned(
                         top: 8,
@@ -221,7 +221,7 @@ class _RatingPill extends StatelessWidget {
           const SizedBox(width: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
                 color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ],

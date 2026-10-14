@@ -172,13 +172,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               'Tara: $country${response.profile.state == null ? '' : ', ${response.profile.state}'}',
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
         ],
         if (!response.profile.canEditVat)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 12),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               'Codul fiscal si tara nu mai pot fi schimbate dupa emiterea facturilor. '
               'Pentru o corectie, contacteaza-ne.',

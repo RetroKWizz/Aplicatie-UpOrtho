@@ -49,9 +49,9 @@ class FavoritesScreen extends ConsumerWidget {
         ),
         data: (state) {
           if (state.products.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
                   'Nu ai produse favorite inca. Apasa inimioara de pe un produs ca sa il '
                   'gasesti mai usor data viitoare.',

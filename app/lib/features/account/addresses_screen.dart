@@ -37,8 +37,8 @@ class AddressesScreen extends ConsumerWidget {
               PopupMenuItem(value: 'delivery', child: Text('Adresa de livrare')),
               PopupMenuItem(value: 'invoice', child: Text('Adresa de facturare')),
             ],
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Text('Adauga', style: TextStyle(color: AppColors.primary)),
             ),
           ),
@@ -67,9 +67,9 @@ class AddressesScreen extends ConsumerWidget {
           ),
         ),
         data: (list) => list.isEmpty
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Text('Nu ai nicio adresa salvata.', style: AppTypography.body),
                 ),
               )
@@ -210,7 +210,7 @@ class _AddressCard extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         if (address.forBilling)
-                          const _RoleTag(
+                          _RoleTag(
                             label: 'Facturare',
                             icon: Icons.receipt_long_outlined,
                             color: AppColors.primary,
@@ -235,8 +235,8 @@ class _AddressCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(top: 2),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
                 child: Icon(Icons.chevron_right, color: AppColors.textSecondary),
               ),
             ],

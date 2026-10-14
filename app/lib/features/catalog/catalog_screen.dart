@@ -102,7 +102,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Catalog', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+        title: Text('Catalog', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
       ),
       body: Column(
         children: [

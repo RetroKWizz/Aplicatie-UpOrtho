@@ -43,9 +43,9 @@ class _SheetShell extends StatelessWidget {
       constraints: heightFactor == null
           ? null
           : BoxConstraints(maxHeight: media.size.height * heightFactor!),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(top: false, child: child),
     );
@@ -90,7 +90,7 @@ class _FilterSheet extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
             child: Row(
               children: [
-                const Expanded(child: Text('Filtre', style: AppTypography.title)),
+                Expanded(child: Text('Filtre', style: AppTypography.title)),
                 if (selection.activeCount > 0)
                   TextButton(
                     onPressed: () => notifier.setFilters(selection.cleared()),
@@ -125,8 +125,8 @@ class _FilterSheet extends ConsumerWidget {
                         notifier.setFilters(selection.toggleValue(attribute.id, valueId)),
                   ),
                 if (filters.attributes.isEmpty && !filters.price.usable)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
                     child: Text(
                       'Nu exista filtre pentru aceasta lista de produse.',
                       textAlign: TextAlign.center,
@@ -468,15 +468,15 @@ class _SortSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Center(child: _Grabber()),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: Align(alignment: Alignment.centerLeft, child: Text('Sorteaza', style: AppTypography.title)),
           ),
           for (final option in filters.sorts)
             ListTile(
               title: Text(option.name, style: AppTypography.body),
               trailing: option.key == activeKey
-                  ? const Icon(Icons.check, color: AppColors.primary)
+                  ? Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () {
                 Navigator.of(context).pop();

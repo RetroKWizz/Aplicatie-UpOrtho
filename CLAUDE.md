@@ -143,6 +143,19 @@ produsul n-are recenzii. Recenziile interne nu se numara nicaieri.
 **Regula de business**: aplicatia nu face niciodata aritmetica pe bani — preturile vin
 preformatate de la server. (Neexercitat inca; conteaza de la Faza 2.)
 
+**Doua teme: luminoasa si intunecata, plus "urmeaza telefonul".** Culorile care tin de
+suprafata si de text vin dintr-o paleta (`AppPalette.light` / `AppPalette.dark`) pusa
+de `UpOrthoApp` in `builder`, deasupra tuturor rutelor, si citita de ecrane prin
+`AppColors`. **Sunt getteri, nu constante**: o constanta n-ar putea sa se schimbe la
+trecerea pe intuneric, iar alternativa - paleta prin `context` in peste doua sute de
+locuri - ar fi insemnat rescrierea fiecarui ecran. De aceea `AppTypography` e tot
+getteri, si de aceea `const` lipseste din expresiile care folosesc culori de tema.
+`accent`, `success` si `danger` raman constante: sunt culori cu INTELES (oferta, bine,
+eroare), iar intelesul nu se schimba cu tema. **Pe intuneric violetul se deschide** la
+`#B079D6` (nuanta din sigla Ortho Club): `#78449B` pe fundal aproape negru nu trece
+pragul de contrast. Alegerea se tine pe telefon (`flutter_secure_storage`), nu in cont -
+doi oameni pe acelasi cont de cabinet pot avea fiecare ce vor.
+
 **Culori de brand** (citite din stylesheet-ul public uportho.ro — nu le "corecta" din
 ghiceala): primary `#78449B`, secondary `#BA9FCC`, background `#F9FAFE`,
 text `#232F3E`. Accent `#F28C28` e o culoare functionala deliberata (oferte), nu vine

@@ -44,9 +44,9 @@ class PaymentMethodsScreen extends ConsumerWidget {
           ),
         ),
         data: (list) => list.isEmpty
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Text(
                     'Nu ai niciun card salvat.\nUn card se salveaza cand platesti cu el.',
                     textAlign: TextAlign.center,
@@ -62,8 +62,8 @@ class PaymentMethodsScreen extends ConsumerWidget {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: _CardTile(card: card),
                     ),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       'Cardurile se salveaza cand platesti cu ele si se sterg din contul '
                       'de pe site. Datele cardului nu trec niciodata prin aplicatie.',
@@ -98,7 +98,7 @@ class _CardTile extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.credit_card, size: 20, color: AppColors.primary),
+              child: Icon(Icons.credit_card, size: 20, color: AppColors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(

@@ -49,7 +49,7 @@ class DescriptionView extends StatelessWidget {
 
   final List<DescriptionBlockData> blocks;
 
-  static const _headingStyle = TextStyle(
+  static TextStyle get _headingStyle => TextStyle(
     fontSize: 17,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
@@ -91,7 +91,7 @@ class DescriptionView extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('•', style: AppTypography.body),
+                Text('•', style: AppTypography.body),
                 const SizedBox(width: 8),
                 // Expanded: fara el, un element de lista lung ar impinge randul
                 // peste latimea disponibila si ar da RenderFlex overflow pe un

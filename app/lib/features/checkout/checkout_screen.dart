@@ -293,7 +293,7 @@ class _Section extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 16,
               color: AppColors.textPrimary,
@@ -773,7 +773,7 @@ class _SummaryBlock extends StatelessWidget {
             Expanded(
               child: Text(
                 label.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.6,
@@ -798,7 +798,7 @@ class _SummaryBlock extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 1),
             child: Text(subtitle,
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           ),
       ],
     );

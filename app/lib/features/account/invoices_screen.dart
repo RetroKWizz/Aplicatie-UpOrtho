@@ -77,7 +77,7 @@ class _InvoiceTile extends StatelessWidget {
               children: [
                 Text(invoice.total.formatted,
                     style: const TextStyle(fontWeight: FontWeight.w700)),
-                const Icon(Icons.picture_as_pdf_outlined, size: 18, color: AppColors.primary),
+                Icon(Icons.picture_as_pdf_outlined, size: 18, color: AppColors.primary),
               ],
             ),
       onTap: busy ? null : onTap,

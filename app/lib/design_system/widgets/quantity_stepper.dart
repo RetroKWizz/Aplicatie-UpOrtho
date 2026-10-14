@@ -48,7 +48,7 @@ class QuantityStepper extends StatelessWidget {
             child: Text(
               '$quantity',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
             ),
           ),
           _StepButton(

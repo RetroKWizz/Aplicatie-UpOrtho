@@ -60,9 +60,9 @@ class _OrderBody extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(order.stateLabel,
-                style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
+                style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
             if (order.date case final String date)
-              Text(date, style: const TextStyle(color: AppColors.textSecondary)),
+              Text(date, style: TextStyle(color: AppColors.textSecondary)),
           ],
         ),
         const SizedBox(height: 16),
@@ -107,7 +107,7 @@ class _OrderBody extends ConsumerWidget {
               trailing: downloads.isBusy(invoice.id)
                   ? const SizedBox(
                       height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary),
+                  : Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary),
               onTap: () => ref.read(invoiceDownloadProvider.notifier).open(
                     invoiceId: invoice.id,
                     url: invoice.pdfUrl,
@@ -157,7 +157,7 @@ class _Block extends StatelessWidget {
           Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
           for (final line in lines)
             if (line.isNotEmpty)
-              Text(line, style: const TextStyle(color: AppColors.textSecondary)),
+              Text(line, style: TextStyle(color: AppColors.textSecondary)),
         ],
       ),
     );

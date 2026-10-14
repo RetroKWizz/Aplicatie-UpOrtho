@@ -55,7 +55,7 @@ class ProductScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Produs',
+        title: Text('Produs',
             style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
         actions: [
           IconButton(
@@ -389,7 +389,7 @@ class _PriceBlock extends StatelessWidget {
         ),
         if (price.withVat) ...[
           const SizedBox(height: 4),
-          const Text('Taxe incluse', style: AppTypography.caption),
+          Text('Taxe incluse', style: AppTypography.caption),
         ],
       ],
     );

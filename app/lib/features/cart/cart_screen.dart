@@ -156,7 +156,7 @@ class _CartLineTile extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(variant,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ),
                   const SizedBox(height: 4),
                   // Pretul pe bucata, cu cel dinainte de reducere taiat langa el -
@@ -164,11 +164,11 @@ class _CartLineTile extends StatelessWidget {
                   Row(
                     children: [
                       Text('${line.unitPrice.formatted} / buc',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       if (line.unitPrice.listFormatted case final String struck) ...[
                         const SizedBox(width: 6),
                         Text(struck,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                               decoration: TextDecoration.lineThrough,
@@ -192,7 +192,7 @@ class _CartLineTile extends StatelessWidget {
                         onChanged: onChanged,
                       ),
                       Text(line.subtotal.formatted,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                     ],
                   ),
@@ -212,7 +212,7 @@ class _LinePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary, size: 24),
     );
   }
@@ -351,7 +351,7 @@ class _EmptyCart extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.shopping_bag_outlined, size: 56, color: AppColors.textSecondary),
+          Icon(Icons.shopping_bag_outlined, size: 56, color: AppColors.textSecondary),
           const SizedBox(height: 12),
           const Text('Cosul este gol.'),
           const SizedBox(height: 12),

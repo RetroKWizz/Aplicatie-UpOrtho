@@ -93,7 +93,7 @@ class DocumentList extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
-            leading: const Icon(Icons.description_outlined, color: AppColors.primary),
+            leading: Icon(Icons.description_outlined, color: AppColors.primary),
             title: Text(item.name, style: AppTypography.body),
             subtitle: item.fileName == null || item.fileName == item.name
                 ? null
@@ -104,7 +104,7 @@ class DocumentList extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
+                : Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
             // Randul ocupat nu mai porneste inca o descarcare. (Controllerul opreste
             // oricum a doua apasare; aici e ca sa se si vada ca nu are rost.)
             onTap: item.busy ? null : () => onOpen(item),

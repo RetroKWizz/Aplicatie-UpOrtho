@@ -134,7 +134,7 @@ class _ExpiredCard extends StatelessWidget {
             children: [
               const _ClubMark(size: 26, muted: true),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'ORTHO CLUB',
                 style: TextStyle(
                   color: AppColors.textSecondary,
@@ -166,7 +166,7 @@ class _ExpiredCard extends StatelessWidget {
             style: AppTypography.body.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Pana la reinnoire vezi preturile publice, nu pe cele de club.',
             style: AppTypography.caption,
           ),

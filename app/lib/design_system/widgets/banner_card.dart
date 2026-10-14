@@ -45,7 +45,7 @@ class BannerCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const DecoratedBox(
+                DecoratedBox(
                   decoration: BoxDecoration(gradient: AppColors.heroGradient),
                 ),
                 if (imageUrl != null)
