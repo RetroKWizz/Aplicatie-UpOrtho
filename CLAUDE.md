@@ -245,6 +245,10 @@ nimic. Daca magazinul primeste vreodata wishlist-ul, de acolo se trece pe
 `WebsiteSale._prepare_checkout_page_values`: la facturare intra contactele `invoice` si
 `other`, la livrare `delivery` si `other`, iar partenerul principal al contului intra
 in amandoua. Contul le arata grupat, checkout-ul are cate un selector pentru fiecare.
+In cont fiecare lista are **titlu mare cu iconita si numar**, iar fiecare adresa
+poarta **etichetele rolurilor ei** — cu titluri mici si gri nu se vedea in care lista
+esti, iar adresa principala, prezenta in amandoua, parea o dublura. Etichetele nu se
+deosebesc doar prin culoare: fiecare are si iconita, si textul ei.
 
 **Lista de adrese are o singura sursa**, `address._account_addresses()`: partenerul
 comercial, copiii lui **si** partenerii cu `access_for_user_id` — campul prin care

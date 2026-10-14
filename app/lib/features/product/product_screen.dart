@@ -152,6 +152,10 @@ class _ProductBody extends ConsumerWidget {
 
     final descriptionBlocks = [for (final block in detail.description) describeBlock(block)];
     final availabilityMessage = detail.availability?.message;
+    // Cantitatea dupa care se evidentiaza pragul: suma pe TOT tabelul de variante,
+    // nu pe rand - asa aplica si magazinul pragurile (CLAUDE.md, gotcha 8).
+    final chosenQuantity =
+        state.quantities.values.fold<int>(0, (total, qty) => total + qty);
 
     // Filele de jos, in ordinea de pe site (Descriere | Specificatii | Documente |
     // Recenzii). Una fara continut nu ajunge in lista, deci nu exista nici ca
@@ -188,6 +192,7 @@ class _ProductBody extends ConsumerWidget {
           title: table.title,
           note: [for (final block in table.note) describeBlock(block)],
           entries: _tiers(table.entries),
+          highlightedIndex: highlightedTierIndex(table.entries, chosenQuantity),
         ),
       // Tabelul de comanda pe variante inlocuieste selectorul: cand fiecare varianta
       // are randul ei, cu pretul si cantitatea ei, selectorul de atribute n-ar mai
@@ -235,6 +240,25 @@ class _ProductBody extends ConsumerWidget {
           PriceTierEntry(label: tier.label, priceFormatted: tier.price.formatted),
       ];
 
+}
+
+/// Pragul care se aplica la cantitatea aleasa: cel mai mare `min_qty` care nu
+/// depaseste cantitatea. Comparatie pe cantitati, nu pe bani - aplicatia tot nu
+/// calculeaza niciun pret, doar muta evidentierea pe randul pe care il foloseste
+/// deja serverul.
+///
+/// Fara nicio cantitate aleasa ramane primul prag, pretul de la o bucata.
+int highlightedTierIndex(List<PriceTier> tiers, int quantity) {
+  var index = 0;
+  var matched = -1;
+  for (var i = 0; i < tiers.length; i++) {
+    final minQty = tiers[i].minQty;
+    if (minQty <= quantity && minQty > matched) {
+      matched = minQty;
+      index = i;
+    }
+  }
+  return index;
 }
 
 /// Iconita desenata pentru fiecare valoare din lista fixa a Odoo. E rezerva: cand

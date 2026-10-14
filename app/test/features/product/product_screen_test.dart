@@ -13,6 +13,7 @@ import 'package:uportho_app/design_system/widgets/brand_card.dart';
 import 'package:uportho_app/design_system/widgets/description_view.dart';
 import 'package:uportho_app/design_system/widgets/document_list.dart';
 import 'package:uportho_app/design_system/widgets/image_gallery.dart';
+import 'package:uportho_app/api/models/price_tier.dart';
 import 'package:uportho_app/design_system/widgets/price_tier_table.dart';
 import 'package:uportho_app/design_system/widgets/product_card.dart';
 import 'package:uportho_app/design_system/widgets/product_tabs.dart';
@@ -383,6 +384,53 @@ void main() {
         {'variant_id': 4242, 'add_qty': 1}
       ]
     });
+  });
+
+  testWidgets('pragul evidentiat urmeaza cantitatea cumulata, nu ramane pe primul',
+      (tester) async {
+    // Pragurile se aplica pe cantitatea CUMULATA a tabelului de variante (CLAUDE.md,
+    // gotcha 8): doua bucati pe un rand plus una pe altul inseamna trei, deci pragul
+    // "3+". Inainte, tabelul ramanea evidentiat pe "1+" orice ai fi comandat si
+    // arata un pret care nu mai era cel aplicat.
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/products/101',
+        ApiResponse(status: 200, json: fullProductJson()));
+    transport.when('POST', '/api/app/v1/products/101/prices',
+        ApiResponse(status: 200, json: {'lines': <Map<String, dynamic>>[], 'total': priceJson()}));
+
+    await pumpProduct(tester, transport: transport, surface: const Size(500, 4000));
+
+    PriceTierCell cellFor(String label) => tester
+        .widgetList<PriceTierCell>(find.byType(PriceTierCell))
+        .firstWhere((cell) => cell.entry.label == label);
+
+    expect(cellFor('1+').highlighted, isTrue);
+
+    await tester.tap(find.byIcon(Icons.add).at(0));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.add).at(0));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.add).at(1));
+    await tester.pump(quantityDebounce + const Duration(milliseconds: 50));
+
+    expect(cellFor('3+').highlighted, isTrue);
+    expect(cellFor('1+').highlighted, isFalse);
+  });
+
+  test('pragul aplicat e cel mai mare care nu depaseste cantitatea', () {
+    const tiers = [
+      PriceTier(minQty: 1, label: '1+', price: Price(amount: 1, currency: 'RON', formatted: '1')),
+      PriceTier(minQty: 3, label: '3+', price: Price(amount: 1, currency: 'RON', formatted: '1')),
+      PriceTier(minQty: 10, label: '10+', price: Price(amount: 1, currency: 'RON', formatted: '1')),
+    ];
+
+    // Fara nimic ales ramane pretul de la o bucata, nu "niciun prag".
+    expect(highlightedTierIndex(tiers, 0), 0);
+    expect(highlightedTierIndex(tiers, 2), 0);
+    expect(highlightedTierIndex(tiers, 3), 1);
+    expect(highlightedTierIndex(tiers, 9), 1);
+    expect(highlightedTierIndex(tiers, 100), 2);
+    expect(highlightedTierIndex(const <PriceTier>[], 5), 0);
   });
 
   testWidgets('cu tabel de variante, butonul trimite toate randurile comandate deodata',
