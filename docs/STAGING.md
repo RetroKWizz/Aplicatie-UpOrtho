@@ -73,7 +73,23 @@ Cont de test, portal obisnuit, creat special — **nu e contul niciunui client r
 
 ## Unde se editeaza continutul
 
-**Site web** (aplicatia) -> bara de sus -> **Aplicatie mobila** -> **Bannere**.
+**Site web** (aplicatia) -> bara de sus -> **Configurare** -> **Aplicatie mobila**:
+
+| Meniu | Ce face |
+|---|---|
+| **Bannere** | Caruselul de sus (`Plasare = Hero`) si randul "Oferte" de jos (`Plasare = Promo`). Titlu, subtitlu, text de buton, imagine, link (categorie / URL / fara), ordine, activ intre doua date, website. Bifa **"Imaginea contine deja textul"** = aplicatia arata doar poza, fara sa scrie nimic peste ea. |
+| **Sectiuni pe Acasa** | Randurile de produse. Titlu, de unde vin produsele (o categorie / alese de mana / cele cu eticheta de oferta), cate, ordine, perioada, website. |
+| **Beneficii** | Blocul de avantaje de pe pagina de produs. |
+
+Pe **fisa categoriei** (Site web -> eCommerce -> Categorii), grupul "Aplicatie mobila":
+bifa **Vizibila pe Acasa**, **Ordine pe Acasa**, **Iconita (app)**. Fara iconita proprie
+se foloseste poza categoriei din magazin.
+
+Pe **fisa produsului**, grupul "Aplicatie mobila": eticheta de rezerva (`app_badge_*`).
+Eticheta reala vine din eticheta temei (`dr_label_id`), adica se pune ca pe site.
+
+Nimic din toate astea nu cere release in store.
+
 
 Modulul nu are dala proprie in grila de aplicatii (`'application': False` in manifest).
 Campurile de categorie si de eticheta de produs apar direct pe fisele respective,
@@ -358,3 +374,50 @@ care ascunde doar liniile de transport adevarate. Nu e un defect al aplicatiei.
   vedea danila. Asta e schimbarea care ramane in repo-ul Terrabit.
 - Cum intra mai departe catre productie — prin fluxul obisnuit al Terrabit, dupa ce
   danila se uita peste el.
+
+## Unde am ramas — 14 octombrie 2026
+
+Tot ce urmeaza e **in repo-ul nostru** (`main`) si in `uportho_app.tar.gz`, deci se
+reface pe orice build nou cu reteta de mai sus. Nimic nu depinde de build-ul de staging.
+
+**Modul Odoo — ce s-a adaugat in octombrie**
+
+- **Filtre si sortare in catalog**: `/products` accepta `attribute_value=<attrId>-<valId>`
+  (repetabil), `min_price`, `max_price`, `sort`, si intoarce blocul `filters` cu
+  numaratori contextuale. Sectiunile se ordoneaza dupa cate produse acopera atributul.
+- **Ortho Club in cont**: blocul `club` din `/account/profile`, calculat din
+  `has_valid_subscription` + `subscription_end_date` (`terrabit_subscription_extension`)
+  **comparate cu ziua curenta** — bifa nu se stinge singura; pe staging, 882 de parteneri
+  o aveau pusa si 56 aveau data trecuta.
+- **Iconita categoriei** cade pe poza din magazin (`image_1920`) cand `app_home_icon` e gol.
+- **Economia din cos**: `savings` in `/cart`, adunat din diferentele de pe randuri.
+- **Sectiuni pe Acasa**: modelul `uportho.app.section` (tabela noua -> `odoo-update`
+  obligatoriu dupa copiere).
+- **Banner cu textul in imagine**: campul `image_only` pe `uportho.app.banner`.
+- **Cardurile salvate**: `GET /payment-methods` (pe magazin: 1017 carduri, 414 cabinete).
+
+**Aplicatie — ce s-a schimbat**
+
+- Acasa cu **carusel** de bannere (puncte doar cand sunt mai multe) si randuri de produse.
+- Catalog cu **Filtre / Sorteaza**, glisor de pret pe **scara logaritmica** (catalogul
+  real merge de la 2 la 322.500 lei), liste lungi strunse la 8 valori.
+- Cont refacut: card de membru Ortho Club, randuri cu numere, adrese cu etichete de rol,
+  **Cardurile mele**, **Aspect**.
+- Cos cu "Ai economisit" si rezumat lipit jos; **finalizare pe pasi** (Adrese / Livrare / Plata).
+- **Doua teme** (Alb / Negru / Setarile telefonului), paleta ca `InheritedWidget`.
+- Bara de jos **plutitoare, pe sticla**.
+
+**Verificat pe staging, pe date reale**: comanda **CMD44069** (297,01 lei, ridicare din
+sediu, transfer bancar, livrare la "Cabinet Test Livrare", factura pe "App Test UpOrtho"),
+tranzactie `pending` post-procesata, comanda iesita din ciorna.
+
+**Teste**: 445 Odoo, 410 Flutter, `flutter analyze` curat.
+
+**Ramas de facut**, in ordinea in care merita luat:
+1. Providerii de plata 5, 35, 30 sunt in **mod test** pe staging — de hotarat daca raman.
+2. Doua liste de preturi poarta `is_public_pricelist` (45 in lei, 76 in euro pentru
+   site-ul .com). Azi castiga cea in lei (secventa 1), deci nu arde, dar e la noroc.
+3. Reparatia de o linie in tema Terrabit (`theme_prime.product_extra_fields`).
+4. Modulul e **copie temporara** pe staging; permanent inseamna sa intre in repo-ul lor.
+5. Notificari push (modelul si rutele exista, trimiterea nu).
+6. `docs/DE-FACUT.md` inainte de lansare, apoi TestFlight si App Store.
