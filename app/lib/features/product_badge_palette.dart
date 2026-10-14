@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
+
 import '../api/models/product_badge.dart';
 import '../design_system/colors.dart';
+
+/// Violetul de brand, fix: o eticheta de produs are aceeasi culoare in ambele teme,
+/// ca si pe site.
+const _brandPurple = Color(0xFF78449B);
 
 /// Culorile unei etichete de produs.
 ///
@@ -18,7 +23,7 @@ Color productBadgeColor(ProductBadgeColor color) => switch (color) {
       ProductBadgeColor.orange => AppColors.accent,
       ProductBadgeColor.green => AppColors.success,
       ProductBadgeColor.blue => const Color(0xFF2E75D9),
-      ProductBadgeColor.purple => AppColors.primary,
+      ProductBadgeColor.purple => _brandPurple,
       ProductBadgeColor.red => AppColors.danger,
     };
 

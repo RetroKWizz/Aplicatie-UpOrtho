@@ -146,10 +146,14 @@ preformatate de la server. (Neexercitat inca; conteaza de la Faza 2.)
 **Doua teme: luminoasa si intunecata, plus "urmeaza telefonul".** Culorile care tin de
 suprafata si de text vin dintr-o paleta (`AppPalette.light` / `AppPalette.dark`) pusa
 de `UpOrthoApp` in `builder`, deasupra tuturor rutelor, si citita de ecrane prin
-`AppColors`. **Sunt getteri, nu constante**: o constanta n-ar putea sa se schimbe la
-trecerea pe intuneric, iar alternativa - paleta prin `context` in peste doua sute de
-locuri - ar fi insemnat rescrierea fiecarui ecran. De aceea `AppTypography` e tot
-getteri, si de aceea `const` lipseste din expresiile care folosesc culori de tema.
+`AppColors`. **Paleta e un `InheritedWidget` (`AppThemeScope`), nu o globala**, si se
+citeste cu `context.colors.surface`. Cu o globala, la schimbarea temei `Scaffold` si
+`AppBar` se faceau intunecate (ele asculta `Theme`) dar cardurile si textele scrise de
+noi ramaneau pe culorile cu care fusesera desenate - ecranul iesea jumatate luminos,
+jumatate intunecat; s-a si intamplat, pe simulator. Flutter reconstruieste doar ce
+depinde de un InheritedWidget schimbat, deci asta e singura cale. Din acelasi motiv
+`AppTypography.body(context)` ia contextul, si `const` lipseste din expresiile care
+folosesc culori de tema.
 `accent`, `success` si `danger` raman constante: sunt culori cu INTELES (oferta, bine,
 eroare), iar intelesul nu se schimba cu tema. **Pe intuneric violetul se deschide** la
 `#B079D6` (nuanta din sigla Ortho Club): `#78449B` pe fundal aproape negru nu trece

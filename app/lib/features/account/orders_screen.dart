@@ -88,7 +88,7 @@ class OrderTile extends StatelessWidget {
           Text(order.total.formatted, style: const TextStyle(fontWeight: FontWeight.w700)),
           if (order.invoiceCount > 0)
             Text('cu factura',
-                style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                style: TextStyle(fontSize: 11, color: context.colors.textSecondary)),
         ],
       ),
       onTap: onTap,

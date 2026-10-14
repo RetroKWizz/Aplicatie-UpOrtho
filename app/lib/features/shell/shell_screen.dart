@@ -99,7 +99,7 @@ class _GlassBar extends StatelessWidget {
             border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.textPrimary.withValues(alpha: 0.10),
+                color: context.colors.textPrimary.withValues(alpha: 0.10),
                 blurRadius: 20,
                 offset: const Offset(0, 6),
               ),
@@ -139,7 +139,7 @@ class _GlassTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.textSecondary;
+    final color = selected ? context.colors.primary : context.colors.textSecondary;
     final icon = Icon(selected ? tab.activeIcon : tab.icon, size: 22, color: color);
     return Semantics(
       selected: selected,
@@ -156,7 +156,7 @@ class _GlassTab extends StatelessWidget {
             decoration: BoxDecoration(
               // Pastila sub tabul activ: se vede de la distanta unde esti, fara sa
               // depinzi de deosebirea dintre doua nuante de violet.
-              color: selected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
+              color: selected ? context.colors.primary.withValues(alpha: 0.12) : Colors.transparent,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Column(

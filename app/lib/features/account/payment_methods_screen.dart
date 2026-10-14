@@ -32,7 +32,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                 Text(
                   error is ApiException ? error.message : 'Cardurile nu s-au putut incarca.',
                   textAlign: TextAlign.center,
-                  style: AppTypography.body.copyWith(color: AppColors.danger),
+                  style: AppTypography.body(context).copyWith(color: AppColors.danger),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
@@ -50,7 +50,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                   child: Text(
                     'Nu ai niciun card salvat.\nUn card se salveaza cand platesti cu el.',
                     textAlign: TextAlign.center,
-                    style: AppTypography.body,
+                    style: AppTypography.body(context),
                   ),
                 ),
               )
@@ -67,7 +67,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                     child: Text(
                       'Cardurile se salveaza cand platesti cu ele si se sterg din contul '
                       'de pe site. Datele cardului nu trec niciodata prin aplicatie.',
-                      style: AppTypography.caption,
+                      style: AppTypography.caption(context),
                     ),
                   ),
                 ],
@@ -85,7 +85,7 @@ class _CardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -95,10 +95,10 @@ class _CardTile extends StatelessWidget {
               width: 44,
               height: 32,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
+                color: context.colors.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.credit_card, size: 20, color: AppColors.primary),
+              child: Icon(Icons.credit_card, size: 20, color: context.colors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -106,9 +106,9 @@ class _CardTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(card.name,
-                      style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
+                      style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
-                  Text(card.provider, style: AppTypography.caption),
+                  Text(card.provider, style: AppTypography.caption(context)),
                 ],
               ),
             ),

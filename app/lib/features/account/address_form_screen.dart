@@ -210,7 +210,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
               child: Text(
                 'Numele si codul fiscal nu mai pot fi schimbate dupa emiterea '
                 'facturilor. Pentru o corectie, contacteaza-ne.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
               ),
             ),
         _field('street', 'Strada si numarul'),
@@ -250,7 +250,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           helperText: helper,
           errorText: _badFields.contains(name) ? 'Verifica acest camp' : null,
           filled: true,
-          fillColor: locked ? AppColors.background : AppColors.surface,
+          fillColor: locked ? context.colors.background : context.colors.surface,
           border: const OutlineInputBorder(),
         ),
       ),
@@ -266,7 +266,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
             labelText: _required.contains('country_id') ? 'Tara *' : 'Tara',
             errorText: _badFields.contains('country_id') ? 'Alege tara' : null,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: context.colors.surface,
             border: const OutlineInputBorder(),
           ),
           items: [
@@ -294,7 +294,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
             labelText: _required.contains('state_id') ? 'Judet *' : 'Judet',
             errorText: _badFields.contains('state_id') ? 'Alege judetul' : null,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: context.colors.surface,
             border: const OutlineInputBorder(),
           ),
           items: [
@@ -319,7 +319,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                 : null,
             errorText: _badFields.contains('city_id') ? 'Alege orasul' : null,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: context.colors.surface,
             border: const OutlineInputBorder(),
           ),
           items: [

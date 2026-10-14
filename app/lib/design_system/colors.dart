@@ -62,33 +62,37 @@ class AppPalette {
   );
 }
 
-/// Culorile folosite de ecrane.
+/// Paleta temei curente, pusa in arbore de `UpOrthoApp`.
 ///
-/// Cele care tin de suprafata si de text vin din paleta temei curente, pusa de
-/// `UpOrthoApp` inainte sa se construiasca orice ecran (`AppColors.use`). Sunt
-/// getteri, nu constante: o constanta n-ar putea sa se schimbe la trecerea pe
-/// intuneric, iar alternativa — a trece paleta prin `context` in toate cele peste
-/// doua sute de locuri — ar fi insemnat sa rescriem fiecare ecran.
-///
-/// `accent`, `success` si `danger` raman fixe: sunt culori cu INTELES (oferta, bine,
-/// eroare), nu culori de fundal, iar intelesul nu se schimba cu tema.
+/// E un `InheritedWidget`, nu o variabila globala, si asta e tot rostul lui: doar
+/// asa Flutter stie sa reconstruiasca ecranele cand se schimba tema. Cu o globala,
+/// `Scaffold` si `AppBar` se faceau intunecate (ele asculta `Theme`), dar cardurile
+/// si textele scrise de noi ramaneau pe culorile cu care fusesera desenate - s-a si
+/// intamplat, ecranul iesea jumatate luminos, jumatate intunecat.
+class AppThemeScope extends InheritedWidget {
+  const AppThemeScope({super.key, required this.palette, required super.child});
+
+  final AppPalette palette;
+
+  static AppPalette of(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<AppThemeScope>();
+    // Fara scope (teste de widget care pun un widget singur intr-un MaterialApp),
+    // paleta luminoasa e raspunsul corect: e tema implicita a aplicatiei.
+    return scope?.palette ?? AppPalette.light;
+  }
+
+  @override
+  bool updateShouldNotify(AppThemeScope oldWidget) => oldWidget.palette != palette;
+}
+
+/// `context.colors.surface` in loc de a cara paleta prin constructori.
+extension AppPaletteContext on BuildContext {
+  AppPalette get colors => AppThemeScope.of(this);
+}
+
+/// Culorile cu INTELES, aceleasi in ambele teme: rosu inseamna eroare si pe luminos,
+/// si pe intunecat. Nu sunt culori de fundal, deci nu tin de tema.
 abstract final class AppColors {
-  static AppPalette _palette = AppPalette.light;
-
-  /// Schimba paleta. O cheama doar radacina aplicatiei, inainte de a construi arborele.
-  static void use(AppPalette palette) => _palette = palette;
-
-  static AppPalette get palette => _palette;
-
-  static Color get primary => _palette.primary;
-  static Color get primaryDark => _palette.primaryDark;
-  static Color get primaryLight => _palette.primaryLight;
-  static Color get background => _palette.background;
-  static Color get surface => _palette.surface;
-  static Color get textPrimary => _palette.textPrimary;
-  static Color get textSecondary => _palette.textSecondary;
-  static LinearGradient get heroGradient => _palette.heroGradient;
-
   /// Portocaliu, rol FUNCTIONAL: oferte/etichete. Nu vine de pe site — site-ul nu
   /// defineste un accent.
   static const accent = Color(0xFFF28C28);

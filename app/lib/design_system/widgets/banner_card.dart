@@ -46,7 +46,7 @@ class BannerCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 DecoratedBox(
-                  decoration: BoxDecoration(gradient: AppColors.heroGradient),
+                  decoration: BoxDecoration(gradient: context.colors.heroGradient),
                 ),
                 if (imageUrl != null)
                   CachedNetworkImage(
@@ -118,7 +118,7 @@ class BannerCard extends StatelessWidget {
                                     onPressed: onTap,
                                     style: FilledButton.styleFrom(
                                       backgroundColor: Colors.white,
-                                      foregroundColor: AppColors.primary,
+                                      foregroundColor: context.colors.primary,
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 16,
                                         vertical: hero ? 12 : 6,

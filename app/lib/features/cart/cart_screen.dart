@@ -156,7 +156,7 @@ class _CartLineTile extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(variant,
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: context.colors.textSecondary)),
                     ),
                   const SizedBox(height: 4),
                   // Pretul pe bucata, cu cel dinainte de reducere taiat langa el -
@@ -164,13 +164,13 @@ class _CartLineTile extends StatelessWidget {
                   Row(
                     children: [
                       Text('${line.unitPrice.formatted} / buc',
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: context.colors.textSecondary)),
                       if (line.unitPrice.listFormatted case final String struck) ...[
                         const SizedBox(width: 6),
                         Text(struck,
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                               decoration: TextDecoration.lineThrough,
                             )),
                       ],
@@ -193,7 +193,7 @@ class _CartLineTile extends StatelessWidget {
                       ),
                       Text(line.subtotal.formatted,
                           style: TextStyle(
-                              fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                              fontWeight: FontWeight.w700, color: context.colors.textPrimary)),
                     ],
                   ),
                 ],
@@ -213,7 +213,7 @@ class _LinePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary, size: 24),
+      child: Icon(Icons.inventory_2_outlined, color: context.colors.textSecondary, size: 24),
     );
   }
 }
@@ -257,14 +257,14 @@ class _FreeDeliveryBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final reached = progress.reached;
     return Card(
-      color: reached ? AppColors.success.withValues(alpha: 0.10) : AppColors.primaryLight.withValues(alpha: 0.20),
+      color: reached ? AppColors.success.withValues(alpha: 0.10) : context.colors.primaryLight.withValues(alpha: 0.20),
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Icon(reached ? Icons.local_shipping : Icons.local_shipping_outlined,
-                color: reached ? AppColors.success : AppColors.primary),
+                color: reached ? AppColors.success : context.colors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -289,7 +289,7 @@ class _CartSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       elevation: 8,
-      color: AppColors.surface,
+      color: context.colors.surface,
       child: SafeArea(
         top: false,
         child: Padding(
@@ -330,7 +330,7 @@ class _SummaryRow extends StatelessWidget {
     final style = TextStyle(
       fontWeight: emphasized ? FontWeight.w700 : FontWeight.w400,
       fontSize: emphasized ? 18 : 14,
-      color: AppColors.textPrimary,
+      color: context.colors.textPrimary,
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -351,7 +351,7 @@ class _EmptyCart extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shopping_bag_outlined, size: 56, color: AppColors.textSecondary),
+          Icon(Icons.shopping_bag_outlined, size: 56, color: context.colors.textSecondary),
           const SizedBox(height: 12),
           const Text('Cosul este gol.'),
           const SizedBox(height: 12),

@@ -36,9 +36,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('UpOrtho', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.primary)),
+              Text('UpOrtho', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: context.colors.primary)),
               const SizedBox(height: 6),
-              Text('Intra in contul tau de client', style: AppTypography.caption),
+              Text('Intra in contul tau de client', style: AppTypography.caption(context)),
               const SizedBox(height: 28),
               TextField(
                 controller: _email,

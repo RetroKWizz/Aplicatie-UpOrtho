@@ -39,7 +39,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('UpOrtho', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+        title: Text('UpOrtho', style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.primary)),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -258,7 +258,7 @@ class _HeroCarouselState extends State<_HeroCarousel> {
                   width: index == _page ? 18 : 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: index == _page ? AppColors.primary : AppColors.primaryLight,
+                    color: index == _page ? context.colors.primary : context.colors.primaryLight,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),

@@ -65,13 +65,11 @@ void main() {
           greaterThan(AppPalette.dark.surface.computeLuminance()));
     });
 
-    test('culorile cu inteles raman aceleasi in ambele teme', () {
-      // Rosu inseamna eroare si pe luminos, si pe intunecat.
-      AppColors.use(AppPalette.light);
-      final lightDanger = AppColors.danger;
-      AppColors.use(AppPalette.dark);
-      expect(AppColors.danger, lightDanger);
-      AppColors.use(AppPalette.light);
+    test('culorile cu inteles nu tin de paleta', () {
+      // Rosu inseamna eroare si pe luminos, si pe intunecat: `danger` nici nu exista
+      // in paleta, e o constanta.
+      expect(AppColors.danger, const Color(0xFFD93B3B));
+      expect(AppColors.success, const Color(0xFF2E9E5B));
     });
 
     test('tema de Flutter urmeaza paleta, nu o a doua lista de culori', () {
@@ -100,5 +98,33 @@ void main() {
     await tester.pump();
 
     expect(c.read(themeControllerProvider), AppThemeChoice.dark);
+  });
+
+  testWidgets('ecranele se redeseneaza cand se schimba tema, nu raman pe culorile vechi',
+      (tester) async {
+    // Cu o paleta globala, Scaffold-ul se facea intunecat (el asculta Theme) dar
+    // cardurile scrise de noi ramaneau luminoase: ecranul iesea jumatate-jumatate.
+    // `AppThemeScope` e InheritedWidget, deci Flutter stie ce sa reconstruiasca.
+    late AppPalette seen;
+    Widget probe() => Builder(builder: (context) {
+          seen = context.colors;
+          return const SizedBox.shrink();
+        });
+
+    await tester.pumpWidget(AppThemeScope(palette: AppPalette.light, child: probe()));
+    expect(seen.surface, AppPalette.light.surface);
+
+    await tester.pumpWidget(AppThemeScope(palette: AppPalette.dark, child: probe()));
+    expect(seen.surface, AppPalette.dark.surface);
+  });
+
+  testWidgets('fara scope, culorile cad pe tema luminoasa', (tester) async {
+    late AppPalette seen;
+    await tester.pumpWidget(Builder(builder: (context) {
+      seen = context.colors;
+      return const SizedBox.shrink();
+    }));
+
+    expect(seen.surface, AppPalette.light.surface);
   });
 }

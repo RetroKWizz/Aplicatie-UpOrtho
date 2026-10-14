@@ -32,7 +32,7 @@ class QuantityStepper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.primaryLight),
+        border: Border.all(color: context.colors.primaryLight),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -48,7 +48,7 @@ class QuantityStepper extends StatelessWidget {
             child: Text(
               '$quantity',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.textPrimary),
             ),
           ),
           _StepButton(
@@ -75,7 +75,7 @@ class _StepButton extends StatelessWidget {
       tooltip: tooltip,
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
-      color: AppColors.primary,
+      color: context.colors.primary,
       constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       padding: EdgeInsets.zero,
     );

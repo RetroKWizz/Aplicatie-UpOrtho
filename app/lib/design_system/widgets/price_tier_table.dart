@@ -65,7 +65,7 @@ class PriceTierTable extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (title != null && title!.isNotEmpty) ...[
-          Text(title!, style: AppTypography.sectionTitle),
+          Text(title!, style: AppTypography.sectionTitle(context)),
           const SizedBox(height: 8),
         ],
         if (note.isNotEmpty) ...[
@@ -110,9 +110,9 @@ class PriceTierCell extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 84),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: highlighted ? AppColors.primary : AppColors.surface,
+        color: highlighted ? context.colors.primary : context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: highlighted ? AppColors.primary : AppColors.primaryLight),
+        border: Border.all(color: highlighted ? context.colors.primary : context.colors.primaryLight),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -120,8 +120,8 @@ class PriceTierCell extends StatelessWidget {
         children: [
           Text(
             entry.label,
-            style: AppTypography.caption.copyWith(
-              color: highlighted ? Colors.white70 : AppColors.textSecondary,
+            style: AppTypography.caption(context).copyWith(
+              color: highlighted ? Colors.white70 : context.colors.textSecondary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -137,9 +137,9 @@ class PriceTierCell extends StatelessWidget {
             child: Text(
               entry.priceFormatted,
               softWrap: false,
-              style: AppTypography.body.copyWith(
+              style: AppTypography.body(context).copyWith(
                 fontWeight: FontWeight.w800,
-                color: highlighted ? Colors.white : AppColors.primary,
+                color: highlighted ? Colors.white : context.colors.primary,
               ),
             ),
           ),

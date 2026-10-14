@@ -296,7 +296,7 @@ class _Section extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 16,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -489,7 +489,7 @@ class _CheckoutFooter extends StatelessWidget {
     final amounts = checkout.cart.amounts;
     return Material(
       elevation: 8,
-      color: AppColors.surface,
+      color: context.colors.surface,
       child: SafeArea(
         top: false,
         child: Padding(
@@ -580,7 +580,7 @@ class _StepHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
         child: Row(
@@ -629,8 +629,8 @@ class _StepChip extends StatelessWidget {
     final color = done
         ? _StepHeader._green
         : current
-            ? AppColors.primary
-            : AppColors.textSecondary;
+            ? context.colors.primary
+            : context.colors.textSecondary;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
@@ -654,7 +654,7 @@ class _StepChip extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: current ? Colors.white : AppColors.textSecondary,
+                        color: current ? Colors.white : context.colors.textSecondary,
                       ),
                     ),
             ),
@@ -768,7 +768,7 @@ class _SummaryBlock extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: AppColors.primary),
+            Icon(icon, size: 16, color: context.colors.primary),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -777,7 +777,7 @@ class _SummaryBlock extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.6,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ),
@@ -798,7 +798,7 @@ class _SummaryBlock extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 1),
             child: Text(subtitle,
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                style: TextStyle(fontSize: 12, color: context.colors.textSecondary)),
           ),
       ],
     );

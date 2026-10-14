@@ -26,19 +26,19 @@ class CategoryChip extends StatelessWidget {
             Container(
               width: 60,
               height: 60,
-              decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: context.colors.surface, shape: BoxShape.circle),
               clipBehavior: Clip.antiAlias,
               child: iconUrl == null
-                  ? Icon(Icons.grid_view_rounded, color: AppColors.primary)
+                  ? Icon(Icons.grid_view_rounded, color: context.colors.primary)
                   : CachedNetworkImage(
                       imageUrl: iconUrl!,
                       httpHeaders: httpHeaders,
                       fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => Icon(Icons.grid_view_rounded, color: AppColors.primary),
+                      errorWidget: (_, _, _) => Icon(Icons.grid_view_rounded, color: context.colors.primary),
                     ),
             ),
             const SizedBox(height: 6),
-            Text(name, style: AppTypography.caption, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(name, style: AppTypography.caption(context), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),

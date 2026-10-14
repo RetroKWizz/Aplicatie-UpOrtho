@@ -56,7 +56,7 @@ class FavoritesScreen extends ConsumerWidget {
                   'Nu ai produse favorite inca. Apasa inimioara de pe un produs ca sa il '
                   'gasesti mai usor data viitoare.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.colors.textSecondary),
                 ),
               ),
             );

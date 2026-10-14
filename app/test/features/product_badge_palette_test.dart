@@ -30,6 +30,7 @@ void main() {
       backgroundColor: 'albastru',
     );
 
-    expect(productBadgeBackground(badge), AppColors.primary);
+    // Violetul de brand al etichetei e fix, acelasi in ambele teme, ca pe site.
+    expect(productBadgeBackground(badge), const Color(0xFF78449B));
   });
 }

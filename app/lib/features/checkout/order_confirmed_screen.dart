@@ -79,7 +79,7 @@ class _Body extends StatelessWidget {
         const SizedBox(height: 6),
         Text(subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textSecondary)),
+            style: TextStyle(color: context.colors.textSecondary)),
         if (payment != null && payment.isOffline && payment.instructions.isNotEmpty) ...[
           const SizedBox(height: 24),
           Card(
@@ -95,7 +95,7 @@ class _Body extends StatelessWidget {
                   if (payment.reference case final String reference) ...[
                     const SizedBox(height: 8),
                     Text('Referinta platii: $reference',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        style: TextStyle(color: context.colors.textSecondary, fontSize: 12)),
                   ],
                 ],
               ),

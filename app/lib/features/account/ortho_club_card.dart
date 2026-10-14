@@ -123,7 +123,7 @@ class _ExpiredCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE7E1EE)),
       ),
@@ -137,7 +137,7 @@ class _ExpiredCard extends StatelessWidget {
               Text(
                 'ORTHO CLUB',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.6,
@@ -163,12 +163,12 @@ class _ExpiredCard extends StatelessWidget {
             label == null
                 ? 'Abonamentul tau Ortho Club nu mai este valabil.'
                 : 'Abonamentul tau Ortho Club a expirat la $label.',
-            style: AppTypography.body.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
+            style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           const SizedBox(height: 6),
           Text(
             'Pana la reinnoire vezi preturile publice, nu pe cele de club.',
-            style: AppTypography.caption,
+            style: AppTypography.caption(context),
           ),
         ],
       ),

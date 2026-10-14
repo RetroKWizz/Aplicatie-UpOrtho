@@ -4,17 +4,21 @@ import 'colors.dart';
 
 /// Stilurile de text ale aplicatiei.
 ///
-/// Getteri, nu constante: culoarea textului vine din paleta temei curente, iar o
-/// constanta ar fi ramas inghetata pe tema luminoasa. Dimensiunile si grosimile sunt
-/// aceleasi in ambele teme — se schimba doar culoarea.
+/// Fiecare primeste contextul: culoarea textului vine din paleta temei, iar paleta se
+/// ia din arbore (`AppThemeScope`), nu dintr-o globala — doar asa ecranul se
+/// reconstruieste cand se schimba tema.
 abstract final class AppTypography {
-  static TextStyle get title => TextStyle(
-      fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1.2);
-  static TextStyle get sectionTitle =>
-      TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary);
-  static TextStyle get body =>
-      TextStyle(fontSize: 15, color: AppColors.textPrimary, height: 1.35);
-  static TextStyle get caption => TextStyle(fontSize: 13, color: AppColors.textSecondary);
+  static TextStyle title(BuildContext context) => TextStyle(
+      fontSize: 22, fontWeight: FontWeight.w700, color: context.colors.textPrimary, height: 1.2);
+
+  static TextStyle sectionTitle(BuildContext context) => TextStyle(
+      fontSize: 18, fontWeight: FontWeight.w700, color: context.colors.textPrimary);
+
+  static TextStyle body(BuildContext context) =>
+      TextStyle(fontSize: 15, color: context.colors.textPrimary, height: 1.35);
+
+  static TextStyle caption(BuildContext context) =>
+      TextStyle(fontSize: 13, color: context.colors.textSecondary);
 
   /// Textul scris PESTE o imagine de banner ramane alb in ambele teme: fundalul lui
   /// e poza si valul intunecat, nu suprafata aplicatiei.

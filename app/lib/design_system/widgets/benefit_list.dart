@@ -54,9 +54,9 @@ class BenefitList extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryLight),
+        border: Border.all(color: context.colors.primaryLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,9 +76,9 @@ class BenefitList extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(items[index].title,
-                            style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
+                            style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w700)),
                         if (items[index].text != null && items[index].text!.isNotEmpty)
-                          Text(items[index].text!, style: AppTypography.caption),
+                          Text(items[index].text!, style: AppTypography.caption(context)),
                       ],
                     ),
                   ),
@@ -104,7 +104,7 @@ class _BenefitSymbol extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = item.imageUrl;
     if (imageUrl == null) {
-      return Icon(item.icon, size: 20, color: AppColors.primary);
+      return Icon(item.icon, size: 20, color: context.colors.primary);
     }
     return SizedBox(
       width: 28,
@@ -114,7 +114,7 @@ class _BenefitSymbol extends StatelessWidget {
         httpHeaders: httpHeaders,
         fit: BoxFit.contain,
         // Un logo care nu se incarca lasa randul cu iconita, nu cu o poza rupta.
-        errorWidget: (_, _, _) => Icon(item.icon, size: 20, color: AppColors.primary),
+        errorWidget: (_, _, _) => Icon(item.icon, size: 20, color: context.colors.primary),
       ),
     );
   }

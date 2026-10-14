@@ -64,7 +64,7 @@ class VariantPicker extends StatelessWidget {
       children: [
         for (var index = 0; index < groups.length; index++) ...[
           if (index > 0) const SizedBox(height: 12),
-          Text(groups[index].name, style: AppTypography.caption.copyWith(fontWeight: FontWeight.w700)),
+          Text(groups[index].name, style: AppTypography.caption(context).copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           // Wrap, nu Row: valorile romanesti pot fi lungi ("Mare cu falci zimtate
           // pentru arcuri groase") si multe; pe un ecran ingust un Row ar da
@@ -103,15 +103,15 @@ class VariantOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final unavailable = !option.available;
     final background = option.selected
-        ? AppColors.primary
+        ? context.colors.primary
         : unavailable
-            ? AppColors.background
-            : AppColors.surface;
+            ? context.colors.background
+            : context.colors.surface;
     final foreground = option.selected
         ? Colors.white
         : unavailable
-            ? AppColors.textSecondary
-            : AppColors.textPrimary;
+            ? context.colors.textSecondary
+            : context.colors.textPrimary;
 
     return InkWell(
       onTap: onTap,
@@ -122,12 +122,12 @@ class VariantOptionChip extends StatelessWidget {
           color: background,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: option.selected ? AppColors.primary : AppColors.primaryLight,
+            color: option.selected ? context.colors.primary : context.colors.primaryLight,
           ),
         ),
         child: Text(
           option.label,
-          style: AppTypography.body.copyWith(
+          style: AppTypography.body(context).copyWith(
             color: foreground,
             fontWeight: option.selected ? FontWeight.w700 : FontWeight.w500,
             decoration: unavailable ? TextDecoration.lineThrough : null,

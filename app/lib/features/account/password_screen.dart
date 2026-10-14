@@ -113,7 +113,7 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
           decoration: InputDecoration(
             labelText: label,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: context.colors.surface,
             border: const OutlineInputBorder(),
           ),
         ),

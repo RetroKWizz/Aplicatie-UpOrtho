@@ -99,29 +99,29 @@ class VariantOrderTable extends StatelessWidget {
           // etichetele stau langa sumele lor, in fiecare rand.
           if (!compact) ...[
             const _HeaderRow(),
-            Divider(height: 12, color: AppColors.primaryLight),
+            Divider(height: 12, color: context.colors.primaryLight),
           ],
           for (var index = 0; index < rows.length; index++) ...[
-            if (index > 0) Divider(height: 20, color: AppColors.primaryLight),
+            if (index > 0) Divider(height: 20, color: context.colors.primaryLight),
             _Row(row: rows[index], onQuantityChanged: onQuantityChanged, compact: compact),
           ],
-          Divider(height: 20, color: AppColors.primaryLight),
+          Divider(height: 20, color: context.colors.primaryLight),
           Row(
             children: [
               Expanded(
                 child: Text('Total',
-                    style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.textPrimary)),
               ),
               Text(
                 totalFormatted ?? missingAmount,
-                style: AppTypography.body.copyWith(
-                    fontWeight: FontWeight.w800, color: AppColors.primary, fontSize: 18),
+                style: AppTypography.body(context).copyWith(
+                    fontWeight: FontWeight.w800, color: context.colors.primary, fontSize: 18),
               ),
             ],
           ),
           if (footnote != null && footnote!.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(footnote!, style: AppTypography.caption.copyWith(color: AppColors.danger)),
+            Text(footnote!, style: AppTypography.caption(context).copyWith(color: AppColors.danger)),
           ],
         ],
       );
@@ -141,7 +141,7 @@ class _HeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
-        fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, height: 1.2);
+        fontSize: 11, fontWeight: FontWeight.w700, color: context.colors.textSecondary, height: 1.2);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -201,8 +201,8 @@ class _Row extends StatelessWidget {
           width: _priceWidth,
           child: Text(row.priceFormatted,
               textAlign: TextAlign.end,
-              style: AppTypography.caption
-                  .copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+              style: AppTypography.caption(context)
+                  .copyWith(color: context.colors.textPrimary, fontWeight: FontWeight.w700)),
         ),
         SizedBox(width: _qtyWidth, child: stepper),
         SizedBox(
@@ -210,8 +210,8 @@ class _Row extends StatelessWidget {
           child: Text(
             row.subtotalFormatted ?? VariantOrderTable.missingAmount,
             textAlign: TextAlign.end,
-            style: AppTypography.caption
-                .copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
+            style: AppTypography.caption(context)
+                .copyWith(fontWeight: FontWeight.w800, color: context.colors.primary),
           ),
         ),
       ],
@@ -234,12 +234,12 @@ class _LabeledAmount extends StatelessWidget {
       children: [
         Text(label,
             style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                fontSize: 11, fontWeight: FontWeight.w700, color: context.colors.textSecondary)),
         const SizedBox(width: 4),
         Text(amount,
-            style: AppTypography.caption.copyWith(
+            style: AppTypography.caption(context).copyWith(
                 fontWeight: highlighted ? FontWeight.w800 : FontWeight.w700,
-                color: highlighted ? AppColors.primary : AppColors.textPrimary)),
+                color: highlighted ? context.colors.primary : context.colors.textPrimary)),
       ],
     );
   }
@@ -259,11 +259,11 @@ class _Attributes extends StatelessWidget {
             children: [
               for (final attribute in row.attributes)
                 Text(attribute,
-                    style: AppTypography.caption
-                        .copyWith(color: AppColors.textPrimary, height: 1.3)),
+                    style: AppTypography.caption(context)
+                        .copyWith(color: context.colors.textPrimary, height: 1.3)),
               if (row.code != null && row.code!.isNotEmpty)
                 Text('Cod: ${row.code}',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    style: AppTypography.caption(context).copyWith(color: context.colors.textSecondary)),
               if (row.stockLabel != null && row.stockLabel!.isNotEmpty)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +273,7 @@ class _Attributes extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(row.stockLabel!,
-                          style: AppTypography.caption.copyWith(
+                          style: AppTypography.caption(context).copyWith(
                               color: row.inStock ? AppColors.success : AppColors.accent)),
                     ),
                   ],
@@ -308,7 +308,7 @@ class _Stepper extends StatelessWidget {
           width: 24,
           child: Text('${row.qty}',
               textAlign: TextAlign.center,
-              style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
+              style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w700)),
         ),
         _StepperButton(
           icon: Icons.add,
@@ -342,9 +342,9 @@ class _StepperButton extends StatelessWidget {
         // stilul implicit si depaseste latimea coloanei de cantitate.
         minimumSize: const Size(30, 30),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        foregroundColor: AppColors.primary,
-        disabledForegroundColor: AppColors.textSecondary.withValues(alpha: 0.4),
-        side: BorderSide(color: AppColors.primaryLight),
+        foregroundColor: context.colors.primary,
+        disabledForegroundColor: context.colors.textSecondary.withValues(alpha: 0.4),
+        side: BorderSide(color: context.colors.primaryLight),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );

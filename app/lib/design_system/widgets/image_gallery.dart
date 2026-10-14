@@ -110,7 +110,7 @@ class _ImageGalleryState extends State<ImageGallery> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: ColoredBox(
-          color: AppColors.background,
+          color: context.colors.background,
           child: Stack(
             children: [
               PageView.builder(
@@ -151,13 +151,13 @@ class _GalleryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = item.imageUrl == null
         ? Center(
-            child: Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary, size: 40))
+            child: Icon(Icons.image_not_supported_outlined, color: context.colors.textSecondary, size: 40))
         : CachedNetworkImage(
             imageUrl: item.imageUrl!,
             httpHeaders: httpHeaders,
             fit: BoxFit.contain,
             errorWidget: (_, _, _) => Center(
-                child: Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary, size: 40)),
+                child: Icon(Icons.image_not_supported_outlined, color: context.colors.textSecondary, size: 40)),
           );
 
     if (!item.isVideo) return image;
@@ -209,7 +209,7 @@ class GalleryPageIndicator extends StatelessWidget {
                 height: 7,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: index == current ? AppColors.primary : AppColors.primaryLight,
+                  color: index == current ? context.colors.primary : context.colors.primaryLight,
                 ),
               ),
             ),

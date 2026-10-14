@@ -42,7 +42,7 @@ class AppearanceScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 12, left: 4, right: 4),
             child: Text(
               'Alegerea ramane pe telefonul tau, nu in cont.',
-              style: AppTypography.caption,
+              style: AppTypography.caption(context),
             ),
           ),
         ],
@@ -70,7 +70,7 @@ class _Option extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(14),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -80,7 +80,7 @@ class _Option extends ConsumerWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: isSelected ? AppColors.primary : Colors.transparent,
+                color: isSelected ? context.colors.primary : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -90,7 +90,7 @@ class _Option extends ConsumerWidget {
                 // mai jos spune cititoarelor de ecran care optiune e aleasa.
                 Icon(
                   isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                  color: isSelected ? context.colors.primary : context.colors.textSecondary,
                   size: 20,
                 ),
                 const SizedBox(width: 12),
@@ -103,9 +103,9 @@ class _Option extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(choice.label,
-                            style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
+                            style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 2),
-                        Text(description, style: AppTypography.caption),
+                        Text(description, style: AppTypography.caption(context)),
                       ],
                     ),
                   ),
@@ -133,7 +133,7 @@ class _ThemePreview extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.background,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.6)),
+        border: Border.all(color: context.colors.primaryLight.withValues(alpha: 0.6)),
       ),
       child: Center(
         child: Container(

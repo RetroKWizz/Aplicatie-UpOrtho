@@ -93,18 +93,18 @@ class DocumentList extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
-            leading: Icon(Icons.description_outlined, color: AppColors.primary),
-            title: Text(item.name, style: AppTypography.body),
+            leading: Icon(Icons.description_outlined, color: context.colors.primary),
+            title: Text(item.name, style: AppTypography.body(context)),
             subtitle: item.fileName == null || item.fileName == item.name
                 ? null
-                : Text(item.fileName!, style: AppTypography.caption),
+                : Text(item.fileName!, style: AppTypography.caption(context)),
             trailing: item.busy
                 ? const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
+                : Icon(Icons.open_in_new, size: 18, color: context.colors.textSecondary),
             // Randul ocupat nu mai porneste inca o descarcare. (Controllerul opreste
             // oricum a doua apasare; aici e ca sa se si vada ca nu are rost.)
             onTap: item.busy ? null : () => onOpen(item),
@@ -112,7 +112,7 @@ class DocumentList extends StatelessWidget {
         if (error != null && error!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: Text(error!, style: AppTypography.caption.copyWith(color: AppColors.danger)),
+            child: Text(error!, style: AppTypography.caption(context).copyWith(color: AppColors.danger)),
           ),
       ],
     );

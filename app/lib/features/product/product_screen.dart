@@ -56,13 +56,13 @@ class ProductScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Produs',
-            style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+            style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.primary)),
         actions: [
           IconButton(
             tooltip: isFavorite ? 'Scoate de la favorite' : 'Adauga la favorite',
             icon: Icon(
               isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: isFavorite ? AppColors.danger : AppColors.textSecondary,
+              color: isFavorite ? AppColors.danger : context.colors.textSecondary,
             ),
             onPressed: () =>
                 ref.read(favoritesControllerProvider.notifier).toggle(productId),
@@ -218,7 +218,7 @@ class _ProductBody extends ConsumerWidget {
       if (benefitItems.isNotEmpty)
         BenefitList(items: benefitItems, httpHeaders: benefitHeaders),
       if (detail.defaultCode != null && detail.defaultCode!.isNotEmpty)
-        Text('Cod: ${detail.defaultCode}', style: AppTypography.caption),
+        Text('Cod: ${detail.defaultCode}', style: AppTypography.caption(context)),
       if (tabs.isNotEmpty) ProductTabs(tabs: tabs),
       // Produsele similare raman in afara filelor, dedesubt, ca pe site.
       if (detail.similar.isNotEmpty)
@@ -291,7 +291,7 @@ class _Heading extends StatelessWidget {
           ),
           const SizedBox(height: 8),
         ],
-        Text(detail.name, style: AppTypography.title),
+        Text(detail.name, style: AppTypography.title(context)),
         if (detail.rating.count > 0) ...[
           const SizedBox(height: 6),
           _RatingRow(rating: detail.rating),
@@ -317,7 +317,7 @@ class _RatingRow extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           rating.count == 1 ? '1 recenzie' : '${rating.count} recenzii',
-          style: AppTypography.caption,
+          style: AppTypography.caption(context),
         ),
       ],
     );
@@ -373,13 +373,13 @@ class _PriceBlock extends StatelessWidget {
           children: [
             Text(
               price.formatted,
-              style: AppTypography.title.copyWith(color: AppColors.primary, fontSize: 24),
+              style: AppTypography.title(context).copyWith(color: context.colors.primary, fontSize: 24),
             ),
             if (price.listFormatted != null)
               Text(
                 price.listFormatted!,
-                style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
+                style: AppTypography.body(context).copyWith(
+                  color: context.colors.textSecondary,
                   decoration: TextDecoration.lineThrough,
                 ),
               ),
@@ -389,7 +389,7 @@ class _PriceBlock extends StatelessWidget {
         ),
         if (price.withVat) ...[
           const SizedBox(height: 4),
-          Text('Taxe incluse', style: AppTypography.caption),
+          Text('Taxe incluse', style: AppTypography.caption(context)),
         ],
       ],
     );
@@ -498,7 +498,7 @@ class _VariantSection extends ConsumerWidget {
         if (state.variantError != null) ...[
           const SizedBox(height: 8),
           Text(state.variantError!,
-              style: AppTypography.caption.copyWith(color: AppColors.danger)),
+              style: AppTypography.caption(context).copyWith(color: AppColors.danger)),
         ],
       ],
     );
@@ -524,7 +524,7 @@ class _Availability extends StatelessWidget {
         const SizedBox(width: 8),
         // Expanded: mesajele reale sunt propozitii intregi ("Precomanda. Livrare
         // incepand cu 1 August") si fara el randul ar da overflow.
-        Expanded(child: Text(message, style: AppTypography.body)),
+        Expanded(child: Text(message, style: AppTypography.body(context))),
       ],
     );
   }
@@ -603,7 +603,7 @@ class _CartButtonState extends ConsumerState<_CartButton> {
             widget.state.detail.variantRows.isNotEmpty
                 ? 'Alege cantitatea din tabel'
                 : 'Produsul nu se poate comanda acum',
-            style: AppTypography.caption,
+            style: AppTypography.caption(context),
             textAlign: TextAlign.center,
           ),
         ],
@@ -676,12 +676,12 @@ class _SpecTable extends StatelessWidget {
                 // romanesti sunt lungi si variabile.
                 Expanded(
                   flex: 2,
-                  child: Text(specs[index].name, style: AppTypography.caption),
+                  child: Text(specs[index].name, style: AppTypography.caption(context)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   flex: 3,
-                  child: Text(specs[index].value, style: AppTypography.body),
+                  child: Text(specs[index].value, style: AppTypography.body(context)),
                 ),
               ],
             ),
@@ -717,18 +717,18 @@ class _Reviews extends StatelessWidget {
                     Expanded(
                       child: Text(
                         reviews[index].author ?? 'Client UpOrtho',
-                        style: AppTypography.caption.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTypography.caption(context).copyWith(fontWeight: FontWeight.w700),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (reviews[index].date != null)
-                      Text(reviews[index].date!, style: AppTypography.caption),
+                      Text(reviews[index].date!, style: AppTypography.caption(context)),
                   ],
                 ),
                 if (reviews[index].text.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(reviews[index].text, style: AppTypography.body),
+                  Text(reviews[index].text, style: AppTypography.body(context)),
                 ],
               ],
             ),
@@ -801,7 +801,7 @@ class _Section extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(title, style: AppTypography.sectionTitle),
+        Text(title, style: AppTypography.sectionTitle(context)),
         const SizedBox(height: 8),
         child,
       ],

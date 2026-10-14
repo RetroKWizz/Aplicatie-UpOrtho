@@ -102,7 +102,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Catalog', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+        title: Text('Catalog', style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.primary)),
       ),
       body: Column(
         children: [
@@ -116,7 +116,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                 hintText: 'Cauta dupa nume sau cod produs',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: AppColors.surface,
+                fillColor: context.colors.surface,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
@@ -315,9 +315,9 @@ class _FilterBar extends ConsumerWidget {
                 selection.activeCount == 0 ? 'Filtre' : 'Filtre (${selection.activeCount})',
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: selection.activeCount == 0 ? AppColors.textPrimary : AppColors.primary,
+                foregroundColor: selection.activeCount == 0 ? context.colors.textPrimary : context.colors.primary,
                 side: BorderSide(
-                  color: selection.activeCount == 0 ? AppColors.primaryLight : AppColors.primary,
+                  color: selection.activeCount == 0 ? context.colors.primaryLight : context.colors.primary,
                 ),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -330,8 +330,8 @@ class _FilterBar extends ConsumerWidget {
               icon: const Icon(Icons.swap_vert, size: 18),
               label: Text(activeSort ?? 'Sorteaza', overflow: TextOverflow.ellipsis),
               style: OutlinedButton.styleFrom(
-                foregroundColor: activeSort == null ? AppColors.textPrimary : AppColors.primary,
-                side: BorderSide(color: activeSort == null ? AppColors.primaryLight : AppColors.primary),
+                foregroundColor: activeSort == null ? context.colors.textPrimary : context.colors.primary,
+                side: BorderSide(color: activeSort == null ? context.colors.primaryLight : context.colors.primary),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),

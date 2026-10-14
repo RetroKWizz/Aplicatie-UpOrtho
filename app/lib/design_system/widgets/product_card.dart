@@ -68,7 +68,7 @@ class ProductCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: ColoredBox(
-          color: AppColors.surface,
+          color: context.colors.surface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -81,17 +81,17 @@ class ProductCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    ColoredBox(color: AppColors.background),
+                    ColoredBox(color: context.colors.background),
                     if (imageUrl != null)
                       CachedNetworkImage(
                         imageUrl: imageUrl!,
                         httpHeaders: httpHeaders,
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) =>
-                            Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary),
+                            Icon(Icons.image_not_supported_outlined, color: context.colors.textSecondary),
                       )
                     else
-                      Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary),
+                      Icon(Icons.image_not_supported_outlined, color: context.colors.textSecondary),
                     if (badgeText != null)
                       Positioned(
                         top: 8,
@@ -119,7 +119,7 @@ class ProductCard extends StatelessWidget {
                           tooltip: favorite ? 'Scoate de la favorite' : 'Adauga la favorite',
                           icon: Icon(
                             favorite ? Icons.favorite : Icons.favorite_border,
-                            color: favorite ? AppColors.danger : AppColors.textSecondary,
+                            color: favorite ? AppColors.danger : context.colors.textSecondary,
                           ),
                           onPressed: onToggleFavorite,
                         ),
@@ -150,13 +150,13 @@ class ProductCard extends StatelessWidget {
                             children: [
                               Text(
                                 title,
-                                style: AppTypography.body.copyWith(fontWeight: FontWeight.w600, fontSize: 14),
+                                style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w600, fontSize: 14),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               if (code != null) ...[
                                 const SizedBox(height: 2),
-                                Text(code!, style: AppTypography.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(code!, style: AppTypography.caption(context), maxLines: 1, overflow: TextOverflow.ellipsis),
                               ],
                               const SizedBox(height: 6),
                               // Wrap, nu Row: pretul curent + pretul taiat + insigna
@@ -173,12 +173,12 @@ class ProductCard extends StatelessWidget {
                                 children: [
                                   Text(
                                     priceFormatted,
-                                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
+                                    style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w800, color: context.colors.primary),
                                   ),
                                   if (listAmountFormatted != null)
                                     Text(
                                       listAmountFormatted!,
-                                      style: AppTypography.caption.copyWith(decoration: TextDecoration.lineThrough),
+                                      style: AppTypography.caption(context).copyWith(decoration: TextDecoration.lineThrough),
                                     ),
                                   if (discountLabel != null)
                                     _Pill(text: discountLabel!, color: AppColors.danger, fontSize: 10),
@@ -222,7 +222,7 @@ class _RatingPill extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-                color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
+                color: context.colors.textPrimary, fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ],
       ),

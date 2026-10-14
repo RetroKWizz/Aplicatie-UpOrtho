@@ -49,10 +49,10 @@ class DescriptionView extends StatelessWidget {
 
   final List<DescriptionBlockData> blocks;
 
-  static TextStyle get _headingStyle => TextStyle(
+  static TextStyle _headingStyle(BuildContext context) => TextStyle(
     fontSize: 17,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
+    color: context.colors.textPrimary,
     height: 1.25,
   );
 
@@ -60,7 +60,7 @@ class DescriptionView extends StatelessWidget {
   Widget build(BuildContext context) {
     final rendered = <Widget>[];
     for (final block in blocks) {
-      final widget = _buildBlock(block);
+      final widget = _buildBlock(context, block);
       if (widget != null) {
         if (rendered.isNotEmpty) rendered.add(const SizedBox(height: 10));
         rendered.add(widget);
@@ -75,23 +75,23 @@ class DescriptionView extends StatelessWidget {
     );
   }
 
-  Widget? _buildBlock(DescriptionBlockData block) {
+  Widget? _buildBlock(BuildContext context, DescriptionBlockData block) {
     switch (block.style) {
       case DescriptionBlockStyle.heading:
-        return _text(block.spans, _headingStyle);
+        return _text(block.spans, _headingStyle(context));
       case DescriptionBlockStyle.paragraph:
-        return _text(block.spans, AppTypography.body);
+        return _text(block.spans, AppTypography.body(context));
       case DescriptionBlockStyle.bullets:
         final items = <Widget>[];
         for (final bullet in block.bullets) {
-          final line = _text(bullet, AppTypography.body);
+          final line = _text(bullet, AppTypography.body(context));
           if (line == null) continue;
           items.add(Padding(
             padding: EdgeInsets.only(top: items.isEmpty ? 0 : 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('•', style: AppTypography.body),
+                Text('•', style: AppTypography.body(context)),
                 const SizedBox(width: 8),
                 // Expanded: fara el, un element de lista lung ar impinge randul
                 // peste latimea disponibila si ar da RenderFlex overflow pe un

@@ -55,7 +55,7 @@ class AccountScreen extends ConsumerWidget {
             if (user != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text(user.name, style: AppTypography.title),
+                child: Text(user.name, style: AppTypography.title(context)),
               ),
             // Blocul de club lipseste cu totul pe un cont care n-a avut niciodata
             // abonament; serverul trimite atunci `null`.
@@ -175,7 +175,7 @@ class _MenuCard extends StatelessWidget {
     // cercul de apasare pe cel mai apropiat Material, iar un DecoratedBox peste el
     // le-ar ascunde (Flutter chiar da assert pe asta).
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -184,20 +184,20 @@ class _MenuCard extends StatelessWidget {
             if (index > 0)
               const Divider(height: 1, indent: 52, color: Color(0xFFEEF0F5)),
             ListTile(
-              leading: Icon(item.icon, color: AppColors.primary),
+              leading: Icon(item.icon, color: context.colors.primary),
               title: Text(
                 item.label,
-                style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
+                style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w600),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (item.trailingText case final String text)
-                    Text(text, style: AppTypography.caption),
+                    Text(text, style: AppTypography.caption(context)),
                   const SizedBox(width: 4),
                   Icon(
                     Icons.chevron_right,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ],
               ),
@@ -220,7 +220,7 @@ class _LoyaltyCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -230,14 +230,14 @@ class _LoyaltyCards extends StatelessWidget {
           children: [
             Text(
               'Carduri si vouchere',
-              style: AppTypography.sectionTitle,
+              style: AppTypography.sectionTitle(context),
             ),
             for (final card in cards)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
                   Icons.card_giftcard,
-                  color: AppColors.primary,
+                  color: context.colors.primary,
                 ),
                 title: Text(card.program),
                 subtitle: card.code == null ? null : Text('Cod: ${card.code}'),

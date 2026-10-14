@@ -44,7 +44,7 @@ class _SheetShell extends StatelessWidget {
           ? null
           : BoxConstraints(maxHeight: media.size.height * heightFactor!),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: context.colors.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(top: false, child: child),
@@ -62,7 +62,7 @@ class _Grabber extends StatelessWidget {
       height: 4,
       margin: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: context.colors.primaryLight,
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -90,7 +90,7 @@ class _FilterSheet extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
             child: Row(
               children: [
-                Expanded(child: Text('Filtre', style: AppTypography.title)),
+                Expanded(child: Text('Filtre', style: AppTypography.title(context))),
                 if (selection.activeCount > 0)
                   TextButton(
                     onPressed: () => notifier.setFilters(selection.cleared()),
@@ -130,7 +130,7 @@ class _FilterSheet extends ConsumerWidget {
                     child: Text(
                       'Nu exista filtre pentru aceasta lista de produse.',
                       textAlign: TextAlign.center,
-                      style: AppTypography.caption,
+                      style: AppTypography.caption(context),
                     ),
                   ),
               ],
@@ -235,7 +235,7 @@ class _PriceSectionState extends State<_PriceSection> {
         children: [
           Text(
             '${startPrice.round()} - ${endPrice.round()} lei',
-            style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
+            style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w600),
           ),
           RangeSlider(
             values: current,
@@ -244,8 +244,8 @@ class _PriceSectionState extends State<_PriceSection> {
             min: 0,
             max: 1,
             labels: RangeLabels('${startPrice.round()}', '${endPrice.round()}'),
-            activeColor: AppColors.primary,
-            inactiveColor: AppColors.primaryLight,
+            activeColor: context.colors.primary,
+            inactiveColor: context.colors.primaryLight,
             onChanged: (values) => setState(() => _dragging = values),
             // Cererea pleaca abia cand degetul se ridica: altfel am trimite zeci de
             // cereri pentru o singura miscare a glisorului.
@@ -374,10 +374,10 @@ class _ValueChip extends StatelessWidget {
     final foreground = selected
         ? Colors.white
         : disabled
-            ? AppColors.textSecondary.withValues(alpha: 0.5)
-            : AppColors.textPrimary;
+            ? context.colors.textSecondary.withValues(alpha: 0.5)
+            : context.colors.textPrimary;
     return Material(
-      color: selected ? AppColors.primary : AppColors.surface,
+      color: selected ? context.colors.primary : context.colors.surface,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -387,7 +387,7 @@ class _ValueChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? AppColors.primary : AppColors.primaryLight.withValues(alpha: 0.5),
+              color: selected ? context.colors.primary : context.colors.primaryLight.withValues(alpha: 0.5),
             ),
           ),
           child: Row(
@@ -400,17 +400,17 @@ class _ValueChip extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.6)),
+                    border: Border.all(color: context.colors.primaryLight.withValues(alpha: 0.6)),
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
-              Text(label, style: AppTypography.body.copyWith(color: foreground, fontSize: 14)),
+              Text(label, style: AppTypography.body(context).copyWith(color: foreground, fontSize: 14)),
               const SizedBox(width: 6),
               Text(
                 '$count',
-                style: AppTypography.caption.copyWith(
-                  color: selected ? Colors.white70 : AppColors.textSecondary,
+                style: AppTypography.caption(context).copyWith(
+                  color: selected ? Colors.white70 : context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -438,7 +438,7 @@ class _Section extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text(title, style: AppTypography.sectionTitle)),
+              Expanded(child: Text(title, style: AppTypography.sectionTitle(context))),
               ?trailing,
             ],
           ),
@@ -470,13 +470,13 @@ class _SortSheet extends ConsumerWidget {
           const Center(child: _Grabber()),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: Align(alignment: Alignment.centerLeft, child: Text('Sorteaza', style: AppTypography.title)),
+            child: Align(alignment: Alignment.centerLeft, child: Text('Sorteaza', style: AppTypography.title(context))),
           ),
           for (final option in filters.sorts)
             ListTile(
-              title: Text(option.name, style: AppTypography.body),
+              title: Text(option.name, style: AppTypography.body(context)),
               trailing: option.key == activeKey
-                  ? Icon(Icons.check, color: AppColors.primary)
+                  ? Icon(Icons.check, color: context.colors.primary)
                   : null,
               onTap: () {
                 Navigator.of(context).pop();

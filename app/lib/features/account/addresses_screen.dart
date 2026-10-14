@@ -39,7 +39,7 @@ class AddressesScreen extends ConsumerWidget {
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Text('Adauga', style: TextStyle(color: AppColors.primary)),
+              child: Text('Adauga', style: TextStyle(color: context.colors.primary)),
             ),
           ),
         ],
@@ -55,7 +55,7 @@ class AddressesScreen extends ConsumerWidget {
                 Text(
                   error is ApiException ? error.message : 'Adresele nu s-au putut incarca.',
                   textAlign: TextAlign.center,
-                  style: AppTypography.body.copyWith(color: AppColors.danger),
+                  style: AppTypography.body(context).copyWith(color: AppColors.danger),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
@@ -70,7 +70,7 @@ class AddressesScreen extends ConsumerWidget {
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('Nu ai nicio adresa salvata.', style: AppTypography.body),
+                  child: Text('Nu ai nicio adresa salvata.', style: AppTypography.body(context)),
                 ),
               )
             : ListView(
@@ -81,7 +81,7 @@ class AddressesScreen extends ConsumerWidget {
                     ref,
                     title: 'Adrese de facturare',
                     icon: Icons.receipt_long_outlined,
-                    color: AppColors.primary,
+                    color: context.colors.primary,
                     addresses: list.where((a) => a.forBilling).toList(),
                   ),
                   ..._section(
@@ -169,9 +169,9 @@ class _SectionHeader extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(title, style: AppTypography.sectionTitle),
+                child: Text(title, style: AppTypography.sectionTitle(context)),
               ),
-              Text('$count', style: AppTypography.caption),
+              Text('$count', style: AppTypography.caption(context)),
             ],
           ),
           const SizedBox(height: 10),
@@ -191,7 +191,7 @@ class _AddressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -213,7 +213,7 @@ class _AddressCard extends StatelessWidget {
                           _RoleTag(
                             label: 'Facturare',
                             icon: Icons.receipt_long_outlined,
-                            color: AppColors.primary,
+                            color: context.colors.primary,
                           ),
                         if (address.forDelivery)
                           const _RoleTag(
@@ -226,18 +226,18 @@ class _AddressCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       address.name,
-                      style: AppTypography.body.copyWith(fontWeight: FontWeight.w700),
+                      style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w700),
                     ),
                     if (address.oneLine.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(address.oneLine, style: AppTypography.caption),
+                      Text(address.oneLine, style: AppTypography.caption(context)),
                     ],
                   ],
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                child: Icon(Icons.chevron_right, color: context.colors.textSecondary),
               ),
             ],
           ),

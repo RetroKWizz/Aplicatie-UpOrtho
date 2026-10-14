@@ -39,9 +39,9 @@ class BrandCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryLight),
+        border: Border.all(color: context.colors.primaryLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +67,7 @@ class BrandCard extends StatelessWidget {
               // Expanded: numele de brand poate fi lung si randul ar da overflow.
               Expanded(
                 child: Text(name,
-                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w800)),
+                    style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w800)),
               ),
             ],
           ),

@@ -108,18 +108,18 @@ class _TabButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? AppColors.primary : AppColors.surface,
+            color: selected ? context.colors.primary : context.colors.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selected ? AppColors.primary : AppColors.primaryLight,
+              color: selected ? context.colors.primary : context.colors.primaryLight,
             ),
           ),
           child: Text(
             label,
-            style: AppTypography.body.copyWith(
+            style: AppTypography.body(context).copyWith(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : AppColors.primary,
+              color: selected ? Colors.white : context.colors.primary,
             ),
           ),
         ),

@@ -10,7 +10,7 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Text(title, style: AppTypography.sectionTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+      child: Text(title, style: AppTypography.sectionTitle(context), maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }
