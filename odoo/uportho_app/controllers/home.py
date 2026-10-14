@@ -142,50 +142,79 @@ def serialize_quick_category(category, product_count):
     }
 
 
-# Campurile de brand ale magazinului (`droggol_theme_common`): valoarea de atribut care
-# poarta brandul, si logoul de pe ea. Lipsesc pe o baza fara tema.
-BRAND_FIELD = 'dr_brand_value_id'
+# Cum stie magazinul care atribut e brandul: bifa `dr_is_brand` de pe `product.attribute`
+# (`droggol_theme_common`). Logoul sta pe valoarea de atribut, in `dr_image`.
+#
+# **Nu se grupeaza dupa `dr_brand_value_id`**: pe produs e un camp CALCULAT, nestocat,
+# iar o grupare dupa el ridica "Cannot convert ... to SQL because it is not stored" -
+# s-a si intamplat, pe staging. Se numara prin liniile de atribut, exact ca filtrele
+# catalogului, care sunt stocate.
+BRAND_ATTRIBUTE_FLAG = 'dr_is_brand'
 BRAND_LOGO_FIELD = 'dr_image'
 BRANDS_ON_HOME = 12
+
+
+def brand_attribute():
+    """Atributul marcat ca brand in magazin, sau un recordset gol."""
+    Attribute = request.env['product.attribute']
+    if BRAND_ATTRIBUTE_FLAG not in Attribute._fields:
+        return Attribute.browse()
+    return Attribute.sudo().search([(BRAND_ATTRIBUTE_FLAG, '=', True)], limit=1)
+
+
+def _brand_counts(website, attribute):
+    """Cate produse publicate are fiecare valoare a atributului de brand."""
+    from .catalog import _products_domain
+
+    template_ids = request.env['product.template'].sudo().search(
+        _products_domain(website, None, None)).ids
+    if not template_ids:
+        return {}
+    lines = request.env['product.template.attribute.line'].sudo().search([
+        ('product_tmpl_id', 'in', template_ids),
+        ('attribute_id', '=', attribute.id),
+    ])
+    counts = {}
+    for line in lines:
+        for value in line.value_ids:
+            counts[value.id] = counts.get(value.id, 0) + 1
+    return counts
 
 
 def serialize_brands(website):
     """Brandurile din catalog, cu cate produse are fiecare, in ordinea marimii.
 
-    Pagina de start a site-ului are un rand "Shop By Brands"; multe cabinete cumpara
-    pe marca, nu pe categorie. Brandul NU e o lista configurata undeva: e chiar
-    valoarea de atribut dupa care filtreaza si catalogul, deci apasarea pe un brand
-    deschide aceeasi filtrare pe care clientul ar fi facut-o de mana.
+    Pagina de start a site-ului are un rand "Shop By Brands"; multe cabinete cumpara pe
+    marca, nu pe categorie. Brandul NU e o lista configurata undeva: e chiar atributul
+    pe care magazinul l-a bifat ca brand, iar valorile lui sunt chiar cele dupa care
+    filtreaza catalogul - deci apasarea pe un brand cere exact filtrul pe care clientul
+    l-ar fi pus de mana.
 
-    Se numara doar produsele pe care le-ar da si `/products` (publicate, pe website-ul
-    potrivit). Pe o baza fara modulele magazinului campul nu exista si randul lipseste
-    cu totul - nu se inventeaza alt inteles pentru "brand"."""
-    from .catalog import _products_domain
-
-    Template = request.env['product.template']
-    if BRAND_FIELD not in Template._fields:
+    Se numara doar produsele pe care le-ar da si `/products`. Pe o baza fara modulele
+    magazinului randul lipseste cu totul: nu se inventeaza alt inteles pentru "brand"."""
+    attribute = brand_attribute()
+    if not attribute:
         return []
-    domain = _products_domain(website, None, None) + [(BRAND_FIELD, '!=', False)]
-    groups = Template.sudo()._read_group(domain, [BRAND_FIELD], ['__count'])
+    counts = _brand_counts(website, attribute)
     brands = []
-    for value, count in sorted(groups, key=lambda group: -group[1]):
+    for value in attribute.value_ids:
+        count = counts.get(value.id, 0)
         name = (value.name or '').strip()
-        if not name:
+        if not count or not name:
             continue
         has_logo = BRAND_LOGO_FIELD in value._fields and value[BRAND_LOGO_FIELD]
         brands.append({
             'id': value.id,
             # Atributul e necesar ca aplicatia sa poata cere chiar filtrul magazinului
             # (`attribute_value=<atribut>-<valoare>`), nu o cautare dupa nume.
-            'attribute_id': value.attribute_id.id,
+            'attribute_id': attribute.id,
             'name': name,
             'product_count': count,
             'logo_url': f'{API_PREFIX}/brands/{value.id}/logo?unique={image_unique(value)}'
                         if has_logo else None,
         })
-        if len(brands) >= BRANDS_ON_HOME:
-            break
-    return brands
+    brands.sort(key=lambda brand: -brand['product_count'])
+    return brands[:BRANDS_ON_HOME]
 
 
 def _category_counts(categories, website):
@@ -293,11 +322,13 @@ class AppHome(http.Controller):
         una, toate imaginile de pe valorile de atribut din baza."""
         from .catalog import _products_domain
 
-        Template = request.env['product.template']
+        attribute = brand_attribute()
         value = request.env['product.attribute.value'].sudo().browse(value_id).exists()
-        in_catalog = value and BRAND_FIELD in Template._fields and Template.sudo().search_count(
-            _products_domain(_current_website(), None, None) + [(BRAND_FIELD, '=', value.id)],
-            limit=1)
+        in_catalog = (
+            value and attribute and value.attribute_id == attribute
+            and request.env['product.template'].sudo().search_count(
+                _products_domain(_current_website(), None, None)
+                + [('attribute_line_ids.value_ids', 'in', [value.id])], limit=1))
         if not in_catalog:
             raise ApiError(404, 'not_found', 'Imaginea nu exista.')
         return _image_response(value, BRAND_LOGO_FIELD)

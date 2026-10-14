@@ -421,7 +421,7 @@ class TestHomeBrandsAndCounts(AppHttpCase):
         body = self._home()
 
         self.assertIn('brands', body)
-        if 'dr_brand_value_id' not in self.env['product.template']._fields:
+        if 'dr_is_brand' not in self.env['product.attribute']._fields:
             self.assertEqual(body['brands'], [])
 
     def test_logoul_unui_brand_inexistent_da_404(self):
