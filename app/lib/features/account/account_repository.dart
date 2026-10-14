@@ -95,4 +95,13 @@ class AccountRepository {
     final list = body['addresses'] as List? ?? const [];
     return [for (final item in list) Address.fromJson((item as Map).cast<String, dynamic>())];
   }
+
+  /// Cardurile salvate ale contului. Doar de citit: se adauga platind, iar stergerea
+  /// lor ramane pe site.
+  Future<List<PaymentMethodCard>> fetchPaymentMethods() async {
+    final items = await _api.getList('/payment-methods');
+    return [
+      for (final item in items) PaymentMethodCard.fromJson((item as Map).cast<String, dynamic>()),
+    ];
+  }
 }

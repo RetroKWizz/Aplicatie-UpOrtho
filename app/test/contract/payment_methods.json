@@ -1,0 +1,8 @@
+[
+  {
+    "id": 4501,
+    "name": "VISA **** 4242",
+    "provider": "Stripe",
+    "is_test": false
+  }
+]

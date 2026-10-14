@@ -87,3 +87,19 @@ abstract class LoyaltyCard with _$LoyaltyCard {
 
   factory LoyaltyCard.fromJson(Map<String, dynamic> json) => _$LoyaltyCardFromJson(json);
 }
+
+/// Un card salvat al contului. Nicio informatie de card nu trece prin aplicatie:
+/// `name` e textul compus de provider ("VISA **** 4242"), iar tokenul din spate ramane
+/// la el. Cardurile se adauga platind si se sterg de pe site.
+@freezed
+abstract class PaymentMethodCard with _$PaymentMethodCard {
+  const factory PaymentMethodCard({
+    required int id,
+    required String name,
+    required String provider,
+    @JsonKey(name: 'is_test') @Default(false) bool isTest,
+  }) = _PaymentMethodCard;
+
+  factory PaymentMethodCard.fromJson(Map<String, dynamic> json) =>
+      _$PaymentMethodCardFromJson(json);
+}

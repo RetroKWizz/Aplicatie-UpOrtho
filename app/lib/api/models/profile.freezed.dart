@@ -1230,4 +1230,283 @@ as String?,
 
 }
 
+
+/// @nodoc
+mixin _$PaymentMethodCard {
+
+ int get id; String get name; String get provider;@JsonKey(name: 'is_test') bool get isTest;
+/// Create a copy of PaymentMethodCard
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PaymentMethodCardCopyWith<PaymentMethodCard> get copyWith => _$PaymentMethodCardCopyWithImpl<PaymentMethodCard>(this as PaymentMethodCard, _$identity);
+
+  /// Serializes this PaymentMethodCard to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as PaymentMethodCard;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PaymentMethodCard&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.provider, _this.provider) || other.provider == _this.provider)&&(identical(other.isTest, _this.isTest) || other.isTest == _this.isTest));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as PaymentMethodCard;
+  return Object.hash(runtimeType,_this.id,_this.name,_this.provider,_this.isTest);
+}
+
+@override
+String toString() {
+  final _this = this as PaymentMethodCard;
+  return 'PaymentMethodCard(id: ${_this.id}, name: ${_this.name}, provider: ${_this.provider}, isTest: ${_this.isTest})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PaymentMethodCardCopyWith<$Res>  {
+  factory $PaymentMethodCardCopyWith(PaymentMethodCard value, $Res Function(PaymentMethodCard) _then) = _$PaymentMethodCardCopyWithImpl;
+@useResult
+$Res call({
+ int id, String name, String provider,@JsonKey(name: 'is_test') bool isTest
+});
+
+
+
+
+}
+/// @nodoc
+class _$PaymentMethodCardCopyWithImpl<$Res>
+    implements $PaymentMethodCardCopyWith<$Res> {
+  _$PaymentMethodCardCopyWithImpl(this._self, this._then);
+
+  final PaymentMethodCard _self;
+  final $Res Function(PaymentMethodCard) _then;
+
+/// Create a copy of PaymentMethodCard
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? provider = null,Object? isTest = null,}) {
+  return _then(PaymentMethodCard(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
+as String,isTest: null == isTest ? _self.isTest : isTest // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PaymentMethodCard].
+extension PaymentMethodCardPatterns on PaymentMethodCard {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PaymentMethodCard value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PaymentMethodCard() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PaymentMethodCard value)  $default,){
+final _that = this;
+switch (_that) {
+case _PaymentMethodCard():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PaymentMethodCard value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PaymentMethodCard() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String provider, @JsonKey(name: 'is_test')  bool isTest)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PaymentMethodCard() when $default != null:
+return $default(_that.id,_that.name,_that.provider,_that.isTest);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String provider, @JsonKey(name: 'is_test')  bool isTest)  $default,) {final _that = this;
+switch (_that) {
+case _PaymentMethodCard():
+return $default(_that.id,_that.name,_that.provider,_that.isTest);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String provider, @JsonKey(name: 'is_test')  bool isTest)?  $default,) {final _that = this;
+switch (_that) {
+case _PaymentMethodCard() when $default != null:
+return $default(_that.id,_that.name,_that.provider,_that.isTest);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _PaymentMethodCard implements PaymentMethodCard {
+  const _PaymentMethodCard({required this.id, required this.name, required this.provider, @JsonKey(name: 'is_test') this.isTest = false});
+  factory _PaymentMethodCard.fromJson(Map<String, dynamic> json) => _$PaymentMethodCardFromJson(json);
+
+@override final  int id;
+@override final  String name;
+@override final  String provider;
+@override@JsonKey(name: 'is_test') final  bool isTest;
+
+/// Create a copy of PaymentMethodCard
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PaymentMethodCardCopyWith<_PaymentMethodCard> get copyWith => __$PaymentMethodCardCopyWithImpl<_PaymentMethodCard>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PaymentMethodCardToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _PaymentMethodCard&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.isTest, isTest) || other.isTest == isTest));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,id,name,provider,isTest);
+}
+
+@override
+String toString() {
+    return 'PaymentMethodCard(id: $id, name: $name, provider: $provider, isTest: $isTest)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PaymentMethodCardCopyWith<$Res> implements $PaymentMethodCardCopyWith<$Res> {
+  factory _$PaymentMethodCardCopyWith(_PaymentMethodCard value, $Res Function(_PaymentMethodCard) _then) = __$PaymentMethodCardCopyWithImpl;
+@override @useResult
+$Res call({
+ int id, String name, String provider,@JsonKey(name: 'is_test') bool isTest
+});
+
+
+
+
+}
+/// @nodoc
+class __$PaymentMethodCardCopyWithImpl<$Res>
+    implements _$PaymentMethodCardCopyWith<$Res> {
+  __$PaymentMethodCardCopyWithImpl(this._self, this._then);
+
+  final _PaymentMethodCard _self;
+  final $Res Function(_PaymentMethodCard) _then;
+
+/// Create a copy of PaymentMethodCard
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? provider = null,Object? isTest = null,}) {
+  return _then(_PaymentMethodCard(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
+as String,isTest: null == isTest ? _self.isTest : isTest // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
 // dart format on

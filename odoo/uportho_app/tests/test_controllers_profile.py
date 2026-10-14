@@ -5,6 +5,7 @@ from odoo.tests.common import TransactionCase, tagged
 
 from ..controllers.profile import build_club_block, format_club_date
 from .common import PORTAL_LOGIN, PORTAL_PASSWORD, AppHttpCase
+from .test_controllers_base import load_contract
 
 
 @tagged('post_install', '-at_install')
@@ -361,3 +362,53 @@ class TestProfileClubRoute(AppHttpCase):
         self.assertIn('club', body)
         if 'has_valid_subscription' not in self.env['res.partner']._fields:
             self.assertIsNone(body['club'])
+
+
+@tagged('post_install', '-at_install')
+class TestPaymentMethods(AppHttpCase):
+    """Cardurile salvate ale contului. Pe uportho sunt peste o mie, pe peste patru sute
+    de cabinete, iar checkout-ul plateste deja cu ele."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.provider = cls.env['payment.provider'].search([('code', '=', 'custom')], limit=1)
+        cls.provider.state = 'test'
+        cls.partner = cls.portal_user.partner_id
+
+    def _token(self, partner, name='VISA **** 4242'):
+        return self.env['payment.token'].create({
+            'provider_id': self.provider.id,
+            'payment_method_id': self.provider.payment_method_ids[:1].id,
+            'partner_id': partner.id,
+            'payment_details': name,
+            'provider_ref': 'ref-%s' % name,
+        })
+
+    def test_ruta_cere_login(self):
+        self.assertEqual(self.api_get('/payment-methods').status_code, 401)
+
+    def test_cardurile_contului_se_vad(self):
+        token = self._token(self.partner)
+        self.api_login()
+
+        body = self.api_get('/payment-methods').json()
+
+        self.assertIn(token.id, [t['id'] for t in body])
+        card = next(t for t in body if t['id'] == token.id)
+        self.assertEqual(set(card), set(load_contract('payment_methods.json')[0]))
+
+    def test_cardul_altui_client_nu_se_vede(self):
+        strain = self.env['res.partner'].create({'name': 'Alt cabinet carduri'})
+        token = self._token(strain, 'MASTERCARD **** 1111')
+        self.api_login()
+
+        self.assertNotIn(token.id, [t['id'] for t in self.api_get('/payment-methods').json()])
+
+    def test_cardul_unui_provider_oprit_nu_se_listeaza(self):
+        """N-ar putea fi folosit la plata, deci n-are ce cauta in lista."""
+        token = self._token(self.partner, 'VISA **** 9999')
+        self.provider.state = 'disabled'
+        self.api_login()
+
+        self.assertNotIn(token.id, [t['id'] for t in self.api_get('/payment-methods').json()])

@@ -107,3 +107,19 @@ Map<String, dynamic> _$LoyaltyCardToJson(_LoyaltyCard instance) =>
       'points_display': instance.pointsDisplay,
       'expiration_date': instance.expirationDate,
     };
+
+_PaymentMethodCard _$PaymentMethodCardFromJson(Map<String, dynamic> json) =>
+    _PaymentMethodCard(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String,
+      provider: json['provider'] as String,
+      isTest: json['is_test'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$PaymentMethodCardToJson(_PaymentMethodCard instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'provider': instance.provider,
+      'is_test': instance.isTest,
+    };

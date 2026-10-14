@@ -11,6 +11,7 @@ import 'addresses_screen.dart';
 import 'favorites_screen.dart';
 import 'ortho_club_card.dart';
 import 'password_screen.dart';
+import 'payment_methods_screen.dart';
 import 'profile_screen.dart';
 
 /// Ecranul "Contul meu": starea de membru Ortho Club, apoi drumurile spre comenzi,
@@ -32,6 +33,7 @@ class AccountScreen extends ConsumerWidget {
     final addresses = ref.watch(addressesProvider).value;
     final loyaltyCards =
         ref.watch(loyaltyProvider).value ?? const <LoyaltyCard>[];
+    final cards = ref.watch(paymentMethodsProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Contul meu')),
@@ -42,6 +44,7 @@ class AccountScreen extends ConsumerWidget {
           ref.invalidate(invoicesProvider);
           ref.invalidate(addressesProvider);
           ref.invalidate(loyaltyProvider);
+          ref.invalidate(paymentMethodsProvider);
         },
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -96,6 +99,14 @@ class AccountScreen extends ConsumerWidget {
                   label: 'Datele contului',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  ),
+                ),
+                _MenuItem(
+                  icon: Icons.credit_card,
+                  label: 'Cardurile mele',
+                  trailingText: cards?.length.toString(),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
                   ),
                 ),
                 _MenuItem(

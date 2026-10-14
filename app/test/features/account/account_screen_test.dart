@@ -53,6 +53,8 @@ void main() {
         ApiResponse(status: 200, json: fixture('profile.json')));
     transport.when('GET', '/api/app/v1/loyalty',
         ApiResponse(status: 200, json: listFixture('loyalty.json')));
+    transport.when('GET', '/api/app/v1/payment-methods',
+        ApiResponse(status: 200, json: listFixture('payment_methods.json')));
     return transport;
   }
 
@@ -239,5 +241,11 @@ void main() {
     }
 
     expect(find.text('Factura nu exista.'), findsOneWidget);
+  });
+
+  testWidgets('cardurile salvate apar cu numarul lor si se deschid', (tester) async {
+    await pump(tester, const AccountScreen(), accountTransport());
+
+    expect(countOf('Cardurile mele', '1'), findsOneWidget);
   });
 }

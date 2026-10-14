@@ -57,6 +57,14 @@ final profileProvider = FutureProvider<AccountProfileResponse>(
   retry: (retryCount, error) => null,
 );
 
+final paymentMethodsProvider = FutureProvider<List<PaymentMethodCard>>(
+  (ref) async {
+    await ref.watch(authControllerProvider.future);
+    return ref.read(accountRepositoryProvider).fetchPaymentMethods();
+  },
+  retry: (retryCount, error) => null,
+);
+
 final loyaltyProvider = FutureProvider<List<LoyaltyCard>>(
   (ref) async {
     await ref.watch(authControllerProvider.future);

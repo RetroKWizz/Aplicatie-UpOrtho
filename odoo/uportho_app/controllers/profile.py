@@ -123,6 +123,20 @@ def serialize_profile(partner):
     }
 
 
+def serialize_payment_token(token):
+    """Un card salvat, asa cum il arata si portalul: numele compus de provider
+    ("VISA **** 4242"), providerul si daca e in mod test.
+
+    Nicio informatie de card nu trece prin aplicatie si nici prin acest raspuns:
+    tokenul e doar o referinta pastrata de provider."""
+    return {
+        'id': token.id,
+        'name': token.display_name,
+        'provider': token.provider_id.name,
+        'is_test': token.provider_id.state == 'test',
+    }
+
+
 class AppProfile(CustomerPortal):
     """Datele contului: citire si modificare, pe acelasi drum ca portalul.
 
@@ -155,6 +169,29 @@ class AppProfile(CustomerPortal):
                 {'zip' if f == ZIP_FORM_FIELD else f for f in mandatory + optional}
                 & set(PROFILE_FIELDS)),
         })
+
+    @app_route('/payment-methods', methods=['GET'])
+    def payment_methods(self, **kw):
+        """Cardurile salvate ale contului.
+
+        Pe uportho sunt peste o mie de carduri salvate, pe peste patru sute de
+        cabinete, iar checkout-ul plateste deja cu ele - ecranul doar le arata.
+
+        Se citesc de pe arborele partenerului comercial, aceeasi regula ca la adrese si
+        favorite: intr-un cabinet cu mai multi utilizatori, cardul salvat de unul se
+        poate folosi de toti, exact ca pe site. Doar providerii porniti: un card ramas
+        de la un provider oprit n-ar putea fi folosit la plata, deci n-are ce cauta in
+        lista.
+
+        Doar de citit. Cardurile se adauga platind, iar stergerea lor ramane pe site -
+        e o actiune de care nu te poti razgandi, si nu se face dintr-o apasare gresita
+        pe telefon."""
+        commercial = request.env.user.partner_id.commercial_partner_id
+        tokens = request.env['payment.token'].sudo().search([
+            ('partner_id', 'child_of', commercial.id),
+            ('provider_id.state', 'in', ['enabled', 'test']),
+        ])
+        return json_ok([serialize_payment_token(t) for t in tokens])
 
     @app_route('/account/profile', methods=['POST'])
     def update_profile(self, **kw):
