@@ -481,7 +481,10 @@ odoo-update uportho_app                            # reporneste si actualizeaza 
 
 `uportho_app.tar.gz` din radacina repo-ului e chiar arhiva de desfasurare; se
 regenereaza cu `COPYFILE_DISABLE=1 tar czf uportho_app.tar.gz -C odoo
---exclude='__pycache__' --exclude='*.pyc' uportho_app`. **`COPYFILE_DISABLE=1` e
+--exclude='__pycache__' --exclude='*.pyc' uportho_app`. **Arhiva se descarca dupa SHA-ul commitului, nu dupa `main`**: `raw.githubusercontent.com`
+e pus in cache de CDN cateva minute, iar dupa un push proaspat serveste linistit arhiva
+VECHE - se pierde o repornire intreaga cautand o eroare care nu mai exista in cod. Suma
+de control se compara mereu cu cea locala. **`COPYFILE_DISABLE=1` e
 obligatoriu**: fara el, tar-ul de pe macOS baga in arhiva fisierele AppleDouble
 (`._nume`), care ajung pe disc pe server — 78 de fisiere in plus langa cele 72 reale.
 

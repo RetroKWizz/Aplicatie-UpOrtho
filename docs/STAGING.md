@@ -157,6 +157,12 @@ Din terminalul editorului odoo.sh (JupyterLab → Launcher → Terminal):
 ```bash
 cd ~/src/user/custom_modules
 tar czf ~/tmp/backup_uportho_app_$(date +%Y%m%d_%H%M).tar.gz uportho_app   # daca exista deja
+# ATENTIE: `raw.githubusercontent.com/.../main/...` e pus in cache de CDN cateva minute.
+# Dupa un push proaspat se descarca arhiva VECHE, fara niciun semn ca e veche - se pierde
+# o repornire intreaga cautand o eroare care nu mai exista in cod. Cand conteaza versiunea,
+# pune SHA-ul commitului in loc de `main`:
+#   https://raw.githubusercontent.com/RetroKWizz/Aplicatie-UpOrtho/<sha>/uportho_app.tar.gz
+# si verifica mereu suma de control contra celei locale.
 curl -sSL -o /tmp/uportho_app.tar.gz \
   https://raw.githubusercontent.com/RetroKWizz/Aplicatie-UpOrtho/main/uportho_app.tar.gz
 tar xzf /tmp/uportho_app.tar.gz -C . 2>/dev/null    # dezarhiveaza PESTE, nu se face rm
