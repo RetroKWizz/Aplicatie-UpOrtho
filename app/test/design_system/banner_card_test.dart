@@ -117,7 +117,9 @@ void main() {
     expect(find.text('Alatura-te Ortho Club'), findsNothing);
     expect(find.text('Preturi speciale'), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
-    expect(find.byType(CachedNetworkImage), findsOneWidget);
+    // Poza se arata intreaga: taiata, s-ar pierde chiar cuvintele de pe ea.
+    final image = tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage));
+    expect(image.fit, BoxFit.contain);
   });
 
   testWidgets('bifa fara imagine nu goleste bannerul', (tester) async {

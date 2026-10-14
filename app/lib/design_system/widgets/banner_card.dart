@@ -52,7 +52,12 @@ class BannerCard extends StatelessWidget {
                   CachedNetworkImage(
                     imageUrl: imageUrl!,
                     httpHeaders: httpHeaders,
-                    fit: BoxFit.cover,
+                    // O poza pe care e scris textul se arata INTREAGA: taiata ca sa
+                    // umple cardul, se pierd chiar cuvintele pentru care a fost facuta
+                    // (pe staging, "Ortho Club" ramanea fara prima litera). Ce ramane
+                    // pe margini e gradientul de brand. La un banner obisnuit taierea
+                    // nu strica nimic, textul il scrie aplicatia peste.
+                    fit: imageCarriesText ? BoxFit.contain : BoxFit.cover,
                     errorWidget: (_, _, _) => const SizedBox(),
                   ),
                 // Valul intunecat exista doar ca sa se citeasca textul peste imagine.
