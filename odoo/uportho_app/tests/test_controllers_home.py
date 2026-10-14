@@ -368,3 +368,62 @@ class TestHomeSections(AppHttpCase):
     def test_sectiunea_fara_categorie_e_refuzata(self):
         with self.assertRaises(Exception):
             self.env['uportho.app.section'].create({'name': 'Fara categorie', 'source': 'category'})
+
+
+@tagged('post_install', '-at_install')
+class TestHomeBrandsAndCounts(AppHttpCase):
+    """Randul de branduri si numarul de produse de sub categorii.
+
+    Brandul e un camp al magazinului (`dr_brand_value_id` din tema): pe baza de test nu
+    exista, deci randul lipseste cu totul - asta se si verifica aici, ca o baza fara
+    tema sa nu pice. Numaratoarea de categorii e insa a noastra si se verifica pe date."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Category = cls.env['product.public.category']
+        cls.parinte = Category.create({
+            'name': 'Parinte numarare test', 'app_home_visible': True, 'app_home_sequence': 1})
+        cls.copil = Category.create({
+            'name': 'Copil numarare test', 'parent_id': cls.parinte.id})
+        Template = cls.env['product.template']
+        Template.create({
+            'name': 'Produs numarare 1', 'is_published': True, 'list_price': 10.0,
+            'public_categ_ids': [(6, 0, [cls.parinte.id])]})
+        # Acelasi produs in parinte SI in copil: trebuie numarat o singura data.
+        Template.create({
+            'name': 'Produs numarare 2', 'is_published': True, 'list_price': 10.0,
+            'public_categ_ids': [(6, 0, [cls.parinte.id, cls.copil.id])]})
+        Template.create({
+            'name': 'Produs numarare nepublicat', 'is_published': False, 'list_price': 10.0,
+            'public_categ_ids': [(6, 0, [cls.copil.id])]})
+
+    def _home(self):
+        self.api_login()
+        return self.api_get('/home').json()
+
+    def test_numarul_de_produse_e_recursiv_si_numara_o_data(self):
+        body = self._home()
+        categories = {c['id']: c for c in body['quick_categories']}
+
+        self.assertEqual(categories[self.parinte.id]['product_count'], 2)
+
+    def test_produsele_nepublicate_nu_se_numara(self):
+        """Altfel numarul de sub iconita ar promite mai mult decat deschide."""
+        body = self._home()
+        categories = {c['id']: c for c in body['quick_categories']}
+
+        self.assertNotIn('Produs numarare nepublicat',
+                         [c['name'] for c in body['quick_categories']])
+        self.assertEqual(categories[self.parinte.id]['product_count'], 2)
+
+    def test_fara_campurile_temei_randul_de_branduri_lipseste(self):
+        body = self._home()
+
+        self.assertIn('brands', body)
+        if 'dr_brand_value_id' not in self.env['product.template']._fields:
+            self.assertEqual(body['brands'], [])
+
+    def test_logoul_unui_brand_inexistent_da_404(self):
+        self.api_login()
+        self.assertEqual(self.api_get('/brands/999999/logo').status_code, 404)

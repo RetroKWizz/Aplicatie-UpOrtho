@@ -152,6 +152,20 @@ class CatalogController extends AsyncNotifier<CatalogState> {
     await _reload();
   }
 
+  /// Deschide catalogul filtrat pe un brand, apasat de pe Acasa.
+  ///
+  /// Scoate categoria si cautarea si lasa doar brandul: altfel, apasat din Acasa, un
+  /// brand ar fi cautat in categoria la care ramasese ecranul si ar fi parut ca
+  /// magazinul nu are nimic de la el. O singura reincarcare, nu trei.
+  Future<void> showBrand({required int attributeId, required int valueId}) async {
+    ref.read(catalogCategoryFilterProvider.notifier).state = null;
+    ref.read(catalogSearchQueryProvider.notifier).state = '';
+    ref.read(catalogFilterSelectionProvider.notifier).state =
+        ProductFilterSelection.empty.toggleValue(attributeId, valueId);
+    _initialized = true;
+    await _reload();
+  }
+
   /// Schimba textul de cautare (nume sau cod) si reincarca de la prima pagina.
   Future<void> setQuery(String query) async {
     final normalized = query.trim();

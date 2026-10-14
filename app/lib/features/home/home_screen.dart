@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../../api/api_exception.dart';
 import '../../api/models/home_response.dart';
 import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
+import '../../design_system/typography.dart';
 import '../../design_system/widgets/banner_card.dart';
 import '../../design_system/widgets/category_chip.dart';
 import '../../design_system/widgets/product_card.dart';
@@ -17,6 +19,7 @@ import '../favorites/favorites_controller.dart';
 import '../product_badge_palette.dart';
 import '../product_rating_label.dart';
 import 'banner_link.dart';
+import '../catalog/catalog_controller.dart';
 import 'home_controller.dart';
 
 /// Ecranul Acasa: banner hero, categorii rapide, grila de oferte. Un singur apel /home.
@@ -90,7 +93,10 @@ class _HomeContent extends StatelessWidget {
         if (data.quickCategories.isNotEmpty) ...[
           const SectionHeader('Categorii'),
           SizedBox(
-            height: 104,
+            // Mai inalt decat inainte: sub nume incape si cate produse sunt in
+            // categorie, iar un nume de doua randuri ("Tuburi si inele") trebuie sa
+            // stea langa el fara sa iasa.
+            height: 128,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -101,6 +107,7 @@ class _HomeContent extends StatelessWidget {
                 final iconUrl = category.iconUrl == null ? null : absoluteUrl(category.iconUrl!);
                 return CategoryChip(
                   name: category.name,
+                  productCount: category.productCount,
                   iconUrl: iconUrl,
                   httpHeaders: iconUrl == null ? null : headersFor(iconUrl),
                   onTap: () => context.go('/catalog?category_id=${category.id}'),
@@ -127,6 +134,10 @@ class _HomeContent extends StatelessWidget {
               ),
             ),
           ),
+        ],
+        if (data.brands.isNotEmpty) ...[
+          const SectionHeader('Cumpara dupa brand'),
+          _BrandRow(brands: data.brands, absoluteUrl: absoluteUrl, headersFor: headersFor),
         ],
         // Randurile de produse, in ordinea pusa in Odoo. Serverul nu trimite un rand
         // ramas fara produse, deci aici nu exista titlu peste gol.
@@ -347,6 +358,100 @@ class _ProductRow extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Randul de branduri: logo, nume si cate produse are fiecare.
+///
+/// Apasarea deschide catalogul filtrat pe brandul respectiv - acelasi filtru pe care
+/// clientul l-ar fi pus de mana din "Filtre", nu o cautare dupa nume.
+class _BrandRow extends ConsumerWidget {
+  const _BrandRow({
+    required this.brands,
+    required this.absoluteUrl,
+    required this.headersFor,
+  });
+
+  final List<HomeBrand> brands;
+  final String Function(String) absoluteUrl;
+  final Map<String, String>? Function(String url) headersFor;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      // Logo + doua randuri de nume + numarul de produse. Un brand cu nume lung
+      // ("Reliance Orthodontic Products") trebuie sa incapa fara sa iasa din card.
+      height: 136,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        itemCount: brands.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (_, index) {
+          final brand = brands[index];
+          final logoUrl = brand.logoUrl == null ? null : absoluteUrl(brand.logoUrl!);
+          return SizedBox(
+            width: 132,
+            child: Material(
+              color: context.colors.surface,
+              borderRadius: BorderRadius.circular(14),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () async {
+                  await ref.read(catalogControllerProvider.notifier).showBrand(
+                        attributeId: brand.attributeId,
+                        valueId: brand.id,
+                      );
+                  if (context.mounted) context.go('/catalog');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 34,
+                        child: logoUrl == null
+                            ? Align(
+                                alignment: Alignment.centerLeft,
+                                child: Icon(Icons.verified_outlined,
+                                    size: 24, color: context.colors.primary),
+                              )
+                            : Align(
+                                alignment: Alignment.centerLeft,
+                                child: CachedNetworkImage(
+                                  imageUrl: logoUrl,
+                                  httpHeaders: headersFor(logoUrl),
+                                  fit: BoxFit.contain,
+                                  errorWidget: (_, _, _) => Icon(Icons.verified_outlined,
+                                      size: 24, color: context.colors.primary),
+                                ),
+                              ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        brand.name,
+                        style: AppTypography.body(context)
+                            .copyWith(fontSize: 13, fontWeight: FontWeight.w700),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        brand.productCount == 1
+                            ? '1 produs'
+                            : '${brand.productCount} produse',
+                        style: AppTypography.caption(context).copyWith(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

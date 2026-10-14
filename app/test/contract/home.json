@@ -33,12 +33,30 @@
     {
       "id": 12,
       "name": "Bracketi",
+      "product_count": 41,
       "icon_url": "/api/app/v1/categories/12/icon?unique=8be4d17"
     },
     {
       "id": 13,
       "name": "Arcuri",
+      "product_count": 158,
       "icon_url": null
+    }
+  ],
+  "brands": [
+    {
+      "id": 1201,
+      "attribute_id": 95,
+      "name": "G&H Orthodontics",
+      "product_count": 111,
+      "logo_url": "/api/app/v1/brands/1201/logo?unique=5c1a7e2"
+    },
+    {
+      "id": 1202,
+      "attribute_id": 95,
+      "name": "Dynaflex Orthodontics",
+      "product_count": 57,
+      "logo_url": null
     }
   ],
   "sections": [

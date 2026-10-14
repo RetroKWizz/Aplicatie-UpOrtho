@@ -118,4 +118,40 @@ void main() {
     expect(find.text('Noutati'), findsNothing);
     expect(find.text('Categorii'), findsOneWidget);
   });
+
+  testWidgets('categoriile arata cate produse au, ca pe site', (tester) async {
+    await pump(tester, homeFixture());
+
+    expect(find.text('41 produse'), findsOneWidget);
+  });
+
+  testWidgets('o categorie goala nu se lauda cu zero produse', (tester) async {
+    final home = homeFixture();
+    for (final c in home['quick_categories'] as List) {
+      (c as Map<String, dynamic>)['product_count'] = 0;
+    }
+
+    await pump(tester, home);
+
+    expect(find.text('0 produse'), findsNothing);
+    expect(find.text('Bracketi'), findsWidgets, reason: 'categoria ramane, doar numarul lipseste');
+  });
+
+  testWidgets('randul de branduri arata numele si cate produse are fiecare',
+      (tester) async {
+    await pump(tester, homeFixture());
+
+    expect(find.text('Cumpara dupa brand'), findsOneWidget);
+    expect(find.text('G&H Orthodontics'), findsOneWidget);
+    expect(find.text('111 produse'), findsOneWidget);
+  });
+
+  testWidgets('fara branduri, randul lipseste cu totul', (tester) async {
+    // Pe o baza fara modulele magazinului, serverul trimite lista goala.
+    final home = {...homeFixture(), 'brands': <dynamic>[]};
+
+    await pump(tester, home);
+
+    expect(find.text('Cumpara dupa brand'), findsNothing);
+  });
 }

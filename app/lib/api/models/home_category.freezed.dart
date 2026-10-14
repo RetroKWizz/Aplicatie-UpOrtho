@@ -16,7 +16,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HomeCategory {
 
- int get id; String get name;@JsonKey(name: 'icon_url') String? get iconUrl;
+ int get id; String get name;/// Cate produse are categoria, recursiv - acelasi numar ca in catalog.
+@JsonKey(name: 'product_count') int get productCount;@JsonKey(name: 'icon_url') String? get iconUrl;
 /// Create a copy of HomeCategory
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +31,20 @@ $HomeCategoryCopyWith<HomeCategory> get copyWith => _$HomeCategoryCopyWithImpl<H
 @override
 bool operator ==(Object other) {
   final _this = this as HomeCategory;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeCategory&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.iconUrl, _this.iconUrl) || other.iconUrl == _this.iconUrl));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeCategory&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.productCount, _this.productCount) || other.productCount == _this.productCount)&&(identical(other.iconUrl, _this.iconUrl) || other.iconUrl == _this.iconUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as HomeCategory;
-  return Object.hash(runtimeType,_this.id,_this.name,_this.iconUrl);
+  return Object.hash(runtimeType,_this.id,_this.name,_this.productCount,_this.iconUrl);
 }
 
 @override
 String toString() {
   final _this = this as HomeCategory;
-  return 'HomeCategory(id: ${_this.id}, name: ${_this.name}, iconUrl: ${_this.iconUrl})';
+  return 'HomeCategory(id: ${_this.id}, name: ${_this.name}, productCount: ${_this.productCount}, iconUrl: ${_this.iconUrl})';
 }
 
 
@@ -54,7 +55,7 @@ abstract mixin class $HomeCategoryCopyWith<$Res>  {
   factory $HomeCategoryCopyWith(HomeCategory value, $Res Function(HomeCategory) _then) = _$HomeCategoryCopyWithImpl;
 @useResult
 $Res call({
- int id, String name,@JsonKey(name: 'icon_url') String? iconUrl
+ int id, String name,@JsonKey(name: 'product_count') int productCount,@JsonKey(name: 'icon_url') String? iconUrl
 });
 
 
@@ -71,11 +72,12 @@ class _$HomeCategoryCopyWithImpl<$Res>
 
 /// Create a copy of HomeCategory
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? iconUrl = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? productCount = null,Object? iconUrl = freezed,}) {
   return _then(HomeCategory(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,iconUrl: freezed == iconUrl ? _self.iconUrl : iconUrl // ignore: cast_nullable_to_non_nullable
+as String,productCount: null == productCount ? _self.productCount : productCount // ignore: cast_nullable_to_non_nullable
+as int,iconUrl: freezed == iconUrl ? _self.iconUrl : iconUrl // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -161,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'icon_url')  String? iconUrl)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'product_count')  int productCount, @JsonKey(name: 'icon_url')  String? iconUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HomeCategory() when $default != null:
-return $default(_that.id,_that.name,_that.iconUrl);case _:
+return $default(_that.id,_that.name,_that.productCount,_that.iconUrl);case _:
   return orElse();
 
 }
@@ -182,10 +184,10 @@ return $default(_that.id,_that.name,_that.iconUrl);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'icon_url')  String? iconUrl)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'product_count')  int productCount, @JsonKey(name: 'icon_url')  String? iconUrl)  $default,) {final _that = this;
 switch (_that) {
 case _HomeCategory():
-return $default(_that.id,_that.name,_that.iconUrl);case _:
+return $default(_that.id,_that.name,_that.productCount,_that.iconUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -202,10 +204,10 @@ return $default(_that.id,_that.name,_that.iconUrl);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name, @JsonKey(name: 'icon_url')  String? iconUrl)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name, @JsonKey(name: 'product_count')  int productCount, @JsonKey(name: 'icon_url')  String? iconUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _HomeCategory() when $default != null:
-return $default(_that.id,_that.name,_that.iconUrl);case _:
+return $default(_that.id,_that.name,_that.productCount,_that.iconUrl);case _:
   return null;
 
 }
@@ -217,11 +219,13 @@ return $default(_that.id,_that.name,_that.iconUrl);case _:
 @JsonSerializable()
 
 class _HomeCategory implements HomeCategory {
-  const _HomeCategory({required this.id, required this.name, @JsonKey(name: 'icon_url') this.iconUrl});
+  const _HomeCategory({required this.id, required this.name, @JsonKey(name: 'product_count') this.productCount = 0, @JsonKey(name: 'icon_url') this.iconUrl});
   factory _HomeCategory.fromJson(Map<String, dynamic> json) => _$HomeCategoryFromJson(json);
 
 @override final  int id;
 @override final  String name;
+/// Cate produse are categoria, recursiv - acelasi numar ca in catalog.
+@override@JsonKey(name: 'product_count') final  int productCount;
 @override@JsonKey(name: 'icon_url') final  String? iconUrl;
 
 /// Create a copy of HomeCategory
@@ -237,18 +241,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.iconUrl, iconUrl) || other.iconUrl == iconUrl));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.productCount, productCount) || other.productCount == productCount)&&(identical(other.iconUrl, iconUrl) || other.iconUrl == iconUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,name,iconUrl);
+    return Object.hash(runtimeType,id,name,productCount,iconUrl);
 }
 
 @override
 String toString() {
-    return 'HomeCategory(id: $id, name: $name, iconUrl: $iconUrl)';
+    return 'HomeCategory(id: $id, name: $name, productCount: $productCount, iconUrl: $iconUrl)';
 }
 
 
@@ -259,7 +263,7 @@ abstract mixin class _$HomeCategoryCopyWith<$Res> implements $HomeCategoryCopyWi
   factory _$HomeCategoryCopyWith(_HomeCategory value, $Res Function(_HomeCategory) _then) = __$HomeCategoryCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name,@JsonKey(name: 'icon_url') String? iconUrl
+ int id, String name,@JsonKey(name: 'product_count') int productCount,@JsonKey(name: 'icon_url') String? iconUrl
 });
 
 
@@ -276,11 +280,12 @@ class __$HomeCategoryCopyWithImpl<$Res>
 
 /// Create a copy of HomeCategory
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? iconUrl = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? productCount = null,Object? iconUrl = freezed,}) {
   return _then(_HomeCategory(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,iconUrl: freezed == iconUrl ? _self.iconUrl : iconUrl // ignore: cast_nullable_to_non_nullable
+as String,productCount: null == productCount ? _self.productCount : productCount // ignore: cast_nullable_to_non_nullable
+as int,iconUrl: freezed == iconUrl ? _self.iconUrl : iconUrl // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

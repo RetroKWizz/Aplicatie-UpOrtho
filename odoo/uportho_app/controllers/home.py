@@ -128,14 +128,76 @@ def category_icon_field(category):
     return 'image_1920' if category.image_1920 else None
 
 
-def serialize_quick_category(category):
+def serialize_quick_category(category, product_count):
     has_icon = category_icon_field(category) is not None
     return {
         'id': category.id,
         'name': category.name,
+        # Cate produse sunt acolo, ca pe pagina de start a site-ului ("Instrumentar,
+        # 208 produse"). Numarul e recursiv, ca in catalog: un produs prins intr-o
+        # subcategorie se numara o singura data.
+        'product_count': product_count,
         'icon_url': f'{API_PREFIX}/categories/{category.id}/icon?unique={image_unique(category)}'
                     if has_icon else None,
     }
+
+
+# Campurile de brand ale magazinului (`droggol_theme_common`): valoarea de atribut care
+# poarta brandul, si logoul de pe ea. Lipsesc pe o baza fara tema.
+BRAND_FIELD = 'dr_brand_value_id'
+BRAND_LOGO_FIELD = 'dr_image'
+BRANDS_ON_HOME = 12
+
+
+def serialize_brands(website):
+    """Brandurile din catalog, cu cate produse are fiecare, in ordinea marimii.
+
+    Pagina de start a site-ului are un rand "Shop By Brands"; multe cabinete cumpara
+    pe marca, nu pe categorie. Brandul NU e o lista configurata undeva: e chiar
+    valoarea de atribut dupa care filtreaza si catalogul, deci apasarea pe un brand
+    deschide aceeasi filtrare pe care clientul ar fi facut-o de mana.
+
+    Se numara doar produsele pe care le-ar da si `/products` (publicate, pe website-ul
+    potrivit). Pe o baza fara modulele magazinului campul nu exista si randul lipseste
+    cu totul - nu se inventeaza alt inteles pentru "brand"."""
+    from .catalog import _products_domain
+
+    Template = request.env['product.template']
+    if BRAND_FIELD not in Template._fields:
+        return []
+    domain = _products_domain(website, None, None) + [(BRAND_FIELD, '!=', False)]
+    groups = Template.sudo()._read_group(domain, [BRAND_FIELD], ['__count'])
+    brands = []
+    for value, count in sorted(groups, key=lambda group: -group[1]):
+        name = (value.name or '').strip()
+        if not name:
+            continue
+        has_logo = BRAND_LOGO_FIELD in value._fields and value[BRAND_LOGO_FIELD]
+        brands.append({
+            'id': value.id,
+            # Atributul e necesar ca aplicatia sa poata cere chiar filtrul magazinului
+            # (`attribute_value=<atribut>-<valoare>`), nu o cautare dupa nume.
+            'attribute_id': value.attribute_id.id,
+            'name': name,
+            'product_count': count,
+            'logo_url': f'{API_PREFIX}/brands/{value.id}/logo?unique={image_unique(value)}'
+                        if has_logo else None,
+        })
+        if len(brands) >= BRANDS_ON_HOME:
+            break
+    return brands
+
+
+def _category_counts(categories, website):
+    """Cate produse are fiecare categorie de pe Acasa. Se cheama numaratoarea
+    catalogului, nu alta: numarul de sub iconita trebuie sa fie acelasi cu cel din
+    chipul de categorie din catalog."""
+    if not categories:
+        return {}
+    from .catalog import _product_counts_by_category
+
+    return _product_counts_by_category(
+        request.env['product.public.category'].sudo().search([]), website)
 
 
 def serialize_section(section, website):
@@ -209,14 +271,36 @@ class AppHome(http.Controller):
         banners = request.env['uportho.app.banner']._search_active_now(website)
         categories = request.env['product.public.category']._search_app_home(website)
         sections = request.env['uportho.app.section']._search_active_now(website)
+        counts = _category_counts(categories, website)
         return json_ok({
             'banners': [serialize_banner(b) for b in banners],
-            'quick_categories': [serialize_quick_category(c) for c in categories],
+            'quick_categories': [
+                serialize_quick_category(c, counts.get(c.id, 0)) for c in categories
+            ],
+            'brands': serialize_brands(website),
             'sections': [
                 block for block in (serialize_section(s, website) for s in sections)
                 if block is not None
             ],
         })
+
+    @app_route('/brands/<int:value_id>/logo', methods=['GET'])
+    def brand_logo(self, value_id, **kw):
+        """Logoul unui brand.
+
+        Se serveste doar pentru o valoare care chiar apare pe un produs publicat al
+        website-ului: altfel ruta ar fi o fereastra prin care se pot citi, una cate
+        una, toate imaginile de pe valorile de atribut din baza."""
+        from .catalog import _products_domain
+
+        Template = request.env['product.template']
+        value = request.env['product.attribute.value'].sudo().browse(value_id).exists()
+        in_catalog = value and BRAND_FIELD in Template._fields and Template.sudo().search_count(
+            _products_domain(_current_website(), None, None) + [(BRAND_FIELD, '=', value.id)],
+            limit=1)
+        if not in_catalog:
+            raise ApiError(404, 'not_found', 'Imaginea nu exista.')
+        return _image_response(value, BRAND_LOGO_FIELD)
 
     @app_route('/banners/<int:banner_id>/image', methods=['GET'])
     def banner_image(self, banner_id, **kw):

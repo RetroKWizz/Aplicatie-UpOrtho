@@ -6,9 +6,18 @@ import '../typography.dart';
 
 /// Categorie rapida de pe Acasa: iconita rotunda + nume, pentru lista orizontala.
 class CategoryChip extends StatelessWidget {
-  const CategoryChip({super.key, required this.name, required this.iconUrl, this.onTap, this.httpHeaders});
+  const CategoryChip({
+    super.key,
+    required this.name,
+    required this.iconUrl,
+    this.productCount,
+    this.onTap,
+    this.httpHeaders,
+  });
 
   final String name;
+  /// Cate produse sunt in categorie. Lipseste (null) cand numarul n-ar spune nimic.
+  final int? productCount;
   final String? iconUrl;
   final VoidCallback? onTap;
   /// Headere pentru cererea de imagine (ex. cookie de sesiune Odoo); null = fara headere.
@@ -38,7 +47,21 @@ class CategoryChip extends StatelessWidget {
                     ),
             ),
             const SizedBox(height: 6),
-            Text(name, style: AppTypography.caption(context), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(name,
+                style: AppTypography.caption(context),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+            // "208 produse" sub nume, ca pe pagina de start a site-ului. Un zero nu se
+            // scrie: o categorie goala n-are de ce sa se laude cu asta.
+            if (productCount case final int count when count > 0)
+              Text(
+                count == 1 ? '1 produs' : '$count produse',
+                style: AppTypography.caption(context).copyWith(fontSize: 11),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
           ],
         ),
       ),

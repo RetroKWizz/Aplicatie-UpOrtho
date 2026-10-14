@@ -8,6 +8,8 @@ abstract class HomeCategory with _$HomeCategory {
   const factory HomeCategory({
     required int id,
     required String name,
+    /// Cate produse are categoria, recursiv - acelasi numar ca in catalog.
+    @JsonKey(name: 'product_count') @Default(0) int productCount,
     @JsonKey(name: 'icon_url') String? iconUrl,
   }) = _HomeCategory;
 
