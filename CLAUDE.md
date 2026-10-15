@@ -111,6 +111,66 @@ un rand gol e mai rau decat lipsa lui. `controllers/home` importa din `controlle
 catalog` **in interiorul functiei**: la nivel de fisier cele doua se importa reciproc
 si modulul nu mai porneste.
 
+**Magazinul se vede fara cont; preturile, nu.** Rutele de continut (`/home`,
+`/products`, `/products/<id>`, `/categories` si toate rutele lor de imagine, galerie,
+document si logo) sunt `auth='public'`. Un vizitator vede produsele, categoriile,
+brandurile si bannerele - exact ce arata site-ul unui vizitator - dar **niciun pret**:
+fara sesiune nu se cheama `_customer_pricelist` (ar arunca 503 pe partenerul public) si
+nu se alege o lista publica in locul lui. Regula e a magazinului:
+`website._dr_has_b2b_access()` din tema intoarce fals pentru utilizatorul public, iar
+`/shop` le arata `0,00 lei`. Rutele de cos, checkout, cont, comenzi, facturi, adrese,
+favorite si carduri raman pe cont.
+
+**De ce lipseste pretul spune serverul, nu aplicatia.** Fiecare raspuns de catalog
+poarta `pricing: {visible, reason}`. Banda de invitatie si textul "Pretul se vede in
+cont" se deseneaza dupa acel bloc, **nu** dupa starea locala de autentificare: o
+sesiune expirata arata inca "autentificat" in aplicatie cat timp nu cere nimic, iar
+atunci cele doua adevaruri se despart. Blocul lipsa (server mai vechi) inseamna
+"preturile se vad". Daca magazinul opreste intr-o zi regula B2B, preturile apar fara
+release.
+
+**Modelele proprii au nevoie de drept de citire pentru `base.group_public`.**
+`uportho.app.banner`, `uportho.app.section` si `uportho.app.benefit` au randuri
+`public read` in `security/ir.model.access.csv`. Fara ele, rutele publice raspund
+**403**, nu 200 - si pare ca ruta n-a devenit publica, desi problema e dreptul de
+citire.
+
+**Imaginea unui produs trece prin acelasi domeniu ca lista.** `/products/<id>/image`
+cauta produsul cu `_products_domain` si da **404** daca nu e in catalog. Inainte
+raspundea 403, cu motivarea "nu dam de gol ca id-ul exista" - exact pe dos: 403 chiar
+da de gol, iar `/products/<id>` raspundea deja 404 pentru acelasi id.
+
+**Inregistrarea se deschide PE WEBSITE, nu dintr-un parametru de sistem.** Modulul
+`website` suprascrie `res.users._get_signup_invitation_scope` si citeste
+`auth_signup_uninvited` de pe website-ul curent (Site web → Configurare → Setari).
+Parametrul `auth_signup.invitation_scope` ramane doar rezerva, pentru bazele fara
+website - verificat cu un test de diagnostic: parametrul zicea `b2b`, scope-ul real era
+`b2c`. De aceea `POST /auth/signup` **leaga intai website-ul magazinului**
+(`_current_website()`): altfel, pe o instanta cu mai multe website-uri, am intreba alt
+magazin daca are inregistrarea deschisa.
+
+**`POST /auth/signup` nu scrie nicio regula proprie.** Controllerul mosteneste
+`AuthSignupHome` si cheama `do_signup`, deci parola, unicitatea emailului si mesajele
+sunt ale lor ("Passwords do not match; please retype them.", "Another user is already
+registered using this email address."). Campurile acceptate sunt exact cele patru ale
+formularului lor, scrise explicit - `do_signup` ar citi orice cheie primita, iar pe o
+ruta JSON asta ar lasa un client sa-si trimita singur grupuri. Dupa creare, sesiunea se
+deschide in acelasi raspuns. **reCAPTCHA:** pagina lor il verifica inainte de creare;
+cand `recaptcha_private_key` e setat, ruta raspunde `409 signup_needs_webview` si
+aplicatia deschide pagina magazinului, in loc sa ocoleasca protectia anti-bot.
+
+**Aplicatia porneste in magazin.** Redirectul global la `/login` nu mai exista; doar
+`/cart`, `/checkout`, `/account/orders` si `/account/invoices` cer cont. **Tabul Cont
+NU e pazit**: are o fata de vizitator (invitatia cu "Intra in cont" / "Creeaza cont"),
+iar pazit, acea fata n-ar fi vazuta niciodata. Celelalte ecrane de cont (adrese,
+favorite, date de cont, carduri) nu sunt rute - se deschid cu `Navigator.push` din
+ecranul de cont al unui client - deci sunt pazite prin constructie.
+`cartQuantityProvider` intoarce zero fara sesiune **fara sa ceara nimic**: altfel
+fiecare pornire fara cont trimitea o cerere care se intorcea 401, doar ca sa deseneze
+un badge gol. In teste, `InMemorySessionStore(initial: ...)` plus un `/me` stub fac
+diferenta intre un test de CLIENT si unul de vizitator - fara ele, un test vechi
+verifica fara sa stie un vizitator.
+
 **Banda lata (`placement = feature`) e al treilea fel de banner.** Pe pagina de start
 a site-ului sunt blocurile "NOU la UpOrtho" si "Descopera produsele": poza produsului
 intr-o parte, supratitlu + titlu + buton in cealalta, pe fundal deschis. In aplicatie

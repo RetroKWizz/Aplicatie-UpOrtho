@@ -27,7 +27,15 @@ class _AuthListenable extends ChangeNotifier {
 
 /// Ecranele care nu au ce arata fara cont. Un vizitator trimis aici ajunge la
 /// autentificare; restul magazinului ii ramane deschis.
-const _needsAccount = ['/cart', '/checkout', '/account', '/orders', '/invoices'];
+///
+/// `/account` NU e in lista, desi sub-ecranele lui sunt: tabul Cont are o fata de
+/// vizitator (invitatia cu cele doua drumuri), iar pazit de router acea fata n-ar fi
+/// vazuta niciodata - omul ar cadea direct in formularul de autentificare, fara sa
+/// afle ca isi poate face cont.
+/// Celelalte ecrane de cont (adrese, favorite, date de cont, carduri) nu sunt rute:
+/// se deschid cu `Navigator.push` din ecranul de cont al unui CLIENT, iar fata de
+/// vizitator nu are randurile care duc la ele. Sunt deci pazite prin constructie.
+const _needsAccount = ['/cart', '/checkout', '/account/orders', '/account/invoices'];
 
 /// Ecranele de autentificare: un om deja autentificat n-are ce cauta pe ele.
 const _authScreens = ['/login', '/signup'];

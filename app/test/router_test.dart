@@ -55,7 +55,9 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 20));
     }
-    for (final path in ['/cart', '/checkout', '/account']) {
+    // Rutele reale de cont. Adresele, favoritele si datele contului nu sunt rute: se
+    // deschid cu `Navigator.push` din ecranul de cont al unui client.
+    for (final path in ['/cart', '/checkout', '/account/orders', '/account/invoices']) {
       router.go(path);
       for (var i = 0; i < 5; i++) {
         await tester.pump(const Duration(milliseconds: 20));
@@ -108,5 +110,30 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
     }
     expect(router.routerDelegate.currentConfiguration.uri.path, '/');
+  });
+
+  testWidgets('tabul Cont ramane deschis unui vizitator', (tester) async {
+    // Ecranul de cont are o fata de vizitator (invitatia cu cele doua drumuri). Pazit
+    // de router, acea fata n-ar fi vazuta niciodata: omul ar cadea direct in formularul
+    // de autentificare, fara sa afle ca isi poate face cont.
+    final container = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(
+          ApiClient(FakeTransport(), InMemorySessionStore(), baseUrl: 'http://x')),
+    ]);
+    addTearDown(container.dispose);
+    final router = container.read(routerProvider);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: MaterialApp.router(routerConfig: router)),
+    );
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    router.go('/account');
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/account');
   });
 }
