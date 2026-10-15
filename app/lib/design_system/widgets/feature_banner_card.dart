@@ -67,10 +67,11 @@ class FeatureBannerCard extends StatelessWidget {
                             child: _text(context),
                           ),
                         ),
-                        // Poza umple partea ei, taiata daca e nevoie: pozele de
-                        // produs stau centrate pe fundal gol, deci taierea pe margini
-                        // nu pierde nimic, iar `contain` ar lasa benzi duble.
-                        Expanded(flex: 4, child: _image(fit: BoxFit.cover)),
+                        // Poza se arata INTREAGA, nu taiata: in spatiul ingust din
+                        // dreapta, `cover` ar reteza tocmai produsul. Benzile care
+                        // raman in jurul ei nu se vad - fundalul cardului e acelasi
+                        // gri deschis ca al pozelor magazinului.
+                        Expanded(flex: 4, child: _image(fit: BoxFit.contain)),
                       ],
                     ),
             ),

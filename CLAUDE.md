@@ -111,6 +111,30 @@ un rand gol e mai rau decat lipsa lui. `controllers/home` importa din `controlle
 catalog` **in interiorul functiei**: la nivel de fisier cele doua se importa reciproc
 si modulul nu mai porneste.
 
+**Banda lata (`placement = feature`) e al treilea fel de banner.** Pe pagina de start
+a site-ului sunt blocurile "NOU la UpOrtho" si "Descopera produsele": poza produsului
+intr-o parte, supratitlu + titlu + buton in cealalta, pe fundal deschis. In aplicatie
+subtitlul **urca deasupra** titlului (acolo e supratitlul: "NOU la UpOrtho", "pana la
+-60%"), iar textul NU se scrie peste poza - pozele de produs ale magazinului stau pe
+fundal gri deschis si text alb peste ele nu se citeste. **Culorile benzii sunt fixe pe
+ambele teme** (fundal `#EFEFF1`, violetul si textul inchis ale temei luminoase):
+e o reclama construita in jurul unei poze cu fundal deschis, iar poza nu se schimba cu
+tema. Poza se arata intreaga (`contain`), nu taiata: in spatiul ingust din dreapta,
+`cover` ar reteza tocmai produsul, iar benzile nu se vad fiindca fundalul cardului e
+acelasi gri.
+
+**Feedul de Instagram e un WebView, nu un rand de poze.** Blocul `s_instagram_page` de
+pe site e un iframe catre `instagram.com/<cont>/embed`; pozele nu trec prin Odoo si nu
+le avem. Aplicatia incarca aceeasi adresa intr-un WebView, deci tot ce e inauntru
+apartine paginii Instagram (nu e apasabil de catre noi); apasarea pe antet deschide
+profilul. **Contul se deriva pe server din `social_instagram`**, aceeasi setare din care
+vine si iconita - altfel ar fi a doua sursa de adevar. O adresa catre alt site sau catre
+o postare (`/p/...`, `/reel/...`) nu produce feed: nu incarcam intr-un iframe o adresa
+oarecare. Inaltimea e fixa (340): iframe-ul isi anunta inaltimea printr-un mesaj de
+JavaScript catre fereastra-parinte, pe care un WebView nu il primeste. In testele widget
+nu exista platforma de WebView, iar constructorul arunca - cardul prinde exceptia si
+ramane cu antetul, ca sa nu pice orice test care deseneaza Acasa.
+
 **Retelele sociale vin din setarile website-ului, nu din cod.** Randul "Urmareste-ne"
 de la capatul paginii Acasa e acelasi bloc pe care site-ul il are sub produse ("Hai
 alaturi de noi si in Social Media"), iar adresele sunt chiar campurile `social_*` ale

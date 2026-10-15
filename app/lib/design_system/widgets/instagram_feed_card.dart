@@ -16,13 +16,14 @@ import '../typography.dart';
 ///
 /// Inaltimea e fixa, nu masurata din pagina: iframe-ul isi anunta inaltimea doar
 /// printr-un mesaj de JavaScript catre fereastra-parinte, pe care un WebView nu il
-/// primeste. O banda cat doua randuri de poze arata ce e nou fara sa inghita ecranul.
+/// primeste. 340 e cat antetul paginii Instagram plus doua randuri de poze la latimea
+/// unui telefon - masurat pe simulator; mai mult lasa o banda alba dedesubt.
 class InstagramFeedCard extends StatefulWidget {
   const InstagramFeedCard({
     super.key,
     required this.feed,
     required this.onOpenProfile,
-    this.height = 420,
+    this.height = 340,
   });
 
   final InstagramFeed feed;
