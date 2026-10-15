@@ -20,6 +20,12 @@ class SecureSessionStore implements SessionStore {
 }
 
 class InMemorySessionStore implements SessionStore {
+  /// `initial` porneste depozitul cu o sesiune deja salvata. Testele care verifica
+  /// un CLIENT au nevoie de ea: de cand catalogul e public, providerii de cont nu mai
+  /// cer serverul fara sesiune, iar un test fara sesiune verifica fara sa stie un
+  /// vizitator.
+  InMemorySessionStore({String? initial}) : _value = initial;
+
   String? _value;
   @override
   Future<String?> read() async => _value;

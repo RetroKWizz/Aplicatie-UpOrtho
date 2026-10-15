@@ -18,10 +18,21 @@ Map<String, dynamic> cartFixture({int quantity = 11}) {
 }
 
 void main() {
-  ProviderContainer containerFor(FakeTransport transport) {
+  /// Containerul unui CLIENT: sesiune salvata plus `/me`, ca `authController` sa
+  /// ajunga in `SignedIn`. De cand catalogul e public, badge-ul de cos arata zero
+  /// fara sesiune si nu mai cere nimic - deci un test de badge fara sesiune ar
+  /// verifica, fara sa stie, un vizitator.
+  ProviderContainer containerFor(FakeTransport transport, {bool signedIn = true}) {
+    if (signedIn) {
+      transport.when('GET', '/api/app/v1/me', ApiResponse(status: 200, json: {
+        'user': {'id': 1, 'name': 'Client Test', 'email': 'client@uportho.ro', 'partner_id': 7}
+      }));
+    }
     final container = ProviderContainer(overrides: [
-      apiClientProvider.overrideWithValue(
-          ApiClient(transport, InMemorySessionStore(), baseUrl: 'http://x')),
+      apiClientProvider.overrideWithValue(ApiClient(
+          transport,
+          InMemorySessionStore(initial: signedIn ? 'sesiune-de-test' : null),
+          baseUrl: 'http://x')),
     ]);
     addTearDown(container.dispose);
     return container;

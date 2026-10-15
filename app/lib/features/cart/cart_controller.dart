@@ -71,5 +71,14 @@ class CartController extends AsyncNotifier<Cart> {
 
 /// Cate bucati sunt in cos, pentru pastila de pe tabul "Cos". Zero cat timp cosul se
 /// incarca sau a picat: un badge nu merita un ecran de eroare.
-final cartQuantityProvider = Provider<int>(
-    (ref) => ref.watch(cartControllerProvider).maybeWhen(data: (cart) => cart.quantity, orElse: () => 0));
+/// Cate bucati sunt in cos, pentru badge-ul din bara de jos.
+///
+/// Un vizitator n-are cos, deci nu se cere niciunul: fara verificarea asta, fiecare
+/// pornire a aplicatiei fara cont trimitea o cerere care se intorcea 401 - in retea si
+/// in logurile magazinului - doar ca sa deseneze un badge gol. Cosul insusi ramane
+/// neschimbat: ecranul lui e oricum pazit de router.
+final cartQuantityProvider = Provider<int>((ref) {
+  if (ref.watch(authControllerProvider).value is! SignedIn) return 0;
+  return ref.watch(cartControllerProvider).maybeWhen(
+      data: (cart) => cart.quantity, orElse: () => 0);
+});

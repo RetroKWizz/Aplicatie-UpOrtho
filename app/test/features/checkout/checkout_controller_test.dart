@@ -21,10 +21,16 @@ Map<String, dynamic> confirmOfflineFixture() =>
         as Map<String, dynamic>;
 
 void main() {
+  /// Checkout-ul e un ecran de CLIENT: containerul porneste cu sesiune si cu `/me`,
+  /// ca badge-ul de cos sa se comporte ca pentru un cont (fara sesiune arata zero si
+  /// nu cere nimic, de cand catalogul e public).
   ProviderContainer containerFor(FakeTransport transport) {
+    transport.when('GET', '/api/app/v1/me', ApiResponse(status: 200, json: {
+      'user': {'id': 1, 'name': 'Client Test', 'email': 'client@uportho.ro', 'partner_id': 7}
+    }));
     final container = ProviderContainer(overrides: [
-      apiClientProvider.overrideWithValue(
-          ApiClient(transport, InMemorySessionStore(), baseUrl: 'http://x')),
+      apiClientProvider.overrideWithValue(ApiClient(
+          transport, InMemorySessionStore(initial: 'sesiune-de-test'), baseUrl: 'http://x')),
     ]);
     addTearDown(container.dispose);
     return container;

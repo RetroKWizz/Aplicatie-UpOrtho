@@ -20,9 +20,12 @@ import 'api/fake_transport.dart';
 // `pump()` cu durate fixe (nu `pumpAndSettle()`, care ar bloca la spinner-ul
 // indeterminat din HomeScreen cat timp asteapta /home).
 void main() {
-  testWidgets('signed out user is redirected to /login', (tester) async {
+  testWidgets('fara sesiune, aplicatia ramane in magazin', (tester) async {
+    // Apple respinge aplicatiile care nu arata nimic pana la autentificare, iar
+    // magazinul oricum isi arata catalogul oricui. Acasa ramane Acasa.
     final container = ProviderContainer(overrides: [
-      apiClientProvider.overrideWithValue(ApiClient(FakeTransport(), InMemorySessionStore(), baseUrl: 'http://x')),
+      apiClientProvider.overrideWithValue(
+          ApiClient(FakeTransport(), InMemorySessionStore(), baseUrl: 'http://x')),
     ]);
     addTearDown(container.dispose);
     final router = container.read(routerProvider);
@@ -36,7 +39,49 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 20));
     }
-    expect(router.routerDelegate.currentConfiguration.uri.path, '/login');
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/');
+  });
+
+  testWidgets('fara sesiune, cosul si contul cer autentificare', (tester) async {
+    final container = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(
+          ApiClient(FakeTransport(), InMemorySessionStore(), baseUrl: 'http://x')),
+    ]);
+    addTearDown(container.dispose);
+    final router = container.read(routerProvider);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: MaterialApp.router(routerConfig: router)),
+    );
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    for (final path in ['/cart', '/checkout', '/account']) {
+      router.go(path);
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(router.routerDelegate.currentConfiguration.uri.path, '/login',
+          reason: '$path trebuie sa ceara cont');
+    }
+  });
+
+  testWidgets('vechiul redirect global nu mai trimite Acasa la /login', (tester) async {
+    final container = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(ApiClient(FakeTransport(), InMemorySessionStore(), baseUrl: 'http://x')),
+    ]);
+    addTearDown(container.dispose);
+    final router = container.read(routerProvider);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: MaterialApp.router(routerConfig: router)),
+    );
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    router.go('/catalog');
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/catalog');
   });
 
   testWidgets('signed in user on /login is redirected to /', (tester) async {

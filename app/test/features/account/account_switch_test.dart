@@ -103,8 +103,11 @@ void main() {
     transport.when('GET', '/api/app/v1/me', ApiResponse(status: 200, json: userJson('primul')));
     serveAccount('PRIMUL', cartQuantity: 3);
     container = ProviderContainer(overrides: [
-      apiClientProvider.overrideWithValue(
-          ApiClient(transport, InMemorySessionStore(), baseUrl: 'http://x')),
+      // Sesiune salvata de la pornire: testul verifica doua CONTURI, iar de cand
+      // catalogul e public badge-ul de cos arata zero fara sesiune, fara sa ceara
+      // nimic. Fara ea, primul "cont" ar fi de fapt un vizitator.
+      apiClientProvider.overrideWithValue(ApiClient(
+          transport, InMemorySessionStore(initial: 'sesiune-de-test'), baseUrl: 'http://x')),
     ]);
     addTearDown(container.dispose);
   });

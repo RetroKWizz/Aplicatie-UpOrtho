@@ -24,6 +24,14 @@ class _AuthListenable extends ChangeNotifier {
   }
 }
 
+/// Ecranele care nu au ce arata fara cont. Un vizitator trimis aici ajunge la
+/// autentificare; restul magazinului ii ramane deschis.
+const _needsAccount = ['/cart', '/checkout', '/account', '/orders', '/invoices'];
+
+/// Ecranele de autentificare: un om deja autentificat n-are ce cauta pe ele.
+const _authScreens = ['/login', '/signup'];
+
+
 final routerProvider = Provider<GoRouter>((ref) {
   final listenable = _AuthListenable(ref);
   ref.onDispose(listenable.dispose);
@@ -35,9 +43,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       final auth = ref.read(authControllerProvider);
       if (auth.isLoading && !auth.hasValue) return null; // inca restauram sesiunea
       final signedIn = auth.value is SignedIn;
-      final onLogin = state.matchedLocation == '/login';
-      if (!signedIn && !onLogin) return '/login';
-      if (signedIn && onLogin) return '/';
+      final onAuthScreen = _authScreens.contains(state.matchedLocation);
+      // Un vizitator are voie peste tot in magazin: Apple respinge aplicatiile care nu
+      // arata nimic pana la autentificare, iar magazinul isi arata oricum catalogul
+      // oricui. Doar ecranele care au nevoie de cont il trimit la autentificare, iar
+      // lista lor e scrisa aici - nu ghicita din adresa, ca sa nu scape una noua.
+      if (!signedIn && _needsAccount.any(state.matchedLocation.startsWith)) return '/login';
+      if (signedIn && onAuthScreen) return '/';
       return null;
     },
     routes: [
