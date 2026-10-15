@@ -4,12 +4,14 @@ import 'banner.dart';
 import 'home_brand.dart';
 import 'home_category.dart';
 import 'home_section.dart';
+import 'instagram_feed.dart';
 import 'social_link.dart';
 
 export 'banner.dart';
 export 'home_brand.dart';
 export 'home_category.dart';
 export 'home_section.dart';
+export 'instagram_feed.dart';
 export 'social_link.dart';
 
 part 'home_response.freezed.dart';
@@ -22,6 +24,7 @@ abstract class HomeResponse with _$HomeResponse {
     @JsonKey(name: 'quick_categories') @Default([]) List<HomeCategory> quickCategories,
     @Default([]) List<HomeBrand> brands,
     @Default([]) List<SocialLink> social,
+    InstagramFeed? instagram,
     @Default([]) List<HomeSection> sections,
   }) = _HomeResponse;
 

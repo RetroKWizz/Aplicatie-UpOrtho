@@ -1,9 +1,9 @@
 import base64
 import hashlib
 
-from odoo.tests.common import tagged
+from odoo.tests.common import TransactionCase, tagged
 
-from ..controllers.home import category_icon_field
+from ..controllers.home import category_icon_field, instagram_username
 from .common import AppHttpCase
 from .test_controllers_base import load_contract
 
@@ -521,3 +521,75 @@ class TestHomeSocial(AppHttpCase):
         self.assertTrue(contract['social'])
         for link in contract['social']:
             self.assertEqual(set(link), {'network', 'url'})
+
+
+@tagged('post_install', '-at_install')
+class TestInstagramUsername(TransactionCase):
+    """Din ce adresa iese contul de Instagram. Functia e pura, deci se testeaza direct."""
+
+    def test_adresa_obisnuita_da_contul(self):
+        self.assertEqual(
+            instagram_username('https://www.instagram.com/uporthoromania'), 'uporthoromania')
+
+    def test_slash_la_final_si_spatii_nu_conteaza(self):
+        self.assertEqual(
+            instagram_username('  https://instagram.com/uporthoromania/  '), 'uporthoromania')
+
+    def test_adresa_fara_schema_tot_merge(self):
+        """Un editor poate scrie doar `instagram.com/cont` in setari."""
+        self.assertEqual(instagram_username('instagram.com/uporthoromania'), 'uporthoromania')
+
+    def test_alt_site_nu_da_niciun_cont(self):
+        """Altfel am incarca intr-un iframe o adresa pusa de altcineva."""
+        self.assertIsNone(instagram_username('https://exemplu.test/uporthoromania'))
+        self.assertIsNone(instagram_username('https://instagram.com.exemplu.test/cont'))
+
+    def test_adresa_catre_o_postare_nu_e_un_cont(self):
+        self.assertIsNone(instagram_username('https://www.instagram.com/p/Cabcdef/'))
+        self.assertIsNone(instagram_username('https://www.instagram.com/uportho/reel/1/'))
+
+    def test_gol_inseamna_fara_feed(self):
+        self.assertIsNone(instagram_username(''))
+        self.assertIsNone(instagram_username(None))
+
+
+@tagged('post_install', '-at_install')
+class TestHomeInstagram(AppHttpCase):
+    """Blocul de feed Instagram din /home."""
+
+    WEBSITE_PARAM = 'uportho_app.website_id'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.website = cls.env['website'].create({'name': 'Website instagram test'})
+
+    def setUp(self):
+        super().setUp()
+        self.env['ir.config_parameter'].sudo().set_param(
+            self.WEBSITE_PARAM, str(self.website.id))
+        self.addCleanup(self.registry.clear_cache)
+
+    def _instagram(self):
+        self.api_login()
+        return self.api_get('/home').json()['instagram']
+
+    def test_contul_vine_din_aceeasi_adresa_ca_iconita(self):
+        """Nu exista o a doua setare: feedul si iconita de Instagram arata acelasi cont."""
+        self.website.social_instagram = 'https://www.instagram.com/uporthoromania'
+
+        self.assertEqual(self._instagram(), {
+            'username': 'uporthoromania',
+            'embed_url': 'https://www.instagram.com/uporthoromania/embed',
+            'profile_url': 'https://www.instagram.com/uporthoromania/',
+        })
+
+    def test_fara_cont_blocul_e_null_nu_un_chenar_gol(self):
+        self.website.social_instagram = False
+
+        self.assertIsNone(self._instagram())
+
+    def test_contractul_descrie_blocul(self):
+        contract = load_contract('home.json')
+
+        self.assertEqual(set(contract['instagram']), {'username', 'embed_url', 'profile_url'})

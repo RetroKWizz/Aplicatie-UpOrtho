@@ -27,6 +27,20 @@
         "category_id": null,
         "url": null
       }
+    },
+    {
+      "id": 3,
+      "title": "Instrumentar Ixion",
+      "subtitle": "NOU la UpOrtho",
+      "cta_text": "Vezi produse",
+      "placement": "feature",
+      "image_only": false,
+      "image_url": "/api/app/v1/banners/3/image?unique=7b2c4d1",
+      "link": {
+        "type": "category",
+        "category_id": 13,
+        "url": null
+      }
     }
   ],
   "quick_categories": [
@@ -69,6 +83,11 @@
       "url": "https://www.instagram.com/uporthoromania"
     }
   ],
+  "instagram": {
+    "username": "uporthoromania",
+    "embed_url": "https://www.instagram.com/uporthoromania/embed",
+    "profile_url": "https://www.instagram.com/uporthoromania/"
+  },
   "sections": [
     {
       "id": 1,

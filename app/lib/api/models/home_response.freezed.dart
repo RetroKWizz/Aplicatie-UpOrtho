@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HomeResponse {
 
- List<AppBanner> get banners;@JsonKey(name: 'quick_categories') List<HomeCategory> get quickCategories; List<HomeBrand> get brands; List<SocialLink> get social; List<HomeSection> get sections;
+ List<AppBanner> get banners;@JsonKey(name: 'quick_categories') List<HomeCategory> get quickCategories; List<HomeBrand> get brands; List<SocialLink> get social; InstagramFeed? get instagram; List<HomeSection> get sections;
 /// Create a copy of HomeResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $HomeResponseCopyWith<HomeResponse> get copyWith => _$HomeResponseCopyWithImpl<H
 @override
 bool operator ==(Object other) {
   final _this = this as HomeResponse;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeResponse&&const DeepCollectionEquality().equals(other.banners, _this.banners)&&const DeepCollectionEquality().equals(other.quickCategories, _this.quickCategories)&&const DeepCollectionEquality().equals(other.brands, _this.brands)&&const DeepCollectionEquality().equals(other.social, _this.social)&&const DeepCollectionEquality().equals(other.sections, _this.sections));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeResponse&&const DeepCollectionEquality().equals(other.banners, _this.banners)&&const DeepCollectionEquality().equals(other.quickCategories, _this.quickCategories)&&const DeepCollectionEquality().equals(other.brands, _this.brands)&&const DeepCollectionEquality().equals(other.social, _this.social)&&(identical(other.instagram, _this.instagram) || other.instagram == _this.instagram)&&const DeepCollectionEquality().equals(other.sections, _this.sections));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as HomeResponse;
-  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.banners),const DeepCollectionEquality().hash(_this.quickCategories),const DeepCollectionEquality().hash(_this.brands),const DeepCollectionEquality().hash(_this.social),const DeepCollectionEquality().hash(_this.sections));
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.banners),const DeepCollectionEquality().hash(_this.quickCategories),const DeepCollectionEquality().hash(_this.brands),const DeepCollectionEquality().hash(_this.social),_this.instagram,const DeepCollectionEquality().hash(_this.sections));
 }
 
 @override
 String toString() {
   final _this = this as HomeResponse;
-  return 'HomeResponse(banners: ${_this.banners}, quickCategories: ${_this.quickCategories}, brands: ${_this.brands}, social: ${_this.social}, sections: ${_this.sections})';
+  return 'HomeResponse(banners: ${_this.banners}, quickCategories: ${_this.quickCategories}, brands: ${_this.brands}, social: ${_this.social}, instagram: ${_this.instagram}, sections: ${_this.sections})';
 }
 
 
@@ -54,11 +54,11 @@ abstract mixin class $HomeResponseCopyWith<$Res>  {
   factory $HomeResponseCopyWith(HomeResponse value, $Res Function(HomeResponse) _then) = _$HomeResponseCopyWithImpl;
 @useResult
 $Res call({
- List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories, List<HomeBrand> brands, List<SocialLink> social, List<HomeSection> sections
+ List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories, List<HomeBrand> brands, List<SocialLink> social, InstagramFeed? instagram, List<HomeSection> sections
 });
 
 
-
+$InstagramFeedCopyWith<$Res>? get instagram;
 
 }
 /// @nodoc
@@ -71,17 +71,30 @@ class _$HomeResponseCopyWithImpl<$Res>
 
 /// Create a copy of HomeResponse
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? banners = null,Object? quickCategories = null,Object? brands = null,Object? social = null,Object? sections = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? banners = null,Object? quickCategories = null,Object? brands = null,Object? social = null,Object? instagram = freezed,Object? sections = null,}) {
   return _then(HomeResponse(
 banners: null == banners ? _self.banners : banners // ignore: cast_nullable_to_non_nullable
 as List<AppBanner>,quickCategories: null == quickCategories ? _self.quickCategories : quickCategories // ignore: cast_nullable_to_non_nullable
 as List<HomeCategory>,brands: null == brands ? _self.brands : brands // ignore: cast_nullable_to_non_nullable
 as List<HomeBrand>,social: null == social ? _self.social : social // ignore: cast_nullable_to_non_nullable
-as List<SocialLink>,sections: null == sections ? _self.sections : sections // ignore: cast_nullable_to_non_nullable
+as List<SocialLink>,instagram: freezed == instagram ? _self.instagram : instagram // ignore: cast_nullable_to_non_nullable
+as InstagramFeed?,sections: null == sections ? _self.sections : sections // ignore: cast_nullable_to_non_nullable
 as List<HomeSection>,
   ));
 }
+/// Create a copy of HomeResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$InstagramFeedCopyWith<$Res>? get instagram {
+    if (_self.instagram == null) {
+    return null;
+  }
 
+  return $InstagramFeedCopyWith<$Res>(_self.instagram!, (value) {
+    return _then(_self.copyWith(instagram: value));
+  });
+}
 }
 
 
@@ -163,10 +176,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeBrand> brands,  List<SocialLink> social,  List<HomeSection> sections)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeBrand> brands,  List<SocialLink> social,  InstagramFeed? instagram,  List<HomeSection> sections)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HomeResponse() when $default != null:
-return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_that.sections);case _:
+return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_that.instagram,_that.sections);case _:
   return orElse();
 
 }
@@ -184,10 +197,10 @@ return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeBrand> brands,  List<SocialLink> social,  List<HomeSection> sections)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeBrand> brands,  List<SocialLink> social,  InstagramFeed? instagram,  List<HomeSection> sections)  $default,) {final _that = this;
 switch (_that) {
 case _HomeResponse():
-return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_that.sections);case _:
+return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_that.instagram,_that.sections);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +217,10 @@ return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeBrand> brands,  List<SocialLink> social,  List<HomeSection> sections)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<AppBanner> banners, @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories,  List<HomeBrand> brands,  List<SocialLink> social,  InstagramFeed? instagram,  List<HomeSection> sections)?  $default,) {final _that = this;
 switch (_that) {
 case _HomeResponse() when $default != null:
-return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_that.sections);case _:
+return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_that.instagram,_that.sections);case _:
   return null;
 
 }
@@ -219,7 +232,7 @@ return $default(_that.banners,_that.quickCategories,_that.brands,_that.social,_t
 @JsonSerializable()
 
 class _HomeResponse implements HomeResponse {
-  const _HomeResponse({ List<AppBanner> banners = const [], @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories = const [],  List<HomeBrand> brands = const [],  List<SocialLink> social = const [],  List<HomeSection> sections = const []}): _banners = banners,_quickCategories = quickCategories,_brands = brands,_social = social,_sections = sections;
+  const _HomeResponse({ List<AppBanner> banners = const [], @JsonKey(name: 'quick_categories')  List<HomeCategory> quickCategories = const [],  List<HomeBrand> brands = const [],  List<SocialLink> social = const [], this.instagram,  List<HomeSection> sections = const []}): _banners = banners,_quickCategories = quickCategories,_brands = brands,_social = social,_sections = sections;
   factory _HomeResponse.fromJson(Map<String, dynamic> json) => _$HomeResponseFromJson(json);
 
  final  List<AppBanner> _banners;
@@ -250,6 +263,7 @@ class _HomeResponse implements HomeResponse {
   return EqualUnmodifiableListView(_social);
 }
 
+@override final  InstagramFeed? instagram;
  final  List<HomeSection> _sections;
 @override@JsonKey() List<HomeSection> get sections {
   if (_sections is EqualUnmodifiableListView) return _sections;
@@ -271,18 +285,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeResponse&&const DeepCollectionEquality().equals(other.banners, _banners)&&const DeepCollectionEquality().equals(other.quickCategories, _quickCategories)&&const DeepCollectionEquality().equals(other.brands, _brands)&&const DeepCollectionEquality().equals(other.social, _social)&&const DeepCollectionEquality().equals(other.sections, _sections));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeResponse&&const DeepCollectionEquality().equals(other.banners, _banners)&&const DeepCollectionEquality().equals(other.quickCategories, _quickCategories)&&const DeepCollectionEquality().equals(other.brands, _brands)&&const DeepCollectionEquality().equals(other.social, _social)&&(identical(other.instagram, instagram) || other.instagram == instagram)&&const DeepCollectionEquality().equals(other.sections, _sections));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_banners),const DeepCollectionEquality().hash(_quickCategories),const DeepCollectionEquality().hash(_brands),const DeepCollectionEquality().hash(_social),const DeepCollectionEquality().hash(_sections));
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_banners),const DeepCollectionEquality().hash(_quickCategories),const DeepCollectionEquality().hash(_brands),const DeepCollectionEquality().hash(_social),instagram,const DeepCollectionEquality().hash(_sections));
 }
 
 @override
 String toString() {
-    return 'HomeResponse(banners: $banners, quickCategories: $quickCategories, brands: $brands, social: $social, sections: $sections)';
+    return 'HomeResponse(banners: $banners, quickCategories: $quickCategories, brands: $brands, social: $social, instagram: $instagram, sections: $sections)';
 }
 
 
@@ -293,11 +307,11 @@ abstract mixin class _$HomeResponseCopyWith<$Res> implements $HomeResponseCopyWi
   factory _$HomeResponseCopyWith(_HomeResponse value, $Res Function(_HomeResponse) _then) = __$HomeResponseCopyWithImpl;
 @override @useResult
 $Res call({
- List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories, List<HomeBrand> brands, List<SocialLink> social, List<HomeSection> sections
+ List<AppBanner> banners,@JsonKey(name: 'quick_categories') List<HomeCategory> quickCategories, List<HomeBrand> brands, List<SocialLink> social, InstagramFeed? instagram, List<HomeSection> sections
 });
 
 
-
+@override $InstagramFeedCopyWith<$Res>? get instagram;
 
 }
 /// @nodoc
@@ -310,18 +324,31 @@ class __$HomeResponseCopyWithImpl<$Res>
 
 /// Create a copy of HomeResponse
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? banners = null,Object? quickCategories = null,Object? brands = null,Object? social = null,Object? sections = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? banners = null,Object? quickCategories = null,Object? brands = null,Object? social = null,Object? instagram = freezed,Object? sections = null,}) {
   return _then(_HomeResponse(
 banners: null == banners ? _self._banners : banners // ignore: cast_nullable_to_non_nullable
 as List<AppBanner>,quickCategories: null == quickCategories ? _self._quickCategories : quickCategories // ignore: cast_nullable_to_non_nullable
 as List<HomeCategory>,brands: null == brands ? _self._brands : brands // ignore: cast_nullable_to_non_nullable
 as List<HomeBrand>,social: null == social ? _self._social : social // ignore: cast_nullable_to_non_nullable
-as List<SocialLink>,sections: null == sections ? _self._sections : sections // ignore: cast_nullable_to_non_nullable
+as List<SocialLink>,instagram: freezed == instagram ? _self.instagram : instagram // ignore: cast_nullable_to_non_nullable
+as InstagramFeed?,sections: null == sections ? _self._sections : sections // ignore: cast_nullable_to_non_nullable
 as List<HomeSection>,
   ));
 }
 
+/// Create a copy of HomeResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$InstagramFeedCopyWith<$Res>? get instagram {
+    if (_self.instagram == null) {
+    return null;
+  }
 
+  return $InstagramFeedCopyWith<$Res>(_self.instagram!, (value) {
+    return _then(_self.copyWith(instagram: value));
+  });
+}
 }
 
 // dart format on

@@ -20,8 +20,12 @@ class AppBanner(models.Model):
         string='Imaginea contine deja textul',
         help='Aplicatia arata doar imaginea, fara titlu, subtitlu si buton peste ea. '
              'Bannerul ramane apasabil si duce in acelasi loc.')
+    # `feature` e banda lata de pe pagina de start a site-ului ("NOU la UpOrtho",
+    # "Descopera produsele"): poza produsului intr-o parte, textul si butonul in
+    # cealalta, pe fundal deschis - nu text alb peste poza, ca la hero si promo.
     placement = fields.Selection(
-        [('hero', 'Hero'), ('promo', 'Promo')], string='Plasare', required=True, default='hero')
+        [('hero', 'Hero'), ('promo', 'Promo'), ('feature', 'Banda lata')],
+        string='Plasare', required=True, default='hero')
     link_type = fields.Selection(
         [('category', 'Categorie'), ('url', 'URL extern'), ('none', 'Fara link')],
         string='Tip link', required=True, default='none')

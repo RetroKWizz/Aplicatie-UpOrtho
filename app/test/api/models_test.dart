@@ -18,7 +18,7 @@ void main() {
 
   test('HomeResponse decodes home.json with nullable fields', () {
     final home = HomeResponse.fromJson(fixture('home.json'));
-    expect(home.banners, hasLength(2));
+    expect(home.banners, hasLength(3));
     final hero = home.banners.first;
     expect(hero.placement, BannerPlacement.hero);
     expect(hero.link.type, BannerLinkType.category);
@@ -26,10 +26,16 @@ void main() {
     // `image_url` e un string opac pentru aplicatie; serverul ii adauga un token
     // `?unique=` derivat din write_date, ca imaginea sa poata fi invalidata din cache.
     expect(hero.imageUrl, '/api/app/v1/banners/1/image?unique=3a1f9c2');
-    final promo = home.banners.last;
+    final promo = home.banners[1];
     expect(promo.subtitle, isNull);
     expect(promo.imageUrl, isNull);
     expect(promo.link.type, BannerLinkType.none);
+    final feature = home.banners.last;
+    expect(feature.placement, BannerPlacement.feature);
+    // Pe banda lata, subtitlul e supratitlul de deasupra titlului ("NOU la UpOrtho").
+    expect(feature.subtitle, 'NOU la UpOrtho');
+    expect(home.instagram?.username, 'uporthoromania');
+    expect(home.social.map((s) => s.network), ['facebook', 'instagram']);
     expect(home.quickCategories.first.iconUrl, '/api/app/v1/categories/12/icon?unique=8be4d17');
     expect(home.quickCategories.last.iconUrl, isNull);
   });

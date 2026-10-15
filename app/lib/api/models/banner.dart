@@ -7,7 +7,11 @@ part 'banner.g.dart';
 @JsonEnum(valueField: 'value')
 enum BannerPlacement {
   hero('hero'),
-  promo('promo');
+  promo('promo'),
+
+  /// Banda lata de pe pagina de start a site-ului: poza produsului intr-o parte,
+  /// textul si butonul in cealalta, pe fundal deschis.
+  feature('feature');
 
   const BannerPlacement(this.value);
   final String value;

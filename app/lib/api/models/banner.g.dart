@@ -59,4 +59,5 @@ Map<String, dynamic> _$AppBannerToJson(_AppBanner instance) =>
 const _$BannerPlacementEnumMap = {
   BannerPlacement.hero: 'hero',
   BannerPlacement.promo: 'promo',
+  BannerPlacement.feature: 'feature',
 };

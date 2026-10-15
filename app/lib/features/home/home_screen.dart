@@ -11,6 +11,8 @@ import '../../design_system/colors.dart';
 import '../../design_system/typography.dart';
 import '../../design_system/widgets/banner_card.dart';
 import '../../design_system/widgets/category_chip.dart';
+import '../../design_system/widgets/feature_banner_card.dart';
+import '../../design_system/widgets/instagram_feed_card.dart';
 import '../../design_system/widgets/product_card.dart';
 import '../../design_system/widgets/section_header.dart';
 import '../../design_system/widgets/social_row.dart';
@@ -79,6 +81,7 @@ class _HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final heroes = data.banners.where((b) => b.placement == BannerPlacement.hero).toList();
     final promos = data.banners.where((b) => b.placement == BannerPlacement.promo).toList();
+    final features = data.banners.where((b) => b.placement == BannerPlacement.feature).toList();
 
     return ListView(
       // Jos se adauga rezerva pe care shell-ul o pune in `MediaQuery` cat bara
@@ -140,6 +143,14 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
         ],
+        // Benzile late, una sub alta, pe toata latimea - ca pe pagina de start a
+        // site-ului. Nu intra in carusel: fiecare isi are produsul ei si trebuie
+        // vazute toate, nu doar prima.
+        for (final feature in features)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: _featureCard(context, feature),
+          ),
         if (data.brands.isNotEmpty) ...[
           const SectionHeader('Cumpara dupa brand'),
           _BrandRow(brands: data.brands, absoluteUrl: absoluteUrl, headersFor: headersFor),
@@ -154,6 +165,13 @@ class _HomeContent extends StatelessWidget {
           ),
         // Retelele sociale stau la capatul paginii, ca pe site: nu sunt un raft de
         // cumparat, sunt ce faci dupa ce ai terminat de rasfoit.
+        // Feedul de Instagram, inaintea iconitelor, ca pe site: intai ce e nou pe
+        // pagina lor, apoi unde ii gasesti.
+        if (data.instagram case final InstagramFeed feed)
+          InstagramFeedCard(
+            feed: feed,
+            onOpenProfile: () => _openExternal(context, feed.profileUrl, 'profilul Instagram'),
+          ),
         SocialRow(links: data.social, onOpen: (link) => _openSocial(context, link)),
         if (data.banners.isEmpty && data.quickCategories.isEmpty && data.sections.isEmpty)
           const Padding(
@@ -165,16 +183,30 @@ class _HomeContent extends StatelessWidget {
   }
 
   /// Deschide o retea sociala in aplicatia ei (sau in browser, daca nu e instalata).
-  /// Trece prin aceeasi paza ca link-ul extern al unui banner: doar http/https cu gazda,
-  /// si nicio exceptie de platforma scapata dintr-un handler de tap.
-  Future<void> _openSocial(BuildContext context, SocialLink link) async {
-    final uri = externalBannerUri(link.url);
+  Future<void> _openSocial(BuildContext context, SocialLink link) async =>
+      _openExternal(context, link.url, 'reteaua ${link.network}');
+
+  /// Deschiderea unei adrese din afara magazinului. Trece prin aceeasi paza ca
+  /// link-ul extern al unui banner - doar http/https cu gazda - si nu lasa nicio
+  /// exceptie de platforma sa scape dintr-un handler de tap pe care nimeni nu-l asteapta.
+  Future<void> _openExternal(BuildContext context, String? url, String ce) async {
+    final uri = externalBannerUri(url);
     if (uri == null) return;
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (error) {
-      debugPrint('Nu s-a putut deschide reteaua ${link.network}: $error');
+      debugPrint('Nu s-a putut deschide $ce: $error');
     }
+  }
+
+  Widget _featureCard(BuildContext context, AppBanner banner) {
+    final imageUrl = banner.imageUrl == null ? null : absoluteUrl(banner.imageUrl!);
+    return FeatureBannerCard(
+      banner: banner,
+      imageUrl: imageUrl,
+      httpHeaders: imageUrl == null ? null : headersFor(imageUrl),
+      onTap: () => _openBanner(context, banner),
+    );
   }
 
   Widget _bannerCard(BuildContext context, AppBanner banner, {bool hero = false}) {

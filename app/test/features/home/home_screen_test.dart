@@ -9,6 +9,8 @@ import 'package:uportho_app/api/api_transport.dart';
 import 'package:uportho_app/api/session_store.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:uportho_app/api/models/social_link.dart';
+import 'package:uportho_app/design_system/widgets/feature_banner_card.dart';
+import 'package:uportho_app/design_system/widgets/instagram_feed_card.dart';
 import 'package:uportho_app/design_system/widgets/social_row.dart';
 import 'package:uportho_app/features/home/home_screen.dart';
 import 'package:uportho_app/providers.dart';
@@ -198,6 +200,50 @@ void main() {
 
     final list = tester.widget<ListView>(find.byType(ListView).first);
     expect(list.padding, const EdgeInsets.only(top: 12, bottom: 122));
+  });
+
+  testWidgets('banda lata are supratitlu, titlu si buton langa poza', (tester) async {
+    // Spre deosebire de hero si promo, textul NU se scrie peste poza: pozele de
+    // produs sunt pe fundal deschis si text alb peste ele nu se citeste.
+    await pump(tester, homeFixture());
+    await tester.scrollUntilVisible(find.byType(FeatureBannerCard), 300,
+        scrollable: find.byType(Scrollable).first);
+
+    expect(find.byType(FeatureBannerCard), findsOneWidget);
+    expect(find.text('NOU la UpOrtho'), findsOneWidget);
+    expect(find.text('Instrumentar Ixion'), findsOneWidget);
+  });
+
+  testWidgets('o plasare necunoscuta nu ajunge niciodata banda lata', (tester) async {
+    // Un server mai nou poate trimite o plasare pe care aplicatia n-o stie; ea cade
+    // pe `promo`, niciodata pe ceva ce ocupa toata latimea.
+    final home = {
+      ...homeFixture(),
+      'banners': [
+        {...banner(9, 'Plasare viitoare', 'carousel_3d')},
+      ],
+    };
+
+    await pump(tester, home);
+
+    expect(find.byType(FeatureBannerCard), findsNothing);
+  });
+
+  testWidgets('feedul de Instagram apare cu contul magazinului', (tester) async {
+    await pump(tester, homeFixture());
+    await tester.scrollUntilVisible(find.byType(InstagramFeedCard), 300,
+        scrollable: find.byType(Scrollable).first);
+
+    expect(find.text('De pe Instagram'), findsOneWidget);
+    expect(find.text('@uporthoromania'), findsOneWidget);
+  });
+
+  testWidgets('fara cont de Instagram in Odoo, feedul nu se deseneaza', (tester) async {
+    final home = {...homeFixture(), 'instagram': null};
+
+    await pump(tester, home);
+
+    expect(find.byType(InstagramFeedCard), findsNothing);
   });
 
   testWidgets('apasarea pe o retea cere deschiderea adresei ei', (tester) async {

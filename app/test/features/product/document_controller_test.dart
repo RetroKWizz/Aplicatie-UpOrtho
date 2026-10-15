@@ -29,7 +29,17 @@ class FakeOpener implements DocumentOpener {
 
 /// Lasa descarcarea pornita sa ajunga pana la transport: intre apasare si cerere
 /// sta pregatirea fisierului (dosarul temporar), care e ea insasi asincrona.
-Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 20));
+/// Lasa descarcarea pornita sa ajunga la transport.
+///
+/// O asteptare fixa de 20 ms trecea pe o masina libera, dar pica din cand in cand
+/// cand suita intreaga ruleaza in paralel si procesul nu apuca sa fie planificat.
+/// Acum se asteapta **conditia**, nu ceasul, cu o limita de siguranta.
+Future<void> settle([bool Function()? until]) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 5));
+  do {
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  } while (until != null && !until() && DateTime.now().isBefore(deadline));
+}
 
 void main() {
   const url = 'http://x/api/app/v1/products/101/documents/4821';
@@ -117,7 +127,7 @@ void main() {
     final controller = container.read(documentsControllerProvider(101).notifier);
 
     final first = controller.open(url: url, fileName: 'fisa.pdf');
-    await settle();
+    await settle(() => transport.downloads.isNotEmpty);
     expect(container.read(documentsControllerProvider(101)).busy, contains(url),
         reason: 'randul trebuie sa arate ca lucreaza');
     expect(transport.downloads, hasLength(1), reason: 'prima descarcare e in aer');

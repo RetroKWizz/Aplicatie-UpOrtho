@@ -28,6 +28,9 @@ _HomeResponse _$HomeResponseFromJson(Map<String, dynamic> json) =>
               ?.map((e) => SocialLink.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      instagram: json['instagram'] == null
+          ? null
+          : InstagramFeed.fromJson(json['instagram'] as Map<String, dynamic>),
       sections:
           (json['sections'] as List<dynamic>?)
               ?.map((e) => HomeSection.fromJson(e as Map<String, dynamic>))
@@ -41,5 +44,6 @@ Map<String, dynamic> _$HomeResponseToJson(_HomeResponse instance) =>
       'quick_categories': instance.quickCategories,
       'brands': instance.brands,
       'social': instance.social,
+      'instagram': instance.instagram,
       'sections': instance.sections,
     };

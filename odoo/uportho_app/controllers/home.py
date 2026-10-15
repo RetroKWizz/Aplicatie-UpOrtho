@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from urllib.parse import urlparse
 
 from odoo import fields, http
 from odoo.exceptions import AccessError, MissingError
@@ -161,6 +162,10 @@ BRANDS_ON_HOME = 12
 # nicaieri si ar parea ca aplicatia a pierdut-o.
 SOCIAL_ORDER = ('facebook', 'linkedin', 'youtube', 'instagram', 'tiktok', 'twitter')
 
+# Cai de pe instagram.com care arata ca un cont dar nu sunt: o adresa catre o postare
+# sau catre explorare nu are feed de inglobat.
+INSTAGRAM_RESERVED_PATHS = frozenset({'p', 'reel', 'reels', 'tv', 'stories', 'explore', 'accounts'})
+
 
 def brand_attribute():
     """Atributul marcat ca brand in magazin, sau un recordset gol."""
@@ -223,6 +228,56 @@ def serialize_brands(website):
         })
     brands.sort(key=lambda brand: -brand['product_count'])
     return brands[:BRANDS_ON_HOME]
+
+
+def instagram_username(raw):
+    """Numele contului dintr-o adresa de Instagram, sau `None` daca nu e una.
+
+    Feedul de pe site e un iframe catre `instagram.com/<cont>/embed`; ca sa-l poata
+    arata si aplicatia, serverul trebuie sa spuna CARE e contul. Nu se scrie nicaieri
+    separat: se citeste din aceeasi adresa de Instagram din setarile website-ului,
+    altfel ar fi a doua sursa de adevar si cineva ar schimba-o doar pe una.
+
+    Se accepta doar gazda Instagram - o adresa catre alt site nu trebuie sa ajunga
+    niciodata intr-un iframe pe care il incarcam noi. Caile de continut
+    (`/p/<cod>`, `/reel/...`, `/explore/...`) nu sunt conturi, deci nu dau feed.
+
+    Functia e pura, ca sa poata fi testata fara request si fara website."""
+    raw = (raw or '').strip()
+    if not raw:
+        return None
+    parsed = urlparse(raw if '//' in raw else f'https://{raw}')
+    if parsed.scheme not in ('http', 'https'):
+        return None
+    host = (parsed.hostname or '').lower()
+    if host != 'instagram.com' and not host.endswith('.instagram.com'):
+        return None
+    parts = [part for part in parsed.path.split('/') if part]
+    if len(parts) != 1:
+        return None
+    username = parts[0]
+    if username.lower() in INSTAGRAM_RESERVED_PATHS:
+        return None
+    return username
+
+
+def serialize_instagram(website):
+    """Feedul de Instagram de pe Acasa: contul si adresa de inglobare.
+
+    Acelasi bloc pe care site-ul il are la finalul paginii de start
+    (`s_instagram_page`). Pozele nu trec prin Odoo si nu le avem noi: tot ce trimitem
+    e adresa pe care o incarca si site-ul, iar aplicatia o deschide intr-un WebView.
+    Fara cont configurat nu se trimite nimic - un chenar gol in capatul paginii e mai
+    rau decat lipsa lui."""
+    raw = website.social_instagram if 'social_instagram' in website._fields else None
+    username = instagram_username(raw)
+    if not username:
+        return None
+    return {
+        'username': username,
+        'embed_url': f'https://www.instagram.com/{username}/embed',
+        'profile_url': f'https://www.instagram.com/{username}/',
+    }
 
 
 def serialize_social(website):
@@ -345,6 +400,7 @@ class AppHome(http.Controller):
             ],
             'brands': serialize_brands(website),
             'social': serialize_social(website),
+            'instagram': serialize_instagram(website),
             'sections': [
                 block for block in (serialize_section(s, website) for s in sections)
                 if block is not None
