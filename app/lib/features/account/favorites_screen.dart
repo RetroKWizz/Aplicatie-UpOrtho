@@ -81,10 +81,12 @@ class FavoritesScreen extends ConsumerWidget {
                 httpHeaders: imageUrl == null
                     ? null
                     : imageHeadersFor(imageUrl, apiBaseUrl: api.baseUrl, headers: imageHeaders),
-                priceFormatted: product.price.formatted,
-                listAmountFormatted: product.price.listFormatted,
+                // Favoritele sunt un ecran de cont, deci pretul exista mereu aici; `?.`
+                // e doar pentru ca modelul il are optional de cand catalogul e public.
+                priceFormatted: product.price?.formatted,
+                listAmountFormatted: product.price?.listFormatted,
                 discountLabel:
-                    product.price.discountPct == null ? null : '-${product.price.discountPct}%',
+                    product.price?.discountPct == null ? null : '-${product.price!.discountPct}%',
                 badgeText: product.badge?.text,
                 badgeColor: product.badge == null ? null : productBadgeBackground(product.badge!),
                 badgeTextColor:

@@ -16,7 +16,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProductsResponse {
 
- List<Product> get products; int get total; int get offset; int get limit;/// Filtrele disponibile pentru cererea curenta. Vin odata cu produsele; sunt
+ List<Product> get products;/// Daca preturile din lista sunt vizibile si, altfel, de ce nu.
+ Pricing get pricing; int get total; int get offset; int get limit;/// Filtrele disponibile pentru cererea curenta. Vin odata cu produsele; sunt
 /// calculate din rezultat, deci se schimba de la o categorie la alta.
  ProductFilters get filters;
 /// Create a copy of ProductsResponse
@@ -32,20 +33,20 @@ $ProductsResponseCopyWith<ProductsResponse> get copyWith => _$ProductsResponseCo
 @override
 bool operator ==(Object other) {
   final _this = this as ProductsResponse;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductsResponse&&const DeepCollectionEquality().equals(other.products, _this.products)&&(identical(other.total, _this.total) || other.total == _this.total)&&(identical(other.offset, _this.offset) || other.offset == _this.offset)&&(identical(other.limit, _this.limit) || other.limit == _this.limit)&&(identical(other.filters, _this.filters) || other.filters == _this.filters));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductsResponse&&const DeepCollectionEquality().equals(other.products, _this.products)&&(identical(other.pricing, _this.pricing) || other.pricing == _this.pricing)&&(identical(other.total, _this.total) || other.total == _this.total)&&(identical(other.offset, _this.offset) || other.offset == _this.offset)&&(identical(other.limit, _this.limit) || other.limit == _this.limit)&&(identical(other.filters, _this.filters) || other.filters == _this.filters));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ProductsResponse;
-  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.products),_this.total,_this.offset,_this.limit,_this.filters);
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.products),_this.pricing,_this.total,_this.offset,_this.limit,_this.filters);
 }
 
 @override
 String toString() {
   final _this = this as ProductsResponse;
-  return 'ProductsResponse(products: ${_this.products}, total: ${_this.total}, offset: ${_this.offset}, limit: ${_this.limit}, filters: ${_this.filters})';
+  return 'ProductsResponse(products: ${_this.products}, pricing: ${_this.pricing}, total: ${_this.total}, offset: ${_this.offset}, limit: ${_this.limit}, filters: ${_this.filters})';
 }
 
 
@@ -56,11 +57,11 @@ abstract mixin class $ProductsResponseCopyWith<$Res>  {
   factory $ProductsResponseCopyWith(ProductsResponse value, $Res Function(ProductsResponse) _then) = _$ProductsResponseCopyWithImpl;
 @useResult
 $Res call({
- List<Product> products, int total, int offset, int limit, ProductFilters filters
+ List<Product> products, Pricing pricing, int total, int offset, int limit, ProductFilters filters
 });
 
 
-$ProductFiltersCopyWith<$Res> get filters;
+$PricingCopyWith<$Res> get pricing;$ProductFiltersCopyWith<$Res> get filters;
 
 }
 /// @nodoc
@@ -73,10 +74,11 @@ class _$ProductsResponseCopyWithImpl<$Res>
 
 /// Create a copy of ProductsResponse
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? products = null,Object? total = null,Object? offset = null,Object? limit = null,Object? filters = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? products = null,Object? pricing = null,Object? total = null,Object? offset = null,Object? limit = null,Object? filters = null,}) {
   return _then(ProductsResponse(
 products: null == products ? _self.products : products // ignore: cast_nullable_to_non_nullable
-as List<Product>,total: null == total ? _self.total : total // ignore: cast_nullable_to_non_nullable
+as List<Product>,pricing: null == pricing ? _self.pricing : pricing // ignore: cast_nullable_to_non_nullable
+as Pricing,total: null == total ? _self.total : total // ignore: cast_nullable_to_non_nullable
 as int,offset: null == offset ? _self.offset : offset // ignore: cast_nullable_to_non_nullable
 as int,limit: null == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
 as int,filters: null == filters ? _self.filters : filters // ignore: cast_nullable_to_non_nullable
@@ -84,6 +86,15 @@ as ProductFilters,
   ));
 }
 /// Create a copy of ProductsResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PricingCopyWith<$Res> get pricing {
+  
+  return $PricingCopyWith<$Res>(_self.pricing, (value) {
+    return _then(_self.copyWith(pricing: value));
+  });
+}/// Create a copy of ProductsResponse
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -174,10 +185,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Product> products,  int total,  int offset,  int limit,  ProductFilters filters)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Product> products,  Pricing pricing,  int total,  int offset,  int limit,  ProductFilters filters)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProductsResponse() when $default != null:
-return $default(_that.products,_that.total,_that.offset,_that.limit,_that.filters);case _:
+return $default(_that.products,_that.pricing,_that.total,_that.offset,_that.limit,_that.filters);case _:
   return orElse();
 
 }
@@ -195,10 +206,10 @@ return $default(_that.products,_that.total,_that.offset,_that.limit,_that.filter
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Product> products,  int total,  int offset,  int limit,  ProductFilters filters)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Product> products,  Pricing pricing,  int total,  int offset,  int limit,  ProductFilters filters)  $default,) {final _that = this;
 switch (_that) {
 case _ProductsResponse():
-return $default(_that.products,_that.total,_that.offset,_that.limit,_that.filters);case _:
+return $default(_that.products,_that.pricing,_that.total,_that.offset,_that.limit,_that.filters);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -215,10 +226,10 @@ return $default(_that.products,_that.total,_that.offset,_that.limit,_that.filter
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Product> products,  int total,  int offset,  int limit,  ProductFilters filters)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Product> products,  Pricing pricing,  int total,  int offset,  int limit,  ProductFilters filters)?  $default,) {final _that = this;
 switch (_that) {
 case _ProductsResponse() when $default != null:
-return $default(_that.products,_that.total,_that.offset,_that.limit,_that.filters);case _:
+return $default(_that.products,_that.pricing,_that.total,_that.offset,_that.limit,_that.filters);case _:
   return null;
 
 }
@@ -230,7 +241,7 @@ return $default(_that.products,_that.total,_that.offset,_that.limit,_that.filter
 @JsonSerializable()
 
 class _ProductsResponse implements ProductsResponse {
-  const _ProductsResponse({ List<Product> products = const [], required this.total, required this.offset, required this.limit, this.filters = const ProductFilters()}): _products = products;
+  const _ProductsResponse({ List<Product> products = const [], this.pricing = const Pricing(), required this.total, required this.offset, required this.limit, this.filters = const ProductFilters()}): _products = products;
   factory _ProductsResponse.fromJson(Map<String, dynamic> json) => _$ProductsResponseFromJson(json);
 
  final  List<Product> _products;
@@ -240,6 +251,8 @@ class _ProductsResponse implements ProductsResponse {
   return EqualUnmodifiableListView(_products);
 }
 
+/// Daca preturile din lista sunt vizibile si, altfel, de ce nu.
+@override@JsonKey() final  Pricing pricing;
 @override final  int total;
 @override final  int offset;
 @override final  int limit;
@@ -260,18 +273,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductsResponse&&const DeepCollectionEquality().equals(other.products, _products)&&(identical(other.total, total) || other.total == total)&&(identical(other.offset, offset) || other.offset == offset)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.filters, filters) || other.filters == filters));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductsResponse&&const DeepCollectionEquality().equals(other.products, _products)&&(identical(other.pricing, pricing) || other.pricing == pricing)&&(identical(other.total, total) || other.total == total)&&(identical(other.offset, offset) || other.offset == offset)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.filters, filters) || other.filters == filters));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_products),total,offset,limit,filters);
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_products),pricing,total,offset,limit,filters);
 }
 
 @override
 String toString() {
-    return 'ProductsResponse(products: $products, total: $total, offset: $offset, limit: $limit, filters: $filters)';
+    return 'ProductsResponse(products: $products, pricing: $pricing, total: $total, offset: $offset, limit: $limit, filters: $filters)';
 }
 
 
@@ -282,11 +295,11 @@ abstract mixin class _$ProductsResponseCopyWith<$Res> implements $ProductsRespon
   factory _$ProductsResponseCopyWith(_ProductsResponse value, $Res Function(_ProductsResponse) _then) = __$ProductsResponseCopyWithImpl;
 @override @useResult
 $Res call({
- List<Product> products, int total, int offset, int limit, ProductFilters filters
+ List<Product> products, Pricing pricing, int total, int offset, int limit, ProductFilters filters
 });
 
 
-@override $ProductFiltersCopyWith<$Res> get filters;
+@override $PricingCopyWith<$Res> get pricing;@override $ProductFiltersCopyWith<$Res> get filters;
 
 }
 /// @nodoc
@@ -299,10 +312,11 @@ class __$ProductsResponseCopyWithImpl<$Res>
 
 /// Create a copy of ProductsResponse
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? products = null,Object? total = null,Object? offset = null,Object? limit = null,Object? filters = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? products = null,Object? pricing = null,Object? total = null,Object? offset = null,Object? limit = null,Object? filters = null,}) {
   return _then(_ProductsResponse(
 products: null == products ? _self._products : products // ignore: cast_nullable_to_non_nullable
-as List<Product>,total: null == total ? _self.total : total // ignore: cast_nullable_to_non_nullable
+as List<Product>,pricing: null == pricing ? _self.pricing : pricing // ignore: cast_nullable_to_non_nullable
+as Pricing,total: null == total ? _self.total : total // ignore: cast_nullable_to_non_nullable
 as int,offset: null == offset ? _self.offset : offset // ignore: cast_nullable_to_non_nullable
 as int,limit: null == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
 as int,filters: null == filters ? _self.filters : filters // ignore: cast_nullable_to_non_nullable
@@ -311,6 +325,15 @@ as ProductFilters,
 }
 
 /// Create a copy of ProductsResponse
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PricingCopyWith<$Res> get pricing {
+  
+  return $PricingCopyWith<$Res>(_self.pricing, (value) {
+    return _then(_self.copyWith(pricing: value));
+  });
+}/// Create a copy of ProductsResponse
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')

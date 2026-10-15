@@ -20,7 +20,10 @@ abstract class Product with _$Product {
     required String name,
     @JsonKey(name: 'default_code') String? defaultCode,
     @JsonKey(name: 'image_url') String? imageUrl,
-    required Price price,
+    /// Pretul contului, gata formatat. **Null pentru un vizitator**: magazinul nu
+    /// arata preturi fara cont, iar aplicatia nu inventeaza unul. Ce se deseneaza in
+    /// locul lui se decide din `Pricing`, nu din starea locala de autentificare.
+    Price? price,
     @JsonKey(name: 'club_price') Price? clubPrice,
     ProductBadge? badge,
     /// Nota din recenzii; null cand produsul n-are niciuna - la fel ca pe site, unde

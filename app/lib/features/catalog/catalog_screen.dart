@@ -176,9 +176,11 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       code: product.defaultCode,
                       imageUrl: imageUrl,
                       httpHeaders: imageUrl == null ? null : headersFor(imageUrl),
-                      priceFormatted: product.price.formatted,
-                      listAmountFormatted: product.price.listFormatted,
-                      discountLabel: product.price.discountPct == null ? null : '-${product.price.discountPct}%',
+                      // Pretul lipseste pentru un vizitator: atunci cardul scrie unde se vede.
+                      priceFormatted: product.price?.formatted,
+                      priceUnavailableLabel: priceUnavailableLabel,
+                      listAmountFormatted: product.price?.listFormatted,
+                      discountLabel: product.price?.discountPct == null ? null : '-${product.price!.discountPct}%',
                       badgeText: product.badge?.text,
                       badgeColor:
                           product.badge == null ? null : productBadgeBackground(product.badge!),

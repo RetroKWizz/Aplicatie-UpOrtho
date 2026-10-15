@@ -9,11 +9,19 @@ import '../typography.dart';
 /// culoare) - nu importa niciun model API, nu citeste niciun provider, nu stie de
 /// sesiune. Spre deosebire de `BannerCard` (care primeste un `AppBanner` intreg -
 /// vezi datoria tehnica din docs/DE-FACUT.md), acest widget nu repeta greseala.
+/// Ce scrie in locul pretului cand serverul nu l-a trimis.
+///
+/// Un singur text, folosit de toate ecranele care arata carduri: trei formulari
+/// usor diferite pe acelasi ecran ar parea trei situatii diferite.
+const priceUnavailableLabel = 'Pretul se vede in cont';
+
+
 class ProductCard extends StatelessWidget {
   const ProductCard({
     super.key,
     required this.title,
-    required this.priceFormatted,
+    this.priceFormatted,
+    this.priceUnavailableLabel,
     this.code,
     this.imageUrl,
     this.httpHeaders,
@@ -39,7 +47,13 @@ class ProductCard extends StatelessWidget {
   /// obligatoriu; pretul taiat si eticheta de reducere apar doar cand exista reducere.
   /// Pretul Ortho Club NU apare aici: pe site el se vede doar in pagina produsului,
   /// nu in grila, si cardul urmeaza site-ul.
-  final String priceFormatted;
+  /// Pretul, gata formatat de server. Null cand serverul nu l-a trimis - atunci se
+  /// deseneaza `priceUnavailableLabel`.
+  final String? priceFormatted;
+
+  /// Ce scrie in locul pretului cand acesta lipseste (pentru un vizitator:
+  /// "Pretul se vede in cont"). Un gol in locul pretului arata a aplicatie stricata.
+  final String? priceUnavailableLabel;
   /// Pretul dinainte de reducere, deja formatat; afisat taiat, langa pretul curent.
   final String? listAmountFormatted;
   /// Eticheta de reducere deja formatata (ex. "-55%"); apare ca insigna mica.
@@ -171,10 +185,17 @@ class ProductCard extends StatelessWidget {
                                 runSpacing: 2,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Text(
-                                    priceFormatted,
-                                    style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w800, color: context.colors.primary),
-                                  ),
+                                  if (priceFormatted case final String formatted)
+                                    Text(
+                                      formatted,
+                                      style: AppTypography.body(context).copyWith(fontWeight: FontWeight.w800, color: context.colors.primary),
+                                    )
+                                  else if (priceUnavailableLabel case final String label)
+                                    Text(
+                                      label,
+                                      style: AppTypography.caption(context)
+                                          .copyWith(color: context.colors.textSecondary),
+                                    ),
                                   if (listAmountFormatted != null)
                                     Text(
                                       listAmountFormatted!,

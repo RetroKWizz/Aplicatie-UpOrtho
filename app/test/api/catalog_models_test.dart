@@ -39,9 +39,9 @@ void main() {
     expect(full.id, 101);
     expect(full.defaultCode, 'BR-ROTH-022');
     expect(full.imageUrl, '/api/app/v1/products/101/image?unique=3a1f9c2');
-    expect(full.price.formatted, '148,50 lei');
-    expect(full.price.listAmount, 330.00);
-    expect(full.price.discountPct, 55);
+    expect(full.price!.formatted, '148,50 lei');
+    expect(full.price!.listAmount, 330.00);
+    expect(full.price!.discountPct, 55);
     expect(full.clubPrice?.formatted, '133,65 lei');
     expect(full.clubPrice?.listAmount, isNull);
     // Eticheta reala vine de la magazin: text si culori exacte, fara nume de culoare.
@@ -52,8 +52,8 @@ void main() {
     final bare = response.products[1];
     expect(bare.defaultCode, isNull);
     expect(bare.imageUrl, isNull);
-    expect(bare.price.listAmount, isNull);
-    expect(bare.price.discountPct, isNull);
+    expect(bare.price!.listAmount, isNull);
+    expect(bare.price!.discountPct, isNull);
     expect(bare.clubPrice, isNull);
     expect(bare.badge, isNull);
   });

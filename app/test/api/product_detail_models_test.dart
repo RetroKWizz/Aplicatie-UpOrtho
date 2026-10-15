@@ -253,7 +253,7 @@ void main() {
     expect(similar.name, 'Cleste Tie Back mic Ixion');
     expect(similar.defaultCode, isNull);
     expect(similar.imageUrl, isNull);
-    expect(similar.price.formatted, '25,00 lei');
+    expect(similar.price!.formatted, '25,00 lei');
     expect(similar.clubPrice, isNull);
     expect(similar.badge, isNull);
   });

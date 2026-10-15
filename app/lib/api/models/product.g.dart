@@ -11,7 +11,9 @@ _Product _$ProductFromJson(Map<String, dynamic> json) => _Product(
   name: json['name'] as String,
   defaultCode: json['default_code'] as String?,
   imageUrl: json['image_url'] as String?,
-  price: Price.fromJson(json['price'] as Map<String, dynamic>),
+  price: json['price'] == null
+      ? null
+      : Price.fromJson(json['price'] as Map<String, dynamic>),
   clubPrice: json['club_price'] == null
       ? null
       : Price.fromJson(json['club_price'] as Map<String, dynamic>),

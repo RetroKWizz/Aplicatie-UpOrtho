@@ -16,7 +16,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Product {
 
- int get id; String get name;@JsonKey(name: 'default_code') String? get defaultCode;@JsonKey(name: 'image_url') String? get imageUrl; Price get price;@JsonKey(name: 'club_price') Price? get clubPrice; ProductBadge? get badge;/// Nota din recenzii; null cand produsul n-are niciuna - la fel ca pe site, unde
+ int get id; String get name;@JsonKey(name: 'default_code') String? get defaultCode;@JsonKey(name: 'image_url') String? get imageUrl;/// Pretul contului, gata formatat. **Null pentru un vizitator**: magazinul nu
+/// arata preturi fara cont, iar aplicatia nu inventeaza unul. Ce se deseneaza in
+/// locul lui se decide din `Pricing`, nu din starea locala de autentificare.
+ Price? get price;@JsonKey(name: 'club_price') Price? get clubPrice; ProductBadge? get badge;/// Nota din recenzii; null cand produsul n-are niciuna - la fel ca pe site, unde
 /// pastila cu nota nici nu apare atunci.
  ProductRating? get rating;
 /// Create a copy of Product
@@ -56,11 +59,11 @@ abstract mixin class $ProductCopyWith<$Res>  {
   factory $ProductCopyWith(Product value, $Res Function(Product) _then) = _$ProductCopyWithImpl;
 @useResult
 $Res call({
- int id, String name,@JsonKey(name: 'default_code') String? defaultCode,@JsonKey(name: 'image_url') String? imageUrl, Price price,@JsonKey(name: 'club_price') Price? clubPrice, ProductBadge? badge, ProductRating? rating
+ int id, String name,@JsonKey(name: 'default_code') String? defaultCode,@JsonKey(name: 'image_url') String? imageUrl, Price? price,@JsonKey(name: 'club_price') Price? clubPrice, ProductBadge? badge, ProductRating? rating
 });
 
 
-$PriceCopyWith<$Res> get price;$PriceCopyWith<$Res>? get clubPrice;$ProductBadgeCopyWith<$Res>? get badge;$ProductRatingCopyWith<$Res>? get rating;
+$PriceCopyWith<$Res>? get price;$PriceCopyWith<$Res>? get clubPrice;$ProductBadgeCopyWith<$Res>? get badge;$ProductRatingCopyWith<$Res>? get rating;
 
 }
 /// @nodoc
@@ -73,14 +76,14 @@ class _$ProductCopyWithImpl<$Res>
 
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? defaultCode = freezed,Object? imageUrl = freezed,Object? price = null,Object? clubPrice = freezed,Object? badge = freezed,Object? rating = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? defaultCode = freezed,Object? imageUrl = freezed,Object? price = freezed,Object? clubPrice = freezed,Object? badge = freezed,Object? rating = freezed,}) {
   return _then(Product(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,defaultCode: freezed == defaultCode ? _self.defaultCode : defaultCode // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
-as String?,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
-as Price,clubPrice: freezed == clubPrice ? _self.clubPrice : clubPrice // ignore: cast_nullable_to_non_nullable
+as String?,price: freezed == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
+as Price?,clubPrice: freezed == clubPrice ? _self.clubPrice : clubPrice // ignore: cast_nullable_to_non_nullable
 as Price?,badge: freezed == badge ? _self.badge : badge // ignore: cast_nullable_to_non_nullable
 as ProductBadge?,rating: freezed == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
 as ProductRating?,
@@ -90,9 +93,12 @@ as ProductRating?,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$PriceCopyWith<$Res> get price {
-  
-  return $PriceCopyWith<$Res>(_self.price, (value) {
+$PriceCopyWith<$Res>? get price {
+    if (_self.price == null) {
+    return null;
+  }
+
+  return $PriceCopyWith<$Res>(_self.price!, (value) {
     return _then(_self.copyWith(price: value));
   });
 }/// Create a copy of Product
@@ -213,7 +219,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'default_code')  String? defaultCode, @JsonKey(name: 'image_url')  String? imageUrl,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice,  ProductBadge? badge,  ProductRating? rating)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'default_code')  String? defaultCode, @JsonKey(name: 'image_url')  String? imageUrl,  Price? price, @JsonKey(name: 'club_price')  Price? clubPrice,  ProductBadge? badge,  ProductRating? rating)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Product() when $default != null:
 return $default(_that.id,_that.name,_that.defaultCode,_that.imageUrl,_that.price,_that.clubPrice,_that.badge,_that.rating);case _:
@@ -234,7 +240,7 @@ return $default(_that.id,_that.name,_that.defaultCode,_that.imageUrl,_that.price
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'default_code')  String? defaultCode, @JsonKey(name: 'image_url')  String? imageUrl,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice,  ProductBadge? badge,  ProductRating? rating)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'default_code')  String? defaultCode, @JsonKey(name: 'image_url')  String? imageUrl,  Price? price, @JsonKey(name: 'club_price')  Price? clubPrice,  ProductBadge? badge,  ProductRating? rating)  $default,) {final _that = this;
 switch (_that) {
 case _Product():
 return $default(_that.id,_that.name,_that.defaultCode,_that.imageUrl,_that.price,_that.clubPrice,_that.badge,_that.rating);case _:
@@ -254,7 +260,7 @@ return $default(_that.id,_that.name,_that.defaultCode,_that.imageUrl,_that.price
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name, @JsonKey(name: 'default_code')  String? defaultCode, @JsonKey(name: 'image_url')  String? imageUrl,  Price price, @JsonKey(name: 'club_price')  Price? clubPrice,  ProductBadge? badge,  ProductRating? rating)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name, @JsonKey(name: 'default_code')  String? defaultCode, @JsonKey(name: 'image_url')  String? imageUrl,  Price? price, @JsonKey(name: 'club_price')  Price? clubPrice,  ProductBadge? badge,  ProductRating? rating)?  $default,) {final _that = this;
 switch (_that) {
 case _Product() when $default != null:
 return $default(_that.id,_that.name,_that.defaultCode,_that.imageUrl,_that.price,_that.clubPrice,_that.badge,_that.rating);case _:
@@ -269,14 +275,17 @@ return $default(_that.id,_that.name,_that.defaultCode,_that.imageUrl,_that.price
 @JsonSerializable()
 
 class _Product implements Product {
-  const _Product({required this.id, required this.name, @JsonKey(name: 'default_code') this.defaultCode, @JsonKey(name: 'image_url') this.imageUrl, required this.price, @JsonKey(name: 'club_price') this.clubPrice, this.badge, this.rating});
+  const _Product({required this.id, required this.name, @JsonKey(name: 'default_code') this.defaultCode, @JsonKey(name: 'image_url') this.imageUrl, this.price, @JsonKey(name: 'club_price') this.clubPrice, this.badge, this.rating});
   factory _Product.fromJson(Map<String, dynamic> json) => _$ProductFromJson(json);
 
 @override final  int id;
 @override final  String name;
 @override@JsonKey(name: 'default_code') final  String? defaultCode;
 @override@JsonKey(name: 'image_url') final  String? imageUrl;
-@override final  Price price;
+/// Pretul contului, gata formatat. **Null pentru un vizitator**: magazinul nu
+/// arata preturi fara cont, iar aplicatia nu inventeaza unul. Ce se deseneaza in
+/// locul lui se decide din `Pricing`, nu din starea locala de autentificare.
+@override final  Price? price;
 @override@JsonKey(name: 'club_price') final  Price? clubPrice;
 @override final  ProductBadge? badge;
 /// Nota din recenzii; null cand produsul n-are niciuna - la fel ca pe site, unde
@@ -318,11 +327,11 @@ abstract mixin class _$ProductCopyWith<$Res> implements $ProductCopyWith<$Res> {
   factory _$ProductCopyWith(_Product value, $Res Function(_Product) _then) = __$ProductCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name,@JsonKey(name: 'default_code') String? defaultCode,@JsonKey(name: 'image_url') String? imageUrl, Price price,@JsonKey(name: 'club_price') Price? clubPrice, ProductBadge? badge, ProductRating? rating
+ int id, String name,@JsonKey(name: 'default_code') String? defaultCode,@JsonKey(name: 'image_url') String? imageUrl, Price? price,@JsonKey(name: 'club_price') Price? clubPrice, ProductBadge? badge, ProductRating? rating
 });
 
 
-@override $PriceCopyWith<$Res> get price;@override $PriceCopyWith<$Res>? get clubPrice;@override $ProductBadgeCopyWith<$Res>? get badge;@override $ProductRatingCopyWith<$Res>? get rating;
+@override $PriceCopyWith<$Res>? get price;@override $PriceCopyWith<$Res>? get clubPrice;@override $ProductBadgeCopyWith<$Res>? get badge;@override $ProductRatingCopyWith<$Res>? get rating;
 
 }
 /// @nodoc
@@ -335,14 +344,14 @@ class __$ProductCopyWithImpl<$Res>
 
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? defaultCode = freezed,Object? imageUrl = freezed,Object? price = null,Object? clubPrice = freezed,Object? badge = freezed,Object? rating = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? defaultCode = freezed,Object? imageUrl = freezed,Object? price = freezed,Object? clubPrice = freezed,Object? badge = freezed,Object? rating = freezed,}) {
   return _then(_Product(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,defaultCode: freezed == defaultCode ? _self.defaultCode : defaultCode // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
-as String?,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
-as Price,clubPrice: freezed == clubPrice ? _self.clubPrice : clubPrice // ignore: cast_nullable_to_non_nullable
+as String?,price: freezed == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
+as Price?,clubPrice: freezed == clubPrice ? _self.clubPrice : clubPrice // ignore: cast_nullable_to_non_nullable
 as Price?,badge: freezed == badge ? _self.badge : badge // ignore: cast_nullable_to_non_nullable
 as ProductBadge?,rating: freezed == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
 as ProductRating?,
@@ -353,9 +362,12 @@ as ProductRating?,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$PriceCopyWith<$Res> get price {
-  
-  return $PriceCopyWith<$Res>(_self.price, (value) {
+$PriceCopyWith<$Res>? get price {
+    if (_self.price == null) {
+    return null;
+  }
+
+  return $PriceCopyWith<$Res>(_self.price!, (value) {
     return _then(_self.copyWith(price: value));
   });
 }/// Create a copy of Product

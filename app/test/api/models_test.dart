@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/models/home_response.dart';
+import 'package:uportho_app/api/models/products_response.dart';
 import 'package:uportho_app/api/models/user_profile.dart';
 
 Map<String, dynamic> fixture(String name) =>
@@ -47,6 +48,41 @@ void main() {
     final home = HomeResponse.fromJson(json);
     expect(home.banners.first.placement, BannerPlacement.promo);
     expect(home.banners.first.link.type, BannerLinkType.none);
+  });
+
+  test('un produs fara pret se decodeaza, nu arunca', () {
+    // Raspunsul unui vizitator: serverul nu trimite niciun pret. Daca modelul ar cere
+    // `price`, ecranul ar ramane gol in loc sa arate catalogul - exact ce vede un om
+    // care deschide aplicatia fara cont.
+    final json = fixture('products.json');
+    final anonim = {
+      ...json,
+      'pricing': {'visible': false, 'reason': 'sign_in_required'},
+      'products': (json['products'] as List)
+          .map((p) => {...p as Map<String, dynamic>, 'price': null, 'club_price': null})
+          .toList(),
+    };
+
+    final response = ProductsResponse.fromJson(anonim);
+
+    expect(response.pricing.visible, isFalse);
+    expect(response.pricing.reason, 'sign_in_required');
+    expect(response.products.first.price, isNull);
+    expect(response.products.first.name, isNotEmpty);
+  });
+
+  test('cu cont, pretul se decodeaza ca pana acum', () {
+    final response = ProductsResponse.fromJson(fixture('products.json'));
+
+    expect(response.pricing.visible, isTrue);
+    expect(response.products.first.price?.formatted, isNotEmpty);
+  });
+
+  test('un raspuns fara blocul pricing cade pe "preturile se vad"', () {
+    // Un server mai vechi nu trimite blocul; atunci nu avem motiv sa ascundem nimic.
+    final json = {...fixture('products.json')}..remove('pricing');
+
+    expect(ProductsResponse.fromJson(json).pricing.visible, isTrue);
   });
 
   test('Price decodes and exposes formatted only', () {

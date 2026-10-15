@@ -770,10 +770,12 @@ class _SimilarList extends ConsumerWidget {
               httpHeaders: imageUrl == null
                   ? null
                   : imageHeadersFor(imageUrl, apiBaseUrl: api.baseUrl, headers: imageHeaders),
-              priceFormatted: product.price.formatted,
-              listAmountFormatted: product.price.listFormatted,
+              // Produsele similare: pentru un vizitator vin fara pret, ca si grila.
+              priceFormatted: product.price?.formatted,
+              priceUnavailableLabel: priceUnavailableLabel,
+              listAmountFormatted: product.price?.listFormatted,
               discountLabel:
-                  product.price.discountPct == null ? null : '-${product.price.discountPct}%',
+                  product.price?.discountPct == null ? null : '-${product.price!.discountPct}%',
               badgeText: product.badge?.text,
               badgeColor:
                   product.badge == null ? null : productBadgeBackground(product.badge!),

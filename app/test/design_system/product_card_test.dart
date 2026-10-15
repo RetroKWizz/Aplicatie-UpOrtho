@@ -146,4 +146,26 @@ void main() {
 
     expect(find.byIcon(Icons.star_rounded), findsNothing);
   });
+
+  testWidgets('fara pret, cardul spune unde se vede in loc sa lase gol', (tester) async {
+    // Cardul unui vizitator: serverul nu trimite pret. Un gol in locul lui arata a
+    // aplicatie stricata; textul spune ce trebuie facut.
+    await tester.pumpWidget(sized(const ProductCard(
+      title: 'Set bracketi metalici Atlas Mini',
+      priceUnavailableLabel: 'Pretul se vede in cont',
+    )));
+
+    expect(find.text('Pretul se vede in cont'), findsOneWidget);
+    expect(find.textContaining('lei'), findsNothing);
+  });
+
+  testWidgets('cu pret, cardul arata exact ce a trimis serverul', (tester) async {
+    await tester.pumpWidget(sized(const ProductCard(
+      title: 'Set bracketi metalici Atlas Mini',
+      priceFormatted: '148,50 lei',
+    )));
+
+    expect(find.text('148,50 lei'), findsOneWidget);
+    expect(find.text('Pretul se vede in cont'), findsNothing);
+  });
 }
