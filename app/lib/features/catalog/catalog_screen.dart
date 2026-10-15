@@ -148,7 +148,11 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                 }
                 return GridView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  // Jos, rezerva pusa de shell in `MediaQuery` pentru bara plutitoare:
+                  // un padding scris de noi o inlocuieste, iar ultimul rand de produse
+                  // ar ramane sub sticla.
+                  padding: EdgeInsets.fromLTRB(
+                      16, 4, 16, 16 + MediaQuery.paddingOf(context).bottom),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,

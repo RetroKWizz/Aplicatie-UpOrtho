@@ -81,7 +81,11 @@ class _HomeContent extends StatelessWidget {
     final promos = data.banners.where((b) => b.placement == BannerPlacement.promo).toList();
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      // Jos se adauga rezerva pe care shell-ul o pune in `MediaQuery` cat bara
+      // plutitoare de sticla. Un `padding` scris de noi O INLOCUIESTE pe a lui
+      // Flutter, deci fara adunarea asta ultimul lucru din pagina (azi randul de
+      // retele sociale) ramane pentru totdeauna sub sticla - s-a si intamplat.
+      padding: EdgeInsets.only(top: 12, bottom: 12 + MediaQuery.paddingOf(context).bottom),
       children: [
         if (heroes.isNotEmpty)
           Padding(

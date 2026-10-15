@@ -29,7 +29,8 @@ void main() {
         'link': {'type': 'none', 'category_id': null, 'url': null},
       };
 
-  Future<void> pump(WidgetTester tester, Map<String, dynamic> home) async {
+  Future<void> pump(WidgetTester tester, Map<String, dynamic> home,
+      {double bottomInset = 0}) async {
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -42,7 +43,12 @@ void main() {
     addTearDown(container.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: HomeScreen()),
+      child: MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(padding: EdgeInsets.only(bottom: bottomInset)),
+          child: const HomeScreen(),
+        ),
+      ),
     ));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
@@ -181,6 +187,17 @@ void main() {
     await pump(tester, home);
 
     expect(find.text('Urmareste-ne'), findsNothing);
+  });
+
+  testWidgets('ultimul lucru din pagina nu ramane sub bara plutitoare',
+      (tester) async {
+    // Shell-ul rezerva loc cat bara, prin `MediaQuery`. Un padding scris de noi il
+    // inlocuieste pe al lui Flutter, deci rezerva trebuie adunata explicit - altfel
+    // randul de retele sociale sta pentru totdeauna sub sticla.
+    await pump(tester, homeFixture(), bottomInset: 110);
+
+    final list = tester.widget<ListView>(find.byType(ListView).first);
+    expect(list.padding, const EdgeInsets.only(top: 12, bottom: 122));
   });
 
   testWidgets('apasarea pe o retea cere deschiderea adresei ei', (tester) async {
