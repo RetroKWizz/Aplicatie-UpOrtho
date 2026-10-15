@@ -111,6 +111,21 @@ un rand gol e mai rau decat lipsa lui. `controllers/home` importa din `controlle
 catalog` **in interiorul functiei**: la nivel de fisier cele doua se importa reciproc
 si modulul nu mai porneste.
 
+**Retelele sociale vin din setarile website-ului, nu din cod.** Randul "Urmareste-ne"
+de la capatul paginii Acasa e acelasi bloc pe care site-ul il are sub produse ("Hai
+alaturi de noi si in Social Media"), iar adresele sunt chiar campurile `social_*` ale
+website-ului (Site web -> Configurare -> Setari -> Retele sociale) - aceleasi din care
+tema isi deseneaza iconitele din subsol. Cine muta pagina de Facebook in Odoo o muta si
+in aplicatie, fara release. O retea fara adresa nu se trimite (o iconita care nu duce
+nicaieri e mai rea decat lipsa ei), iar una pe care aplicatia nu o cunoaste se arata
+oricum, la coada, cu o iconita de link - altfel o adresa completata de un editor ar
+disparea fara ca nimeni sa afle. `social_default_image` nu e o retea, e poza de
+previzualizare la partajare, si nu intra. **Atentie:** Odoo pune din fabrica, pe orice
+website nou, adrese catre paginile LUI; pe website 11 toate patru (Facebook, LinkedIn,
+YouTube, Instagram) sunt completate cu paginile UpOrtho. Feed-ul de Instagram de pe site
+(`s_instagram_page`, contul `uporthoromania`) ramane pe site: e un iframe, iar intr-un
+WebView de telefon cere login si incarca greu.
+
 **Bannerul poate purta textul in chiar imaginea lui** (`image_only`). Atunci aplicatia
 nu mai deseneaza titlu, subtitlu, buton si val intunecat peste poza, iar poza se arata
 INTREAGA (`BoxFit.contain`), nu taiata - pe staging, taiata, "Ortho Club" ramanea fara

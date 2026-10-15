@@ -50,6 +50,10 @@ dependencies:
   # sa poata fi deschis altfel, iar datele cardului nu au voie sa treaca prin
   # aplicatie. Un browser extern nu ar avea sesiunea si ar arata un cos gol.
   webview_flutter: ^4.14.1
+  # Iconitele retelelor sociale (Facebook, Instagram, YouTube, LinkedIn). Material
+  # Icons nu are logouri de brand, iar randul "Urmareste-ne" de pe Acasa arata
+  # aceleasi iconite ca blocul de pe pagina de start a site-ului.
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:

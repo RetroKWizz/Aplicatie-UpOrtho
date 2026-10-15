@@ -153,6 +153,14 @@ BRAND_ATTRIBUTE_FLAG = 'dr_is_brand'
 BRAND_LOGO_FIELD = 'dr_image'
 BRANDS_ON_HOME = 12
 
+# Retelele sociale pe care le arata aplicatia, in ordinea in care le arata si blocul
+# "Hai alaturi de noi si in Social Media" de pe pagina de start a site-ului. Lista
+# spune doar ORDINEA si ce nume poarta fiecare retea in aplicatie; adresele vin din
+# setarile website-ului. O retea care apare in Odoo dar nu e aici (azi `github`) se
+# trimite oricum, la coada - altfel o adresa completata de un editor nu s-ar vedea
+# nicaieri si ar parea ca aplicatia a pierdut-o.
+SOCIAL_ORDER = ('facebook', 'linkedin', 'youtube', 'instagram', 'tiktok', 'twitter')
+
 
 def brand_attribute():
     """Atributul marcat ca brand in magazin, sau un recordset gol."""
@@ -215,6 +223,35 @@ def serialize_brands(website):
         })
     brands.sort(key=lambda brand: -brand['product_count'])
     return brands[:BRANDS_ON_HOME]
+
+
+def serialize_social(website):
+    """Retelele sociale ale magazinului: numele retelei si adresa ei.
+
+    Sursa e chiar website-ul (Site web -> Configurare -> Setari -> Retele sociale),
+    adica fix campurile din care tema isi deseneaza iconitele din subsol si blocul
+    "Hai alaturi de noi si in Social Media" de pe pagina de start. Nu se scrie nicio
+    adresa in codul aplicatiei: cine muta pagina de Facebook o muta si in aplicatie,
+    fara release in App Store - acelasi motiv pentru care exista modulul.
+
+    O retea fara adresa nu se trimite: o iconita care nu duce nicaieri e mai rea
+    decat lipsa ei. `social_default_image` nu e o retea, e poza de previzualizare
+    la partajare, deci nu intra."""
+    fields_present = [
+        name for name in website._fields
+        if name.startswith('social_') and name != 'social_default_image'
+    ]
+    known = [name for name in SOCIAL_ORDER if f'social_{name}' in website._fields]
+    rest = sorted(
+        name[len('social_'):] for name in fields_present
+        if name[len('social_'):] not in known
+    )
+    links = []
+    for network in known + rest:
+        url = (website[f'social_{network}'] or '').strip()
+        if url:
+            links.append({'network': network, 'url': url})
+    return links
 
 
 def _category_counts(categories, website):
@@ -307,6 +344,7 @@ class AppHome(http.Controller):
                 serialize_quick_category(c, counts.get(c.id, 0)) for c in categories
             ],
             'brands': serialize_brands(website),
+            'social': serialize_social(website),
             'sections': [
                 block for block in (serialize_section(s, website) for s in sections)
                 if block is not None

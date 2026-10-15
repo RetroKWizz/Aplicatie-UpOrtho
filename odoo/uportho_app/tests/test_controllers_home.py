@@ -427,3 +427,97 @@ class TestHomeBrandsAndCounts(AppHttpCase):
     def test_logoul_unui_brand_inexistent_da_404(self):
         self.api_login()
         self.assertEqual(self.api_get('/brands/999999/logo').status_code, 404)
+
+
+@tagged('post_install', '-at_install')
+class TestHomeSocial(AppHttpCase):
+    """Randul de retele sociale de pe Acasa.
+
+    Site-ul are, sub produse, blocul "Hai alaturi de noi si in Social Media", cu
+    iconitele retelelor. Adresele lor nu stau in sablon: stau in setarile
+    website-ului, iar aplicatia le citeste de acolo - cine muta pagina de Facebook
+    in Odoo o muta si in aplicatie, fara release."""
+
+    WEBSITE_PARAM = 'uportho_app.website_id'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Website propriu, cu retelele golite. Odoo pune din fabrica adrese catre
+        # paginile LUI (facebook.com/Odoo s.a.m.d.) pe orice website nou - si site-ul
+        # le arata la fel, in subsol, pana le schimba cineva. Testul si le goleste ca
+        # sa poata compara liste intregi; pe magazinul real toate patru sunt
+        # completate cu paginile UpOrtho.
+        cls.website = cls.env['website'].create({'name': 'Website retele test'})
+        cls.website.write({
+            name: False for name in cls.website._fields
+            if name.startswith('social_') and name != 'social_default_image'
+        })
+
+    def setUp(self):
+        super().setUp()
+        self.env['ir.config_parameter'].sudo().set_param(
+            self.WEBSITE_PARAM, str(self.website.id))
+        self.addCleanup(self.registry.clear_cache)
+
+    def _social(self):
+        self.api_login()
+        return self.api_get('/home').json()['social']
+
+    def test_trimite_doar_retelele_completate(self):
+        """O iconita care nu duce nicaieri e mai rea decat lipsa ei."""
+        self.website.write({
+            'social_facebook': 'https://www.facebook.com/UpOrthoStore',
+            'social_instagram': 'https://www.instagram.com/uporthoromania',
+            'social_youtube': '',
+        })
+
+        self.assertEqual(self._social(), [
+            {'network': 'facebook', 'url': 'https://www.facebook.com/UpOrthoStore'},
+            {'network': 'instagram', 'url': 'https://www.instagram.com/uporthoromania'},
+        ])
+
+    def test_ordinea_e_cea_de_pe_site(self):
+        """Blocul de pe pagina de start arata Facebook, LinkedIn, YouTube, Instagram -
+        in aceasta ordine, nu in ordinea campurilor din baza."""
+        self.website.write({
+            'social_instagram': 'https://instagram.test/u',
+            'social_youtube': 'https://youtube.test/u',
+            'social_facebook': 'https://facebook.test/u',
+            'social_linkedin': 'https://linkedin.test/u',
+        })
+
+        self.assertEqual([link['network'] for link in self._social()],
+                         ['facebook', 'linkedin', 'youtube', 'instagram'])
+
+    def test_o_retea_pe_care_aplicatia_nu_o_cunoaste_se_trimite_la_coada(self):
+        """`github` exista pe model dar nu e in lista noastra de ordine. Daca un editor
+        ii pune adresa, aplicatia o arata oricum: altfel ar parea ca a pierdut-o."""
+        self.website.write({
+            'social_facebook': 'https://facebook.test/u',
+            'social_github': 'https://github.test/u',
+        })
+
+        self.assertEqual([link['network'] for link in self._social()],
+                         ['facebook', 'github'])
+
+    def test_spatiile_din_jur_nu_ajung_in_aplicatie(self):
+        """Un URL copiat cu spatiu la final nu se deschide pe telefon."""
+        self.website.write({'social_facebook': '  https://facebook.test/u  '})
+
+        self.assertEqual(self._social(), [
+            {'network': 'facebook', 'url': 'https://facebook.test/u'}])
+
+    def test_fara_nicio_retea_blocul_e_gol_nu_lipseste(self):
+        """Cheia exista mereu: aplicatia nu trebuie sa ghiceasca daca lipsa ei
+        inseamna 'nicio retea' sau 'server vechi'."""
+        body_social = self._social()
+
+        self.assertEqual(body_social, [])
+
+    def test_contractul_descrie_randul_de_retele(self):
+        contract = load_contract('home.json')
+
+        self.assertTrue(contract['social'])
+        for link in contract['social']:
+            self.assertEqual(set(link), {'network', 'url'})

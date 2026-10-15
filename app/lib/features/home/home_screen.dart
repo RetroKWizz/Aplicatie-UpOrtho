@@ -13,6 +13,7 @@ import '../../design_system/widgets/banner_card.dart';
 import '../../design_system/widgets/category_chip.dart';
 import '../../design_system/widgets/product_card.dart';
 import '../../design_system/widgets/section_header.dart';
+import '../../design_system/widgets/social_row.dart';
 import '../../providers.dart';
 import '../auth/auth_controller.dart';
 import '../favorites/favorites_controller.dart';
@@ -147,6 +148,9 @@ class _HomeContent extends StatelessWidget {
             absoluteUrl: absoluteUrl,
             headersFor: headersFor,
           ),
+        // Retelele sociale stau la capatul paginii, ca pe site: nu sunt un raft de
+        // cumparat, sunt ce faci dupa ce ai terminat de rasfoit.
+        SocialRow(links: data.social, onOpen: (link) => _openSocial(context, link)),
         if (data.banners.isEmpty && data.quickCategories.isEmpty && data.sections.isEmpty)
           const Padding(
             padding: EdgeInsets.all(32),
@@ -154,6 +158,19 @@ class _HomeContent extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// Deschide o retea sociala in aplicatia ei (sau in browser, daca nu e instalata).
+  /// Trece prin aceeasi paza ca link-ul extern al unui banner: doar http/https cu gazda,
+  /// si nicio exceptie de platforma scapata dintr-un handler de tap.
+  Future<void> _openSocial(BuildContext context, SocialLink link) async {
+    final uri = externalBannerUri(link.url);
+    if (uri == null) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (error) {
+      debugPrint('Nu s-a putut deschide reteaua ${link.network}: $error');
+    }
   }
 
   Widget _bannerCard(BuildContext context, AppBanner banner, {bool hero = false}) {

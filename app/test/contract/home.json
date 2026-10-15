@@ -59,6 +59,16 @@
       "logo_url": null
     }
   ],
+  "social": [
+    {
+      "network": "facebook",
+      "url": "https://www.facebook.com/UpOrthoStore"
+    },
+    {
+      "network": "instagram",
+      "url": "https://www.instagram.com/uporthoromania"
+    }
+  ],
   "sections": [
     {
       "id": 1,

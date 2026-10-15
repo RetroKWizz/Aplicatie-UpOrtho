@@ -7,6 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uportho_app/api/api_client.dart';
 import 'package:uportho_app/api/api_transport.dart';
 import 'package:uportho_app/api/session_store.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:uportho_app/api/models/social_link.dart';
+import 'package:uportho_app/design_system/widgets/social_row.dart';
 import 'package:uportho_app/features/home/home_screen.dart';
 import 'package:uportho_app/providers.dart';
 
@@ -153,5 +156,68 @@ void main() {
     await pump(tester, home);
 
     expect(find.text('Cumpara dupa brand'), findsNothing);
+  });
+
+  testWidgets('retelele sociale stau la capatul paginii, cate o iconita de fiecare',
+      (tester) async {
+    await pump(tester, homeFixture());
+    // Lista de pe Acasa are si randuri orizontale, deci exista mai multe Scrollable;
+    // derularea se face explicit pe lista verticala, prima din arbore.
+    await tester.scrollUntilVisible(find.text('Urmareste-ne'), 300,
+        scrollable: find.byType(Scrollable).first);
+
+    expect(find.text('Urmareste-ne'), findsOneWidget);
+    expect(find.byType(SocialRow), findsOneWidget);
+    expect(
+      tester.widget<SocialRow>(find.byType(SocialRow)).links.map((l) => l.network),
+      ['facebook', 'instagram'],
+    );
+  });
+
+  testWidgets('fara nicio retea completata in Odoo, blocul nu se deseneaza',
+      (tester) async {
+    final home = {...homeFixture(), 'social': <dynamic>[]};
+
+    await pump(tester, home);
+
+    expect(find.text('Urmareste-ne'), findsNothing);
+  });
+
+  testWidgets('apasarea pe o retea cere deschiderea adresei ei', (tester) async {
+    // Widgetul nu deschide el nimic: primeste callback-ul de la ecran, care trece
+    // adresa prin aceeasi paza ca link-ul extern al unui banner.
+    final deschise = <String>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SocialRow(
+          links: const [
+            SocialLink(network: 'facebook', url: 'https://facebook.test/u'),
+            SocialLink(network: 'instagram', url: 'https://instagram.test/u'),
+          ],
+          onOpen: (link) => deschise.add(link.url),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.byTooltip('Instagram'));
+
+    expect(deschise, ['https://instagram.test/u']);
+  });
+
+  testWidgets('o retea necunoscuta se arata cu iconita de link, nu dispare',
+      (tester) async {
+    // Daca Odoo adauga maine o retea noua, adresa completata de un editor trebuie
+    // sa se vada; altfel ar parea ca aplicatia a pierdut-o.
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SocialRow(
+          links: const [SocialLink(network: 'threads', url: 'https://threads.test/u')],
+          onOpen: (_) {},
+        ),
+      ),
+    ));
+
+    expect(find.byTooltip('Threads'), findsOneWidget);
+    expect(socialNetworkLook('threads').icon, FontAwesomeIcons.link);
   });
 }

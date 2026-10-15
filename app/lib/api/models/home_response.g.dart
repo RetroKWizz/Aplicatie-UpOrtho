@@ -23,6 +23,11 @@ _HomeResponse _$HomeResponseFromJson(Map<String, dynamic> json) =>
               ?.map((e) => HomeBrand.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      social:
+          (json['social'] as List<dynamic>?)
+              ?.map((e) => SocialLink.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       sections:
           (json['sections'] as List<dynamic>?)
               ?.map((e) => HomeSection.fromJson(e as Map<String, dynamic>))
@@ -35,5 +40,6 @@ Map<String, dynamic> _$HomeResponseToJson(_HomeResponse instance) =>
       'banners': instance.banners,
       'quick_categories': instance.quickCategories,
       'brands': instance.brands,
+      'social': instance.social,
       'sections': instance.sections,
     };
