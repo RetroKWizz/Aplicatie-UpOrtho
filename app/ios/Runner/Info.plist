@@ -4,6 +4,13 @@
 <dict>
 	<key>NSAppTransportSecurity</key>
 	<dict><key>NSAllowsLocalNetworking</key><true/></dict>
+	<!-- Conformitate la export. Aplicatia nu implementeaza algoritmi de criptare
+	     proprii si nu aduce o biblioteca de criptare in locul celei din iOS: foloseste
+	     HTTPS pentru API, Keychain-ul sistemului pentru sesiune si WKWebView pentru
+	     pagina de plata a magazinului. Fara cheia asta, App Store Connect pune
+	     intrebarea "App Encryption Documentation" la FIECARE build nou. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
