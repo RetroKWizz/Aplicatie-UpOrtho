@@ -67,10 +67,19 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: home.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorView(
-          message: error is ApiException ? error.message : 'Nu s-a putut incarca pagina.',
-          onRetry: () => ref.read(homeControllerProvider.notifier).refresh(),
-        ),
+        error: (error, _) {
+          // Un server care cere cont si pentru Acasa (unul mai vechi, sau unul caruia
+          // i-a disparut modulul) raspunde 401. Asta nu e o defectiune de aratat cu
+          // rosu: e exact situatia in care omul trebuie sa se autentifice, iar un
+          // ecran de eroare l-ar face sa creada ca aplicatia e stricata.
+          if (error is ApiException && error.status == 401) {
+            return _SignInWall(onSignIn: () => context.go('/login'));
+          }
+          return _ErrorView(
+            message: error is ApiException ? error.message : 'Nu s-a putut incarca pagina.',
+            onRetry: () => ref.read(homeControllerProvider.notifier).refresh(),
+          );
+        },
         data: (data) => RefreshIndicator(
           onRefresh: () => ref.read(homeControllerProvider.notifier).refresh(),
           child: _HomeContent(data: data, absoluteUrl: api.absoluteUrl, headersFor: headersFor),
@@ -525,6 +534,42 @@ class _BrandRow extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Ce se vede cand serverul nu da continut fara cont: aceeasi invitatie ca banda, pe
+/// tot ecranul, plus drumul catre crearea unui cont.
+class _SignInWall extends StatelessWidget {
+  const _SignInWall({required this.onSignIn});
+
+  final VoidCallback onSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        SignInBanner(onSignIn: onSignIn),
+        const SizedBox(height: 28),
+        Icon(Icons.storefront_outlined, size: 56, color: context.colors.primaryLight),
+        const SizedBox(height: 16),
+        Text('Magazinul se deschide dupa autentificare',
+            textAlign: TextAlign.center, style: AppTypography.sectionTitle(context)),
+        const SizedBox(height: 8),
+        Text(
+          'Intra cu contul tau de pe uportho.ro ca sa vezi produsele si preturile.',
+          textAlign: TextAlign.center,
+          style: AppTypography.caption(context)
+              .copyWith(color: context.colors.textSecondary, height: 1.4),
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton(
+          onPressed: () => context.go('/signup'),
+          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+          child: const Text('Creeaza cont'),
+        ),
+      ],
     );
   }
 }

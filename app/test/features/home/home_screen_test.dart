@@ -311,4 +311,33 @@ void main() {
     expect(find.text('Contul meu'), findsOneWidget);
     expect(find.byIcon(Icons.logout), findsNothing);
   });
+
+  testWidgets('pe un server care nu da continut fara cont, apare invitatia, nu o eroare',
+      (tester) async {
+    // Serverele mai vechi (sau unul caruia i-a disparut modulul) cer cont si pentru
+    // Acasa. Un ecran de eroare rosu ar face aplicatia sa para stricata; omul trebuie
+    // sa vada ce are de facut.
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final transport = FakeTransport();
+    transport.when('GET', '/api/app/v1/home', const ApiResponse(status: 401, json: {
+      'error': {'code': 'unauthorized', 'message': 'Trebuie sa te autentifici.'}
+    }));
+    final container = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(
+          ApiClient(transport, InMemorySessionStore(), baseUrl: 'http://x')),
+    ]);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: HomeScreen()),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(find.byType(SignInBanner), findsOneWidget);
+    expect(find.textContaining('Nu s-a putut'), findsNothing);
+  });
 }
