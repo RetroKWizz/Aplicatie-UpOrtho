@@ -18,7 +18,6 @@ import '../../design_system/widgets/section_header.dart';
 import '../../design_system/widgets/sign_in_banner.dart';
 import '../../design_system/widgets/social_row.dart';
 import '../../providers.dart';
-import '../auth/auth_controller.dart';
 import '../favorites/favorites_controller.dart';
 import '../product_badge_palette.dart';
 import '../product_rating_label.dart';
@@ -108,7 +107,7 @@ class _HomeContent extends StatelessWidget {
       // retele sociale) ramane pentru totdeauna sub sticla - s-a si intamplat.
       padding: EdgeInsets.only(top: 12, bottom: 12 + MediaQuery.paddingOf(context).bottom),
       children: [
-        if (banner != null) banner,
+        ?banner,
         if (heroes.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),

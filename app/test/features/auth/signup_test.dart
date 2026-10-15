@@ -60,7 +60,7 @@ void main() {
 
   test('un email cu cont existent lasa mesajul serverului si codul lui', () async {
     final transport = FakeTransport();
-    transport.when('POST', '/api/app/v1/auth/signup', ApiResponse(status: 409, json: {
+    transport.when('POST', '/api/app/v1/auth/signup', const ApiResponse(status: 409, json: {
       'error': {'code': 'email_taken', 'message': 'Exista deja un cont cu acest email.'}
     }));
     final container = containerFor(transport);
@@ -80,7 +80,7 @@ void main() {
     // Ecranul deschide atunci pagina de inregistrare a magazinului, unde protectia
     // lor functioneaza; aplicatia nu o ocoleste.
     final transport = FakeTransport();
-    transport.when('POST', '/api/app/v1/auth/signup', ApiResponse(status: 409, json: {
+    transport.when('POST', '/api/app/v1/auth/signup', const ApiResponse(status: 409, json: {
       'error': {'code': 'signup_needs_webview', 'message': 'Inregistrarea se face in pagina magazinului.'}
     }));
     final container = containerFor(transport);
