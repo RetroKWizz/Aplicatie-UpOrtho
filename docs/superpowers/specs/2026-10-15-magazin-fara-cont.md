@@ -28,9 +28,9 @@ Nu presupunem nimic despre magazin; astea sunt masurate:
 - Un cont nou e un portal obisnuit: **vede preturile imediat**, fara aprobare manuala,
   pentru ca accesul B2B al temei inseamna doar "utilizator autentificat".
 
-**Consecinta acceptata de user:** contul nou vede lista **publica**, nu preturile negociate
-ale unui cabinet existent. Preturile de cabinet le are doar un cont legat de partenerul
-potrivit. E comportamentul site-ului; nu-l schimbam.
+**Confirmat de Mihai:** lista de preturi e intotdeauna cea de pe contul creat, iar un client
+nou, care n-a cumparat Ortho Club, merge pe **lista publica**. Asta nu e o scapare a
+designului, e regula magazinului.
 
 ## Principiul care decide cazurile nespuse
 
@@ -94,6 +94,44 @@ Rutа noua **`POST /auth/signup`**, cu `auth='public'`, in `controllers/auth.py`
 - Ce NU face: nu creeaza companie, nu completeaza CUI, nu leaga contul de un partener
   existent. Un cont de cabinet real tot UpOrtho il creeaza.
 
+#### Ce face Odoo pe cazurile care conteaza (citit in sursa, nu presupus)
+
+Chemand metodele lor, primim **exact comportamentul site-ului**:
+
+| Situatie | Mecanismul | Raspunsul |
+|---|---|---|
+| emailul are deja cont | `_create_user_from_template` cade pe login-ul unic, iese `SignupError`; controllerul lor cauta apoi un user cu acel login | "Another user is already registered using this email address." Nu se creeaza si nu se suprascrie nimic, nu pleaca niciun email |
+| parolele difera | `_prepare_signup_values`, inainte de orice scriere | "Passwords do not match; please retype them." |
+| inregistrarea oprita | `_signup_create_user` verifica `_get_signup_invitation_scope() != 'b2c'` | "Signup is not allowed for uninvited users" |
+| lipseste numele sau emailul | `_create_user_from_template` | eroare de formular |
+
+Aplicatia adauga o singura comoditate, copiata tot de la ei (pagina lor, pe calea cu
+`signup_email`, trimite la login cu emailul precompletat cand contul exista si e activat):
+la eroarea "are deja cont", ecranul ofera **"Ai deja cont — intra"** cu emailul deja scris.
+
+#### reCAPTCHA — de ce ruta nu cheama orbeste `do_signup`
+
+Pagina lor cheama `_verify_request_recaptcha_token('signup')` **inainte** de creare. Pe
+copia de staging reCAPTCHA **nu e configurat** (niciun `recaptcha` in pagina de signup),
+deci nu blocheaza nimic azi. Dar o ruta JSON care cheama direct `do_signup` ar **sari peste**
+acea verificare: ar fi un endpoint de creat conturi fara nicio protectie anti-bot, exact
+lucrul pe care protectia il opreste pe web.
+
+Deci ruta noastra **verifica intai daca instanta are reCAPTCHA configurat**
+(`ir.config_parameter` `recaptcha_public_key` / `recaptcha_private_key`):
+
+- **neconfigurat** (azi): formularul nativ din aplicatie creeaza contul, prin metodele lor.
+- **configurat**: ruta intoarce `409 signup_needs_webview` si aplicatia deschide pagina de
+  inregistrare a magazinului intr-un WebView, unde protectia lor functioneaza. Nu ocolim o
+  masura de securitate a magazinului ca sa ne fie noua mai comod.
+
+#### `commit()` in mijlocul cererii
+
+`do_signup` si `_signup_with_values` fac `request.env.cr.commit()` explicit: contul se scrie
+chiar daca restul cererii ar cadea dupa. E felul lor de a lucra si nu-l schimbam, dar
+inseamna ca **testele nu-l pot rula intr-o tranzactie care se da inapoi**: se testeaza prin
+ruta, cu `HttpCase`, si fiecare test isi curata contul creat.
+
 ### Cosul unui vizitator
 
 Nu exista. `website.sale_get_order()` ar crea un cos pe utilizatorul public, iar
@@ -136,7 +174,10 @@ dar tot asculta schimbarea ei, ca sa reincarce cu preturi dupa login.
 4. **Ecranul Cont, pentru vizitator**: card cu "Intra in contul tau UpOrtho", doua butoane
    (Intra / Creeaza cont) si lista scurta a ce obtine cu cont.
 5. **Ecranul de inregistrare**: nume, email, parola, confirmare — exact ca pe site. Erorile
-   vin de la server si se arata sub campul lor.
+   vin de la server si se arata sub campul lor. La "are deja cont", sub eroare apare
+   butonul **"Ai deja cont — intra"**, cu emailul dus mai departe in ecranul de
+   autentificare. Daca serverul raspunde `signup_needs_webview`, ecranul deschide pagina de
+   inregistrare a magazinului in WebView, in loc sa trimita formularul.
 6. **Tabul Cos pentru vizitator**: acelasi card de invitatie, nu un cos gol.
 
 ### Ce NU se schimba
@@ -148,8 +189,11 @@ identice. Temele raman doua. Nicio schimbare in fluxul de plata.
 
 - **Teste Odoo**: fiecare ruta publica raspunde 200 fara sesiune; fiecare ruta de cont
   raspunde 401; `price` e null si `pricing.visible` fals fara sesiune, iar cu sesiune e
-  neschimbat fata de azi; `/auth/signup` creeaza contul si deschide sesiunea; cu
-  inregistrarea oprita da 403; un camp in plus in corp e ignorat.
+  neschimbat fata de azi; `/auth/signup` creeaza contul si deschide sesiunea; **un email
+  care are deja cont primeste eroarea lor, fara sa atinga contul existent**; parole
+  diferite sunt oprite inainte de orice scriere; cu inregistrarea oprita da 403; cu
+  reCAPTCHA configurat da `409 signup_needs_webview` si NU creeaza nimic; un camp in plus
+  in corp e ignorat.
 - **Teste Flutter**: aplicatia porneste pe Acasa fara sesiune; banda apare doar cand
   `pricing.visible` e fals; cardul arata "Pretul se vede in cont"; "Adauga in cos" duce la
   autentificare; dupa login, aceeasi grila arata preturi; providerii de cont nu cer serverul
