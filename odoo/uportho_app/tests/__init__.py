@@ -16,3 +16,4 @@ from . import test_controllers_address
 from . import test_controllers_profile
 from . import test_controllers_favorite
 from . import test_controllers_public
+from . import test_controllers_signup
