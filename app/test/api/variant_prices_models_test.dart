@@ -54,7 +54,7 @@ void main() {
     expect(first.attributes.single.value, 'Mare');
     expect(first.defaultCode, 'IX954-M');
     expect(first.availability?.inStock, isTrue);
-    expect(first.price.formatted, '1.120,00 lei');
+    expect(first.price!.formatted, '1.120,00 lei');
     // Disponibilitatea poate lipsi (produs fara modulul de stoc) - null, nu eroare.
     expect(detail.variantRows.last.availability, isNull);
   });

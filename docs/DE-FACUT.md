@@ -114,6 +114,91 @@ dezvoltare, ci doua pachete noi cu urmari de vazut inainte de publicare.
 
 ---
 
+## Constatari ale recenziei de cod pe ramura "magazin fara cont" (15 octombrie 2026)
+
+Recenzie facuta de un recenzor cu context proaspat, pe toata ramura. Cele doua probleme
+grave au fost reparate pe loc (pagina de produs care crapa pentru vizitatori, ecranul de
+autentificare fara iesire). **Ce urmeaza NU e reparat** — amanat constient, cu acordul
+userului, ca sa nu intarzie testarea pe TestFlight.
+
+### 1. Rutele publice de imagine nu verifica vizibilitatea (SECURITATE, de facut primul)
+
+- **Unde**: `odoo/uportho_app/controllers/home.py` — `/banners/<id>/image` si
+  `/categories/<id>/icon`; `odoo/uportho_app/controllers/product.py` —
+  `/benefits/<id>/image`.
+- **Ce este**: rutele au devenit `auth='public'` odata cu catalogul, iar modelele au
+  primit drept de citire pentru `base.group_public`. Niciuna nu verifica insa `active`,
+  `date_start`/`date_end` sau `website_id`. Cineva care incearca id-uri la rand poate
+  scoate **poza unui banner arhivat sau programat pentru o campanie viitoare** — adica
+  poate vedea campania inainte de lansare. Nu sunt date de client, sunt imagini de
+  marketing, dar sunt imagini pe care magazinul nu le arata nimanui inca.
+- **Confirmat cu un test**, scris si rulat: bannerul arhivat raspunde 200 in loc de 404.
+  Testele sunt in `tests/test_controllers_public.py::TestImaginiPublice` — **ele pica
+  acum**, deliberat, si marcheaza exact ce e de reparat.
+- **Cum se repara**: bannerul prin `_search_active_now(_current_website())`, iconita prin
+  `_search_app_home(website)`, beneficiul prin cautarea lui activa; 404 altfel. Acelasi
+  tipar ca `/products/<id>/image`, care **a** fost intarit in aceeasi ramura.
+- **Contrast**: `/products/<id>/image` si `/brands/<id>/logo` trec corect prin domeniul
+  catalogului. Bannerul a fost uitat.
+
+### 2. Inregistrarea prin WebView nu aduce sesiunea inapoi
+
+- **Unde**: `app/lib/features/auth/signup_screen.dart`, ramura `signup_needs_webview`.
+- **Ce este**: `PaymentWebViewScreen` are propriul magazin de cookie-uri. Dupa ce omul
+  isi face contul in pagina magazinului, sesiunea exista **doar in WebView**: aplicatia
+  n-o citeste, n-o scrie in `sessionStore` si nu reimprospateaza `authController`. Omul
+  se intoarce tot vizitator, desi are cont, si nimic nu-l anunta.
+- **Latent azi**: reCAPTCHA nu e configurat pe instanta, deci drumul asta nu se
+  foloseste. Devine real **in clipa in care cineva porneste reCAPTCHA** — adica exact
+  cand creste traficul si cineva se gandeste la boti.
+- **Cum se repara**: dupa inchiderea WebView-ului, cookie-ul se citeste din
+  `WebViewCookieManager` si se scrie in `sessionStore`, apoi `/me`. Daca nu se poate
+  citi, macar un mesaj "Contul e creat — intra cu el" si trimiterea la autentificare cu
+  emailul completat. De verificat si `returnUrlPrefix: '/my'`, care e o presupunere
+  despre unde aterizeaza Odoo dupa signup.
+
+### 3. Un vizitator care apasa inimioara nu primeste nimic
+
+- **Unde**: `app/lib/features/favorites/favorites_controller.dart`, metoda `toggle()`.
+- **Ce este**: `build()` se opreste devreme fara sesiune, `toggle()` nu. Inimioara se
+  deseneaza pe fiecare card si in antetul paginii de produs, inclusiv pentru vizitatori.
+  O apasare trimite `POST /favorites`, primeste 401 si pe ecran nu se schimba nimic —
+  plus un 401 in logurile magazinului la fiecare apasare.
+- **Cum se repara**: `toggle()` sa duca la autentificare cand starea nu e `SignedIn`,
+  sau inimioara sa nu se deseneze pentru un vizitator.
+
+### 4. Doua copii ale conductei de preturi
+
+- **Unde**: `odoo/uportho_app/controllers/catalog.py` — `_products_with_prices` (noua,
+  folosita de `/products`) si ramura cu cont din `_serialize_templates` (folosita de
+  randurile de pe Acasa si de `/favorites`).
+- **Ce este**: acelasi calcul, scris de doua ori. CLAUDE.md cere explicit ca o lista de
+  favorite sa nu poata arata alte preturi decat catalogul; cu doua copii, regula se tine
+  din mana. **Deja difera**: prima cheama `_warn_if_tax_display_mismatch`, a doua nu.
+- **Cum se repara**: o linie — `_serialize_templates` sa intoarca
+  `_products_with_prices(templates, website)` dupa verificarea de vizitator.
+
+### 5. Documentele de produs sunt acum publice; de verificat ca si site-ul le da
+
+- **Unde**: `odoo/uportho_app/controllers/product.py`, `/products/<id>/documents/<id>`.
+- **Ce este**: ruta a devenit publica (e in tabelul din spec), dar propriul ei comentariu
+  spune inca ca atasamentele **nu** sunt publice si ca Odoo le-ar refuza unui vizitator.
+  Daca site-ul nu le da unui om nelogat, aplicatia arata acum strict mai mult decat
+  site-ul — contra principiului central al specului.
+- **Cum se verifica**: o cerere fara sesiune catre documentul unui produs, pe staging.
+  Apoi ori se stramteaza ruta, ori se rescrie comentariul.
+
+### 6. Lipsa de acoperire, nu defecte
+
+- Paza de vizitator din `cartQuantityProvider` (tot ce s-a schimbat la Task 6) n-are test
+  propriu, si nici cazul "sesiunea expira in timpul rasfoirii" (401 pe `/cart` →
+  starea de vizitator). Comportamentul e corect azi, verificat prin citirea codului.
+- Banda de invitatie din catalog n-are test; doar cea de pe Acasa are.
+- Fixture-urile de contract nu descriu niciodata forma de **vizitator** (fara preturi).
+  De-aici a scapat si defectul paginii de produs: nimic nu putea sa-l prinda.
+
+---
+
 ## Datorie tehnica cunoscuta
 
 Nimic din sectiunea asta nu e defect acum. Sunt decizii care devin mai scumpe cu cat sunt

@@ -167,7 +167,7 @@ void main() {
 
     final state = container.read(productControllerProvider(101)).value!;
     expect(state.detail.defaultCode, 'IX955');
-    expect(state.detail.price.formatted, '990,00 lei');
+    expect(state.detail.price!.formatted, '990,00 lei');
     expect(state.isSwitchingVariant, isFalse);
     expect(transport.calls.last.path, '/api/app/v1/products/101?values=1358,2401');
   });
@@ -204,7 +204,7 @@ void main() {
     final during = container.read(productControllerProvider(101));
     expect(during.isLoading, isFalse);
     expect(during.value!.isSwitchingVariant, isTrue);
-    expect(during.value!.detail.price.formatted, '1.120,00 lei');
+    expect(during.value!.detail.price!.formatted, '1.120,00 lei');
 
     transport.pending.last.complete(ApiResponse(status: 200, json: detailFixture()));
     await switching;

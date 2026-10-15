@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'benefit.dart';
 import 'price_table.dart';
+import 'pricing.dart';
 import 'product.dart';
 import 'product_brand.dart';
 import 'product_document.dart';
@@ -11,6 +12,7 @@ import 'variant.dart';
 export 'benefit.dart';
 export 'description_block.dart';
 export 'price.dart';
+export 'pricing.dart';
 export 'price_table.dart';
 export 'price_tier.dart';
 export 'product.dart';
@@ -91,7 +93,7 @@ abstract class VariantRow with _$VariantRow {
     @Default([]) List<ProductSpec> attributes,
     @JsonKey(name: 'default_code') String? defaultCode,
     ProductAvailability? availability,
-    required Price price,
+    Price? price,
     Price? subtotal,
   }) = _VariantRow;
 
@@ -122,8 +124,15 @@ abstract class ProductDetail with _$ProductDetail {
     @JsonKey(name: 'default_code') String? defaultCode,
     ProductBadge? badge,
     @Default([]) List<ProductImage> images,
-    required Price price,
+
+    /// Pretul contului. **Null pentru un vizitator**, ca si pe cardul din grila:
+    /// magazinul nu arata preturi fara cont. Ce se deseneaza in loc se decide din
+    /// `pricing`, nu din starea locala de autentificare.
+    Price? price,
     @JsonKey(name: 'club_price') Price? clubPrice,
+
+    /// Daca preturile se vad si, altfel, de ce nu.
+    @Default(Pricing()) Pricing pricing,
     @JsonKey(name: 'price_tables') @Default([]) List<PriceTable> priceTables,
     VariantOptions? variants,
 

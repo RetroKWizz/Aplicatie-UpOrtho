@@ -51,9 +51,9 @@ void main() {
     expect(detail.badge?.text, 'Nou');
     expect(detail.badge?.color, ProductBadgeColor.blue);
 
-    expect(detail.price.formatted, '1.120,00 lei');
-    expect(detail.price.listFormatted, '1.399,99 lei');
-    expect(detail.price.discountPct, 20);
+    expect(detail.price!.formatted, '1.120,00 lei');
+    expect(detail.price!.listFormatted, '1.399,99 lei');
+    expect(detail.price!.discountPct, 20);
     expect(detail.clubPrice?.formatted, '1.120,00 lei');
 
     expect(detail.rating.average, 0.0);
@@ -325,5 +325,31 @@ void main() {
     final detail = ProductDetail.fromJson(json);
     expect(detail.clubPrice, isNull);
     expect(detail.priceTables, isEmpty);
+  });
+
+  test('pagina de produs a unui vizitator se decodeaza, fara pret', () {
+    // Serverul trimite `price: null` si `pricing.visible: false` pentru un vizitator.
+    // Daca modelul ar cere pretul, ORICE card apasat fara cont ar da "Nu s-a putut
+    // incarca produsul", cu un buton de reincercare care nu reuseste niciodata.
+    final json = detailFixture();
+    final anonim = {
+      ...json,
+      'price': null,
+      'club_price': null,
+      'price_tables': <dynamic>[],
+      'variant_rows': <dynamic>[],
+      'variant_total': null,
+      'pricing': {'visible': false, 'reason': 'sign_in_required'},
+      'similar': (json['similar'] as List)
+          .map((p) => {...p as Map<String, dynamic>, 'price': null, 'club_price': null})
+          .toList(),
+    };
+
+    final detail = ProductDetail.fromJson(anonim);
+
+    expect(detail.price, isNull);
+    expect(detail.pricing.visible, isFalse);
+    expect(detail.name, isNotEmpty);
+    expect(detail.similar.first.price, isNull);
   });
 }

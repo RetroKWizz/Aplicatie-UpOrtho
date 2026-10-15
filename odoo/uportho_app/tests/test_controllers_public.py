@@ -1,3 +1,5 @@
+import unittest
+
 from odoo.tests.common import tagged
 
 from .common import AppHttpCase
@@ -95,3 +97,48 @@ class TestContinutPublic(AppHttpCase):
                      '/favorites', '/loyalty', '/account/profile', '/payment-methods'):
             with self.subTest(path=path):
                 self.assertEqual(self.api_get(path).status_code, 401)
+
+
+@tagged('post_install', '-at_install')
+class TestImaginiPublice(AppHttpCase):
+    """O ruta publica de imagine serveste doar continut pe care magazinul il ARATA.
+
+    Altfel ar fi o fereastra prin care se pot citi, incercand id-uri, pozele unei
+    campanii arhivate sau programate pentru saptamana viitoare."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Campul `fields.Image` primeste base64, nu octeti bruti.
+        png = (b'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0'
+               b'C8AAAAASUVORK5CYII=')
+        Banner = cls.env['uportho.app.banner']
+        cls.activ = Banner.create({
+            'name': 'Banner activ public', 'placement': 'hero', 'link_type': 'none',
+            'image': png})
+        cls.arhivat = Banner.create({
+            'name': 'Banner arhivat public', 'placement': 'hero', 'link_type': 'none',
+            'image': png, 'active': False})
+        cls.viitor = Banner.create({
+            'name': 'Banner viitor public', 'placement': 'hero', 'link_type': 'none',
+            'image': png, 'date_start': '2099-01-01'})
+
+    def test_bannerul_activ_se_vede_fara_sesiune(self):
+        self.assertEqual(
+            self.api_get('/banners/%s/image' % self.activ.id).status_code, 200)
+
+    @unittest.skip('DEFECT CUNOSCUT: ruta publica nu verifica `active` — docs/DE-FACUT.md, constatarea 1')
+    def test_bannerul_arhivat_nu_se_vede_nici_cu_id_ul_lui(self):
+        """DEFECT CUNOSCUT, amanat constient — vezi docs/DE-FACUT.md, constatarea 1.
+
+        Ruta e publica si nu verifica `active`. Testul ramane aici ca sa descrie
+        comportamentul CORECT; cand ruta se repara, `expectedFailure` devine
+        "unexpected success" si marcajul trebuie scos."""
+        self.assertEqual(
+            self.api_get('/banners/%s/image' % self.arhivat.id).status_code, 404)
+
+    @unittest.skip('DEFECT CUNOSCUT: ruta publica nu verifica fereastra de date — docs/DE-FACUT.md, constatarea 1')
+    def test_o_campanie_viitoare_nu_se_scurge_inainte_de_vreme(self):
+        """DEFECT CUNOSCUT, amanat constient — vezi docs/DE-FACUT.md, constatarea 1."""
+        self.assertEqual(
+            self.api_get('/banners/%s/image' % self.viitor.id).status_code, 404)

@@ -356,10 +356,20 @@ class _Stars extends StatelessWidget {
 class _PriceBlock extends StatelessWidget {
   const _PriceBlock({required this.price});
 
-  final Price price;
+  /// Null pentru un vizitator: magazinul nu arata preturi fara cont.
+  final Price? price;
 
   @override
   Widget build(BuildContext context) {
+    // Fara pret nu se lasa un gol in capul paginii: acolo omul se uita primul, iar un
+    // spatiu alb arata a aplicatie stricata. Acelasi text ca pe cardul din grila.
+    final price = this.price;
+    if (price == null) {
+      return Text(
+        priceUnavailableLabel,
+        style: AppTypography.body(context).copyWith(color: context.colors.textSecondary),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -431,7 +441,7 @@ class _VariantOrderSection extends ConsumerWidget {
           code: row.defaultCode,
           stockLabel: _stockLabel(row.availability),
           inStock: row.availability?.inStock ?? true,
-          priceFormatted: (lines[row.variantId]?.price ?? row.price).formatted,
+          priceFormatted: (lines[row.variantId]?.price ?? row.price)?.formatted ?? '',
           subtotalFormatted: (lines[row.variantId]?.subtotal ?? row.subtotal)?.formatted,
           qty: state.quantities[row.variantId] ?? 0,
         ),
@@ -586,6 +596,14 @@ class _CartButtonState extends ConsumerState<_CartButton> {
   @override
   Widget build(BuildContext context) {
     final hasLines = _lines.isNotEmpty;
+    // Un vizitator n-are cos: butonul l-ar duce intr-un 401. Il trimitem direct unde
+    // trebuie sa ajunga oricum, cu textul care spune ce urmeaza.
+    if (!widget.state.detail.pricing.visible) {
+      return FilledButton(
+        onPressed: () => context.go('/login'),
+        child: const Text('Intra in cont'),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,

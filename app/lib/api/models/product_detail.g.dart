@@ -59,7 +59,9 @@ _VariantRow _$VariantRowFromJson(Map<String, dynamic> json) => _VariantRow(
       : ProductAvailability.fromJson(
           json['availability'] as Map<String, dynamic>,
         ),
-  price: Price.fromJson(json['price'] as Map<String, dynamic>),
+  price: json['price'] == null
+      ? null
+      : Price.fromJson(json['price'] as Map<String, dynamic>),
   subtotal: json['subtotal'] == null
       ? null
       : Price.fromJson(json['subtotal'] as Map<String, dynamic>),
@@ -89,10 +91,15 @@ _ProductDetail _$ProductDetailFromJson(Map<String, dynamic> json) =>
               ?.map((e) => ProductImage.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      price: Price.fromJson(json['price'] as Map<String, dynamic>),
+      price: json['price'] == null
+          ? null
+          : Price.fromJson(json['price'] as Map<String, dynamic>),
       clubPrice: json['club_price'] == null
           ? null
           : Price.fromJson(json['club_price'] as Map<String, dynamic>),
+      pricing: json['pricing'] == null
+          ? const Pricing()
+          : Pricing.fromJson(json['pricing'] as Map<String, dynamic>),
       priceTables:
           (json['price_tables'] as List<dynamic>?)
               ?.map((e) => PriceTable.fromJson(e as Map<String, dynamic>))
@@ -162,6 +169,7 @@ Map<String, dynamic> _$ProductDetailToJson(_ProductDetail instance) =>
       'images': instance.images,
       'price': instance.price,
       'club_price': instance.clubPrice,
+      'pricing': instance.pricing,
       'price_tables': instance.priceTables,
       'variants': instance.variants,
       'variant_rows': instance.variantRows,
