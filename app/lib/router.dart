@@ -9,6 +9,7 @@ import 'features/account/order_detail_screen.dart';
 import 'features/account/orders_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/signup_screen.dart';
 import 'features/cart/cart_screen.dart';
 import 'features/catalog/catalog_screen.dart';
 import 'features/checkout/checkout_screen.dart';
@@ -54,6 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+      GoRoute(path: '/signup', builder: (_, _) => const SignupScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => ShellScreen(navigationShell: shell),
         branches: [

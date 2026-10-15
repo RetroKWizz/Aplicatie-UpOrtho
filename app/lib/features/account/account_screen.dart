@@ -29,6 +29,10 @@ class AccountScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
     final user = auth.value is SignedIn ? (auth.value! as SignedIn).user : null;
+    // Un vizitator primeste invitatia, nu un ecran gol cu randuri care nu duc nicaieri.
+    // Ecranul de cont e singurul loc unde se intra sau se face cont, deci aici se
+    // aduna cele doua drumuri.
+    if (auth.value is! SignedIn) return const _VisitorAccount();
     final club = ref.watch(profileProvider).value?.club;
     final orders = ref.watch(ordersProvider).value;
     final invoices = ref.watch(invoicesProvider).value;
@@ -248,6 +252,98 @@ class _LoyaltyCards extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Ce vede cineva fara cont in tabul Cont: de ce merita un cont si cele doua drumuri.
+class _VisitorAccount extends StatelessWidget {
+  const _VisitorAccount();
+
+  @override
+  Widget build(BuildContext context) {
+    const beneficii = [
+      (Icons.sell_outlined, 'Preturile tale si pretul Ortho Club'),
+      (Icons.shopping_bag_outlined, 'Cos si comenzi trimise din aplicatie'),
+      (Icons.receipt_long_outlined, 'Facturi si istoricul comenzilor'),
+      (Icons.favorite_outline, 'Favorite si adresele cabinetului'),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Contul meu')),
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.paddingOf(context).bottom),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: context.colors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.colors.primaryLight.withValues(alpha: 0.5)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: context.colors.primaryLight.withValues(alpha: 0.35),
+                  child: Icon(Icons.person_outline, color: context.colors.primary, size: 28),
+                ),
+                const SizedBox(height: 16),
+                Text('Intra in contul tau UpOrtho',
+                    style: AppTypography.sectionTitle(context)),
+                const SizedBox(height: 8),
+                Text(
+                  'Acelasi cont ca pe uportho.ro. Cosul, comenzile si adresele sunt '
+                  'aceleasi in aplicatie si pe site.',
+                  style: AppTypography.caption(context)
+                      .copyWith(color: context.colors.textSecondary, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => context.go('/login'),
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  child: const Text('Intra in cont'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: () => context.go('/signup'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  child: const Text('Creeaza cont'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 26),
+          Text('CU UN CONT AI',
+              style: AppTypography.caption(context).copyWith(
+                  color: context.colors.textSecondary, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: context.colors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.colors.primaryLight.withValues(alpha: 0.5)),
+            ),
+            child: Column(
+              children: [
+                for (final (icon, text) in beneficii)
+                  ListTile(
+                    leading: Icon(icon, color: context.colors.primary),
+                    title: Text(text, style: AppTypography.body(context)),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Nu stii daca ai cont? Cabinetele care comanda de pe uportho.ro au deja unul.',
+            textAlign: TextAlign.center,
+            style: AppTypography.caption(context)
+                .copyWith(color: context.colors.textSecondary, height: 1.4),
+          ),
+        ],
       ),
     );
   }

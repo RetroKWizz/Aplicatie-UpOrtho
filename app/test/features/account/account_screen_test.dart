@@ -71,9 +71,14 @@ void main() {
     tester.view.physicalSize = surface;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    // Sesiune salvata plus `/me`: ecranul de cont are acum doua fete, iar fara un cont
+    // restaurat arata invitatia de vizitator. Testele de aici verifica fata de CLIENT.
+    transport.when('GET', '/api/app/v1/me', const ApiResponse(status: 200, json: {
+      'user': {'id': 1, 'name': 'Client Test', 'email': 'client@uportho.ro', 'partner_id': 7}
+    }));
     final container = ProviderContainer(overrides: [
-      apiClientProvider.overrideWithValue(
-          ApiClient(transport, InMemorySessionStore(), baseUrl: 'http://x')),
+      apiClientProvider.overrideWithValue(ApiClient(
+          transport, InMemorySessionStore(initial: 'sesiune-de-test'), baseUrl: 'http://x')),
       if (fakeDocuments) documentStorageProvider.overrideWithValue(_PathOnlyStorage()),
       if (fakeDocuments) documentOpenerProvider.overrideWithValue(opener ?? _RecordingOpener()),
     ]);
@@ -247,5 +252,25 @@ void main() {
     await pump(tester, const AccountScreen(), accountTransport());
 
     expect(countOf('Cardurile mele', '1'), findsOneWidget);
+  });
+
+  testWidgets('fara cont, tabul Cont arata invitatia, nu randuri goale', (tester) async {
+    // Un vizitator care apasa "Contul meu" trebuie sa gaseasca aici cele doua drumuri,
+    // nu un ecran de cont gol cu randuri care nu duc nicaieri.
+    final container = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(
+          ApiClient(FakeTransport(), InMemorySessionStore(), baseUrl: 'http://x')),
+    ]);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: AccountScreen()),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(find.text('Intra in cont'), findsOneWidget);
+    expect(find.text('Creeaza cont'), findsOneWidget);
   });
 }

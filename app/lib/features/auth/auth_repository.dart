@@ -24,5 +24,16 @@ class AuthRepository {
     return UserProfile.fromJson(body['user'] as Map<String, dynamic>);
   }
 
+  Future<UserProfile> signUp({
+    required String login,
+    required String name,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    final body = await _api.signup(
+        login: login, name: name, password: password, confirmPassword: confirmPassword);
+    return UserProfile.fromJson(body['user'] as Map<String, dynamic>);
+  }
+
   Future<void> logout() => _api.logout();
 }

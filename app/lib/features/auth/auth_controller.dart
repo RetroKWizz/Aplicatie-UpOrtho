@@ -59,6 +59,34 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
   }
 
+  /// Creeaza un cont si intra cu el. Aceleasi stari ca `login`: eroarea ramane in
+  /// `state` cu codul serverului (ecranul deosebeste "email deja folosit" de
+  /// "inregistrarea se face in pagina magazinului"), iar mesajul in `lastErrorMessage`.
+  Future<void> signUp({
+    required String name,
+    required String login,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    lastErrorMessage = null;
+    state = const AsyncLoading();
+    try {
+      final user = await ref.read(authRepositoryProvider).signUp(
+            login: login.trim(),
+            name: name.trim(),
+            password: password,
+            confirmPassword: confirmPassword,
+          );
+      state = AsyncData(AuthState.signedIn(user));
+    } on ApiException catch (e, st) {
+      lastErrorMessage = e.message;
+      state = AsyncError(e, st);
+    } catch (e, st) {
+      lastErrorMessage = 'Nu s-a putut contacta serverul. Verifica conexiunea.';
+      state = AsyncError(e, st);
+    }
+  }
+
   /// Sesiunea serverului a expirat in timpul folosirii aplicatiei: ApiClient a primit
   /// 401 pe o cerere obisnuita si si-a sters sesiunea locala. Trecem in SignedOut, iar
   /// `refreshListenable` al routerului duce userul la login (spec §8).

@@ -54,6 +54,30 @@ class ApiClient {
     return body;
   }
 
+  /// Creeaza un cont si deschide sesiunea in acelasi raspuns.
+  ///
+  /// Serverul cheama metodele de inregistrare ale magazinului, deci erorile (email
+  /// deja folosit, parola refuzata, inregistrare oprita) vin de la el, cu codurile
+  /// lui - aplicatia nu le reinventeaza.
+  Future<Map<String, dynamic>> signup({
+    required String login,
+    required String name,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    final response = await _transport.send('POST', '$prefix/auth/signup', body: {
+      'login': login,
+      'name': name,
+      'password': password,
+      'confirm_password': confirmPassword,
+    });
+    final body = _bodyOrThrow(response);
+    if (response.sessionCookie != null) {
+      await _sessions.write(response.sessionCookie!);
+    }
+    return body;
+  }
+
   Future<void> logout() async {
     try {
       await _transport.send('POST', '$prefix/auth/logout');
