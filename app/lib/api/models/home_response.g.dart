@@ -13,6 +13,9 @@ _HomeResponse _$HomeResponseFromJson(Map<String, dynamic> json) =>
               ?.map((e) => AppBanner.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      pricing: json['pricing'] == null
+          ? const Pricing()
+          : Pricing.fromJson(json['pricing'] as Map<String, dynamic>),
       quickCategories:
           (json['quick_categories'] as List<dynamic>?)
               ?.map((e) => HomeCategory.fromJson(e as Map<String, dynamic>))
@@ -41,6 +44,7 @@ _HomeResponse _$HomeResponseFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$HomeResponseToJson(_HomeResponse instance) =>
     <String, dynamic>{
       'banners': instance.banners,
+      'pricing': instance.pricing,
       'quick_categories': instance.quickCategories,
       'brands': instance.brands,
       'social': instance.social,

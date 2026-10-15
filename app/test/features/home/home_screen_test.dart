@@ -11,6 +11,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:uportho_app/api/models/social_link.dart';
 import 'package:uportho_app/design_system/widgets/feature_banner_card.dart';
 import 'package:uportho_app/design_system/widgets/instagram_feed_card.dart';
+import 'package:uportho_app/design_system/widgets/sign_in_banner.dart';
 import 'package:uportho_app/design_system/widgets/social_row.dart';
 import 'package:uportho_app/features/home/home_screen.dart';
 import 'package:uportho_app/providers.dart';
@@ -282,5 +283,32 @@ void main() {
 
     expect(find.byTooltip('Threads'), findsOneWidget);
     expect(socialNetworkLook('threads').icon, FontAwesomeIcons.link);
+  });
+
+  testWidgets('banda apare cand serverul spune ca preturile nu se vad', (tester) async {
+    // Dupa blocul `pricing` al serverului, nu dupa starea locala de autentificare.
+    final home = {
+      ...homeFixture(),
+      'pricing': {'visible': false, 'reason': 'sign_in_required'},
+    };
+
+    await pump(tester, home);
+
+    expect(find.byType(SignInBanner), findsOneWidget);
+  });
+
+  testWidgets('cu preturi vizibile, banda lipseste cu totul', (tester) async {
+    await pump(tester, {...homeFixture(), 'pricing': {'visible': true, 'reason': null}});
+
+    expect(find.byType(SignInBanner), findsNothing);
+  });
+
+  testWidgets('antetul are "Contul meu", nu un buton de iesire', (tester) async {
+    // Butonul de iesire nu are ce cauta la un vizitator, iar pentru un client contul
+    // e oricum mai des cautat decat iesirea (care sta in ecranul Cont).
+    await pump(tester, homeFixture());
+
+    expect(find.text('Contul meu'), findsOneWidget);
+    expect(find.byIcon(Icons.logout), findsNothing);
   });
 }

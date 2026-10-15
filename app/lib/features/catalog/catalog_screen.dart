@@ -9,6 +9,7 @@ import '../../api/models/catalog_category.dart';
 import '../../api/same_origin.dart';
 import '../../design_system/colors.dart';
 import '../../design_system/widgets/product_card.dart';
+import '../../design_system/widgets/sign_in_banner.dart';
 import '../../providers.dart';
 import '../favorites/favorites_controller.dart';
 import '../product_badge_palette.dart';
@@ -106,6 +107,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       ),
       body: Column(
         children: [
+          // Banda de invitatie, deasupra cautarii, cand serverul spune ca preturile nu
+          // se vad. Una singura pe ecran: pe carduri ramane doar textul scurt.
+          if (catalog.value?.pricing.visible == false)
+            SignInBanner(onSignIn: () => context.go('/login')),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(

@@ -15,6 +15,7 @@ import '../../design_system/widgets/feature_banner_card.dart';
 import '../../design_system/widgets/instagram_feed_card.dart';
 import '../../design_system/widgets/product_card.dart';
 import '../../design_system/widgets/section_header.dart';
+import '../../design_system/widgets/sign_in_banner.dart';
 import '../../design_system/widgets/social_row.dart';
 import '../../providers.dart';
 import '../auth/auth_controller.dart';
@@ -47,10 +48,21 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('UpOrtho', style: TextStyle(fontWeight: FontWeight.w800, color: context.colors.primary)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Iesire',
-            onPressed: () => ref.read(authControllerProvider.notifier).logout(),
+          // "Contul meu", nu iesire: un vizitator n-are din ce iesi, iar un client
+          // isi cauta mult mai des contul decat butonul de deconectare (care sta,
+          // ca pe site, in ecranul Cont).
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () => context.go('/account'),
+              icon: const Icon(Icons.person_outline, size: 20),
+              label: const Text('Contul meu'),
+              style: TextButton.styleFrom(
+                foregroundColor: context.colors.primary,
+                minimumSize: const Size(0, 44),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+            ),
           ),
         ],
       ),
@@ -83,6 +95,12 @@ class _HomeContent extends StatelessWidget {
     final promos = data.banners.where((b) => b.placement == BannerPlacement.promo).toList();
     final features = data.banners.where((b) => b.placement == BannerPlacement.feature).toList();
 
+    // Banda de invitatie, o singura data pe ecran si DOAR cand serverul spune ca
+    // preturile nu se vad. Sta deasupra continutului, ca sa fie primul lucru citit.
+    final banner = data.pricing.visible
+        ? null
+        : SignInBanner(onSignIn: () => context.go('/login'));
+
     return ListView(
       // Jos se adauga rezerva pe care shell-ul o pune in `MediaQuery` cat bara
       // plutitoare de sticla. Un `padding` scris de noi O INLOCUIESTE pe a lui
@@ -90,6 +108,7 @@ class _HomeContent extends StatelessWidget {
       // retele sociale) ramane pentru totdeauna sub sticla - s-a si intamplat.
       padding: EdgeInsets.only(top: 12, bottom: 12 + MediaQuery.paddingOf(context).bottom),
       children: [
+        if (banner != null) banner,
         if (heroes.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),

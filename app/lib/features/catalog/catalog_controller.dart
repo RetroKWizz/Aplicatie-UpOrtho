@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../api/api_exception.dart';
 import '../../api/models/catalog_category.dart';
 import '../../api/models/product.dart';
+import '../../api/models/pricing.dart';
 import '../../api/models/product_filters.dart';
 import '../../providers.dart';
 import '../auth/auth_controller.dart';
@@ -59,6 +60,7 @@ class CatalogState {
     required this.total,
     required this.limit,
     this.filters = const ProductFilters(),
+    this.pricing = const Pricing(),
     this.isLoadingMore = false,
     this.loadMoreError,
   });
@@ -70,6 +72,11 @@ class CatalogState {
   /// Ce filtre se pot alege pentru cererea curenta, asa cum le-a calculat serverul din
   /// rezultat. Se schimba de la o categorie la alta; aplicatia nu le deduce singura.
   final ProductFilters filters;
+
+  /// Daca preturile grilei se vad si, altfel, de ce nu. Vine de la server odata cu
+  /// produsele: banda de invitatie se deseneaza dupa el, nu dupa starea locala de
+  /// autentificare.
+  final Pricing pricing;
   /// A doua pagina (si urmatoarele) se incarca in fundal, sub grila deja afisata -
   /// nu inlocuieste starea intreaga cu AsyncLoading (ar goli ecranul).
   final bool isLoadingMore;
@@ -192,6 +199,7 @@ class CatalogController extends AsyncNotifier<CatalogState> {
         total: response.total,
         limit: response.limit,
         filters: response.filters,
+        pricing: response.pricing,
       );
     });
   }
@@ -206,6 +214,7 @@ class CatalogController extends AsyncNotifier<CatalogState> {
       total: current.total,
       limit: current.limit,
       filters: current.filters,
+      pricing: current.pricing,
       isLoadingMore: true,
     ));
     try {
@@ -221,6 +230,7 @@ class CatalogController extends AsyncNotifier<CatalogState> {
         total: response.total,
         limit: response.limit,
         filters: response.filters,
+        pricing: response.pricing,
       ));
     } catch (error) {
       final message = error is ApiException ? error.message : 'Nu s-au putut incarca mai multe produse.';
@@ -229,6 +239,7 @@ class CatalogController extends AsyncNotifier<CatalogState> {
         total: current.total,
         limit: current.limit,
         filters: current.filters,
+        pricing: current.pricing,
         loadMoreError: message,
       ));
     }
