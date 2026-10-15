@@ -12,7 +12,7 @@ class UpOrthoApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'UpOrtho',
+      title: 'Ortho Club',
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: ref.watch(themeControllerProvider).themeMode,
