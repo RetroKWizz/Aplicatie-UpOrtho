@@ -6,11 +6,11 @@
       "default_code": "BR-ROTH-022",
       "image_url": "/api/app/v1/products/101/image?unique=3a1f9c2",
       "price": {
-        "amount": 148.50,
+        "amount": 148.5,
         "currency": "RON",
         "formatted": "148,50 lei",
         "with_vat": true,
-        "list_amount": 330.00,
+        "list_amount": 330.0,
         "list_formatted": "330,00 lei",
         "discount_pct": 55
       },
@@ -23,8 +23,16 @@
         "list_formatted": null,
         "discount_pct": null
       },
-      "badge": { "text": "pana la -40%", "color": null, "background_color": "#f47c0b", "text_color": "#FFFFFF" },
-      "rating": { "average": 4.7, "count": 12 }
+      "badge": {
+        "text": "pana la -40%",
+        "color": null,
+        "background_color": "#f47c0b",
+        "text_color": "#FFFFFF"
+      },
+      "rating": {
+        "average": 4.7,
+        "count": 12
+      }
     },
     {
       "id": 102,
@@ -32,7 +40,7 @@
       "default_code": null,
       "image_url": null,
       "price": {
-        "amount": 25.00,
+        "amount": 25.0,
         "currency": "RON",
         "formatted": "25,00 lei",
         "with_vat": true,
@@ -45,6 +53,10 @@
       "rating": null
     }
   ],
+  "pricing": {
+    "visible": true,
+    "reason": null
+  },
   "total": 2,
   "offset": 0,
   "limit": 20,
@@ -55,8 +67,20 @@
         "name": "Brand",
         "display_type": "radio",
         "values": [
-          { "id": 1201, "name": "Dynaflex", "color": null, "count": 1, "selected": false },
-          { "id": 1202, "name": "Ormco", "color": null, "count": 1, "selected": false }
+          {
+            "id": 1201,
+            "name": "Dynaflex",
+            "color": null,
+            "count": 1,
+            "selected": false
+          },
+          {
+            "id": 1202,
+            "name": "Ormco",
+            "color": null,
+            "count": 1,
+            "selected": false
+          }
         ]
       },
       {
@@ -64,21 +88,43 @@
         "name": "Slot",
         "display_type": "radio",
         "values": [
-          { "id": 1310, "name": ".022", "color": null, "count": 1, "selected": true }
+          {
+            "id": 1310,
+            "name": ".022",
+            "color": null,
+            "count": 1,
+            "selected": true
+          }
         ]
       }
     ],
     "price": {
-      "min": 25.00,
-      "max": 330.00,
+      "min": 25.0,
+      "max": 330.0,
       "selected_min": null,
       "selected_max": null
     },
     "sorts": [
-      { "key": "recommended", "name": "Recomandate", "selected": true },
-      { "key": "price_asc", "name": "Pret crescator", "selected": false },
-      { "key": "price_desc", "name": "Pret descrescator", "selected": false },
-      { "key": "name_asc", "name": "Nume A-Z", "selected": false }
+      {
+        "key": "recommended",
+        "name": "Recomandate",
+        "selected": true
+      },
+      {
+        "key": "price_asc",
+        "name": "Pret crescator",
+        "selected": false
+      },
+      {
+        "key": "price_desc",
+        "name": "Pret descrescator",
+        "selected": false
+      },
+      {
+        "key": "name_asc",
+        "name": "Nume A-Z",
+        "selected": false
+      }
     ]
   }
 }

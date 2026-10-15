@@ -49,6 +49,14 @@ def _is_authenticated():
     return bool(request.session.uid) and not request.env.user._is_public()
 
 
+def is_signed_in():
+    """Daca cererea vine de la un cont, nu de la un vizitator.
+
+    E `_is_authenticated` sub un nume pe care-l pot folosi si controllerele: rutele
+    publice au nevoie sa stie cui raspund, ca sa nu calculeze preturi pentru nimeni."""
+    return _is_authenticated()
+
+
 def app_route(path, methods, auth='user', **kwargs):
     """Ruta de API: prefix /api/app/v1, type='http', fara CSRF, raspuns JSON.
     - `auth='user'` -> 401 in forma standard daca nu exista sesiune (nu redirect la /web/login).

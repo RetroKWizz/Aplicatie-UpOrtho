@@ -5,7 +5,7 @@ from odoo.http import request
 from odoo.tools.sql import escape_psql
 
 from ..pricing import serialize_price
-from .base import API_PREFIX, ApiError, app_route, json_ok
+from .base import API_PREFIX, ApiError, app_route, is_signed_in, json_ok
 from .home import _current_website, _image_response, image_unique
 
 _logger = logging.getLogger(__name__)
@@ -452,6 +452,21 @@ def serialize_product(template, price, club_price, has_image, rating=None):
     }
 
 
+def pricing_block(signed_in):
+    """De ce lipsesc preturile, spus de server.
+
+    Aplicatia nu ghiceste din `price: null`: ar insemna doua adevaruri (starea ei de
+    autentificare si raspunsul serverului), iar ele se pot despica - o sesiune expirata
+    arata inca "autentificat" in aplicatie cat timp nu cere nimic. Blocul asta e singura
+    sursa pentru banda de invitatie si pentru textele de pe carduri. Daca magazinul
+    opreste intr-o zi regula B2B a temei, se schimba aici si preturile apar in aplicatie
+    fara release."""
+    return {
+        'visible': bool(signed_in),
+        'reason': None if signed_in else 'sign_in_required',
+    }
+
+
 def _parse_category_id(raw):
     if raw in (None, ''):
         return None
@@ -649,11 +664,51 @@ def _attribute_facets(website, category_id, query, pairs, min_price, max_price):
     return [facet[3] for facet in facets]
 
 
+def _serialize_templates_without_prices(templates):
+    """Cardurile unui vizitator: tot ce arata si site-ul, fara niciun pret.
+
+    Nu se cheama `_customer_pricelist` (ar arunca 503 pe partenerul public) si nu se
+    alege o lista publica in locul lui: magazinul nu arata preturi unui vizitator, deci
+    nici aplicatia. Restul cardului - poza, eticheta, nota - ramane, fiindca pe site se
+    vede."""
+    ids_with_image = _ids_with_image(templates)
+    rating_by_template = _ratings_by_template(templates)
+    return [
+        serialize_product(t, None, None, t.id in ids_with_image, rating_by_template.get(t.id))
+        for t in templates
+    ]
+
+
+def _products_with_prices(templates, website):
+    """Cardurile unui client: preturile lui, pretul de club si restul, intr-un singur
+    drum. Extrasa din ruta ca sa poata fi sarita cu totul pentru un vizitator."""
+    partner = request.env.user.partner_id
+    pricelist = _customer_pricelist(partner)
+    club_pricelist = _current_club_pricelist()
+    _warn_if_tax_display_mismatch(website)
+    # Pozitia fiscala depinde doar de partener, nu de produs sau de pricelist -
+    # calculata o singura data aici, nu per produs.
+    fiscal_position = request.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
+    price_by_template = _prices_by_template(templates, pricelist, partner, fiscal_position)
+    club_price_by_template = _club_prices_by_template(
+        templates, club_pricelist, pricelist, partner, fiscal_position, price_by_template)
+    ids_with_image = _ids_with_image(templates)
+    rating_by_template = _ratings_by_template(templates)
+    return [
+        serialize_product(
+            t, price_by_template[t.id], club_price_by_template.get(t.id),
+            t.id in ids_with_image, rating_by_template.get(t.id))
+        for t in templates
+    ]
+
+
 def _serialize_templates(templates, website):
     """Produsele in forma de card, cu preturile contului: acelasi drum ca `/products`,
     ca o lista de favorite sa nu poata arata alte preturi decat catalogul."""
     if not templates:
         return []
+    if not is_signed_in():
+        return _serialize_templates_without_prices(templates)
     partner = request.env.user.partner_id
     pricelist = _customer_pricelist(partner)
     club_pricelist = _current_club_pricelist()
@@ -673,7 +728,7 @@ def _serialize_templates(templates, website):
 
 
 class AppCatalog(http.Controller):
-    @app_route('/categories', methods=['GET'])
+    @app_route('/categories', methods=['GET'], auth='public')
     def categories(self, **kw):
         website = _current_website()
         domain = ['|', ('website_id', '=', False), ('website_id', '=', website.id)]
@@ -681,7 +736,7 @@ class AppCatalog(http.Controller):
         counts = _product_counts_by_category(categories, website)
         return json_ok([serialize_category(c, website, counts[c.id]) for c in categories])
 
-    @app_route('/products', methods=['GET'])
+    @app_route('/products', methods=['GET'], auth='public')
     def products(self, **kw):
         website = _current_website()
         category_id = _parse_category_id(kw.get('category_id'))
@@ -707,29 +762,14 @@ class AppCatalog(http.Controller):
         order = _order_for_sort(sort, website)
         templates = Template.search(domain, offset=offset, limit=limit, order=order)
 
-        partner = request.env.user.partner_id
-        pricelist = _customer_pricelist(partner)
-        club_pricelist = _current_club_pricelist()
-        _warn_if_tax_display_mismatch(website)
-
-        # Pozitia fiscala depinde doar de partener, nu de produs sau de pricelist -
-        # calculata o singura data aici, nu per produs (era chemata de doua ori per
-        # produs prin _uportho_price_amounts inainte de aceasta trecere pe batch).
-        fiscal_position = request.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
-        price_by_template = _prices_by_template(templates, pricelist, partner, fiscal_position)
-        club_price_by_template = _club_prices_by_template(
-            templates, club_pricelist, pricelist, partner, fiscal_position, price_by_template)
-        ids_with_image = _ids_with_image(templates)
-        rating_by_template = _ratings_by_template(templates)
-
-        products = [
-            serialize_product(
-                t, price_by_template[t.id], club_price_by_template.get(t.id), t.id in ids_with_image,
-                rating_by_template.get(t.id))
-            for t in templates
-        ]
+        signed_in = is_signed_in()
+        if not signed_in:
+            products = _serialize_templates_without_prices(templates)
+        else:
+            products = _products_with_prices(templates, website)
         return json_ok({
             'products': products,
+            'pricing': pricing_block(signed_in),
             'total': total,
             'offset': offset,
             'limit': limit,
@@ -751,6 +791,6 @@ class AppCatalog(http.Controller):
             },
         })
 
-    @app_route('/products/<int:product_id>/image', methods=['GET'])
+    @app_route('/products/<int:product_id>/image', methods=['GET'], auth='public')
     def product_image(self, product_id, **kw):
         return _image_response(request.env['product.template'].browse(product_id), 'image_1920')

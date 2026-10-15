@@ -26,8 +26,10 @@ class TestControllersCategories(AppHttpCase):
         cls.foreign = cls.env['product.public.category'].create({
             'name': 'Doar pe alt site test', 'website_id': cls.other_website.id})
 
-    def test_categories_requires_login(self):
-        self.assertEqual(self.api_get('/categories').status_code, 401)
+    def test_categories_are_public(self):
+        """Categoriile se vad fara cont, ca pe site. Inainte ruta cerea autentificare;
+        s-a schimbat odata cu magazinul vizibil fara cont (spec 2026-10-15)."""
+        self.assertEqual(self.api_get('/categories').status_code, 200)
 
     def test_categories_shape_matches_contract(self):
         self.api_login()
@@ -122,8 +124,10 @@ class TestControllersProducts(AppHttpCase):
         cls.product_no_image = cls.env['product.template'].create({
             'name': 'Produs Fara Poza Test', 'is_published': True, 'list_price': 10.0})
 
-    def test_products_requires_login(self):
-        self.assertEqual(self.api_get('/products').status_code, 401)
+    def test_products_are_public(self):
+        """Produsele se vad fara cont (spec 2026-10-15); preturile nu - asta se
+        verifica in `test_controllers_public`."""
+        self.assertEqual(self.api_get('/products').status_code, 200)
 
     def test_products_shape_matches_contract(self):
         self.api_login()
@@ -250,8 +254,9 @@ class TestControllersProducts(AppHttpCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()['error']['code'], 'pricelist_unavailable')
 
-    def test_product_image_requires_login(self):
-        self.assertEqual(self.api_get(f'/products/{self.product_visible.id}/image').status_code, 401)
+    def test_product_image_is_public(self):
+        """Poza unui produs publicat se vede fara cont: pe site se vede."""
+        self.assertEqual(self.api_get(f'/products/{self.product_visible.id}/image').status_code, 200)
 
     def test_product_image_served_when_present(self):
         self.api_login()
