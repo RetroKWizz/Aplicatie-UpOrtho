@@ -42,8 +42,10 @@ class TestControllersHome(AppHttpCase):
             'external_url': 'https://uportho.ro/promo'})
         cls.env['uportho.app.banner'].create({'name': 'Arhivat', 'placement': 'hero', 'active': False})
 
-    def test_home_requires_login(self):
-        self.assertEqual(self.api_get('/home').status_code, 401)
+    def test_home_is_public(self):
+        """Acasa se vede fara cont (spec 2026-10-15). Preturile nu - vezi
+        `test_controllers_public`."""
+        self.assertEqual(self.api_get('/home').status_code, 200)
 
     def test_home_shape_matches_contract(self):
         self.api_login()
@@ -134,8 +136,9 @@ class TestControllersHome(AppHttpCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers['Content-Type'].startswith('image/'))
 
-    def test_banner_image_requires_login(self):
-        self.assertEqual(self.api_get(f'/banners/{self.hero.id}/image').status_code, 401)
+    def test_banner_image_is_public(self):
+        """Bannerul se vede pe Acasa fara cont, deci si poza lui."""
+        self.assertEqual(self.api_get(f'/banners/{self.hero.id}/image').status_code, 200)
 
     def test_missing_banner_image_is_404(self):
         self.api_login()

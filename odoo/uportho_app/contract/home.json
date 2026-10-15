@@ -83,6 +83,10 @@
       "url": "https://www.instagram.com/uporthoromania"
     }
   ],
+  "pricing": {
+    "visible": true,
+    "reason": null
+  },
   "instagram": {
     "username": "uporthoromania",
     "embed_url": "https://www.instagram.com/uporthoromania/embed",

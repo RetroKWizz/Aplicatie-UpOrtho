@@ -793,4 +793,13 @@ class AppCatalog(http.Controller):
 
     @app_route('/products/<int:product_id>/image', methods=['GET'], auth='public')
     def product_image(self, product_id, **kw):
-        return _image_response(request.env['product.template'].browse(product_id), 'image_1920')
+        # Se serveste doar poza unui produs pe care catalogul chiar il arata, cu EXACT
+        # domeniul lui. Altfel ruta ar fi o fereastra prin care se citesc, una cate una,
+        # pozele produselor nepublicate - iar un 403 ar spune chiar si asa "exista, dar
+        # n-ai voie", in timp ce ruta de produs raspunde 404 pentru acelasi id.
+        website = _current_website()
+        template = request.env['product.template'].sudo().search(
+            _products_domain(website, None, None) + [('id', '=', product_id)], limit=1)
+        if not template:
+            raise ApiError(404, 'not_found', 'Imaginea nu exista.')
+        return _image_response(template, 'image_1920')

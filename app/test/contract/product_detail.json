@@ -3,102 +3,341 @@
   "variant_id": 501,
   "name": "Cleste Tie Back mare (.016 - .021x.025) Ixion",
   "default_code": "IX954",
-  "badge": { "text": "Nou", "color": "blue", "background_color": null, "text_color": null },
+  "badge": {
+    "text": "Nou",
+    "color": "blue",
+    "background_color": null,
+    "text_color": null
+  },
   "images": [
-    { "id": 0, "url": "/api/app/v1/products/101/gallery/0?unique=3a1f9c2", "kind": "image", "video_url": null },
-    { "id": 14, "url": "/api/app/v1/products/101/gallery/14?unique=9b2e1d0",
-      "kind": "video", "video_url": "https://www.youtube.com/watch?v=xxxx" }
+    {
+      "id": 0,
+      "url": "/api/app/v1/products/101/gallery/0?unique=3a1f9c2",
+      "kind": "image",
+      "video_url": null
+    },
+    {
+      "id": 14,
+      "url": "/api/app/v1/products/101/gallery/14?unique=9b2e1d0",
+      "kind": "video",
+      "video_url": "https://www.youtube.com/watch?v=xxxx"
+    }
   ],
   "price": {
-    "amount": 1120.0, "currency": "RON", "formatted": "1.120,00 lei", "with_vat": true,
-    "list_amount": 1399.99, "list_formatted": "1.399,99 lei", "discount_pct": 20
+    "amount": 1120.0,
+    "currency": "RON",
+    "formatted": "1.120,00 lei",
+    "with_vat": true,
+    "list_amount": 1399.99,
+    "list_formatted": "1.399,99 lei",
+    "discount_pct": 20
   },
   "club_price": {
-    "amount": 1120.0, "currency": "RON", "formatted": "1.120,00 lei", "with_vat": true,
-    "list_amount": null, "list_formatted": null, "discount_pct": null
+    "amount": 1120.0,
+    "currency": "RON",
+    "formatted": "1.120,00 lei",
+    "with_vat": true,
+    "list_amount": null,
+    "list_formatted": null,
+    "discount_pct": null
+  },
+  "pricing": {
+    "visible": true,
+    "reason": null
   },
   "price_tables": [
     {
       "title": "Pret pe cantitate",
       "note": [],
       "entries": [
-        { "min_qty": 1, "label": "1+", "price": { "formatted": "1.399,99 lei", "amount": 1399.99, "currency": "RON", "with_vat": true, "list_amount": null, "list_formatted": null, "discount_pct": null } },
-        { "min_qty": 3, "label": "3+", "price": { "formatted": "1.120,00 lei", "amount": 1120.0, "currency": "RON", "with_vat": true, "list_amount": null, "list_formatted": null, "discount_pct": null } }
+        {
+          "min_qty": 1,
+          "label": "1+",
+          "price": {
+            "formatted": "1.399,99 lei",
+            "amount": 1399.99,
+            "currency": "RON",
+            "with_vat": true,
+            "list_amount": null,
+            "list_formatted": null,
+            "discount_pct": null
+          }
+        },
+        {
+          "min_qty": 3,
+          "label": "3+",
+          "price": {
+            "formatted": "1.120,00 lei",
+            "amount": 1120.0,
+            "currency": "RON",
+            "with_vat": true,
+            "list_amount": null,
+            "list_formatted": null,
+            "discount_pct": null
+          }
+        }
       ]
     },
     {
       "title": "Campanie Toamna 2026",
       "note": [
-        { "type": "paragraph", "spans": [ { "text": "Pret valabil pentru membrii Ortho Club.", "bold": false, "italic": false } ] }
+        {
+          "type": "paragraph",
+          "spans": [
+            {
+              "text": "Pret valabil pentru membrii Ortho Club.",
+              "bold": false,
+              "italic": false
+            }
+          ]
+        }
       ],
       "entries": [
-        { "min_qty": 1, "label": "1+", "price": { "formatted": "1.050,00 lei", "amount": 1050.0, "currency": "RON", "with_vat": true, "list_amount": null, "list_formatted": null, "discount_pct": null } }
+        {
+          "min_qty": 1,
+          "label": "1+",
+          "price": {
+            "formatted": "1.050,00 lei",
+            "amount": 1050.0,
+            "currency": "RON",
+            "with_vat": true,
+            "list_amount": null,
+            "list_formatted": null,
+            "discount_pct": null
+          }
+        }
       ]
     }
   ],
   "variants": {
-    "selected": [1357],
+    "selected": [
+      1357
+    ],
     "attributes": [
-      { "id": 7, "name": "Marime",
+      {
+        "id": 7,
+        "name": "Marime",
         "values": [
-          { "id": 1357, "name": "Mare", "selected": true, "available": true, "combination": [1357] },
-          { "id": 1358, "name": "Mic", "selected": false, "available": true, "combination": [1358] }
-        ] }
+          {
+            "id": 1357,
+            "name": "Mare",
+            "selected": true,
+            "available": true,
+            "combination": [
+              1357
+            ]
+          },
+          {
+            "id": 1358,
+            "name": "Mic",
+            "selected": false,
+            "available": true,
+            "combination": [
+              1358
+            ]
+          }
+        ]
+      }
     ]
   },
   "variant_rows": [
-    { "variant_id": 501,
-      "attributes": [ { "name": "Marime", "value": "Mare" } ],
+    {
+      "variant_id": 501,
+      "attributes": [
+        {
+          "name": "Marime",
+          "value": "Mare"
+        }
+      ],
       "default_code": "IX954-M",
-      "availability": { "message": null, "in_stock": true },
-      "price": { "amount": 1120.0, "currency": "RON", "formatted": "1.120,00 lei", "with_vat": true,
-                 "list_amount": 1399.99, "list_formatted": "1.399,99 lei", "discount_pct": 20 },
-      "subtotal": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
-                    "list_amount": null, "list_formatted": null, "discount_pct": null } },
-    { "variant_id": 502,
-      "attributes": [ { "name": "Marime", "value": "Mic" } ],
+      "availability": {
+        "message": null,
+        "in_stock": true
+      },
+      "price": {
+        "amount": 1120.0,
+        "currency": "RON",
+        "formatted": "1.120,00 lei",
+        "with_vat": true,
+        "list_amount": 1399.99,
+        "list_formatted": "1.399,99 lei",
+        "discount_pct": 20
+      },
+      "subtotal": {
+        "amount": 0.0,
+        "currency": "RON",
+        "formatted": "0,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      }
+    },
+    {
+      "variant_id": 502,
+      "attributes": [
+        {
+          "name": "Marime",
+          "value": "Mic"
+        }
+      ],
       "default_code": "IX954-S",
       "availability": null,
-      "price": { "amount": 990.0, "currency": "RON", "formatted": "990,00 lei", "with_vat": true,
-                 "list_amount": null, "list_formatted": null, "discount_pct": null },
-      "subtotal": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
-                    "list_amount": null, "list_formatted": null, "discount_pct": null } }
+      "price": {
+        "amount": 990.0,
+        "currency": "RON",
+        "formatted": "990,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "subtotal": {
+        "amount": 0.0,
+        "currency": "RON",
+        "formatted": "0,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      }
+    }
   ],
-  "variant_total": { "amount": 0.0, "currency": "RON", "formatted": "0,00 lei", "with_vat": true,
-                     "list_amount": null, "list_formatted": null, "discount_pct": null },
-  "specs": [ { "name": "Brand", "value": "DB Orthodontics" } ],
+  "variant_total": {
+    "amount": 0.0,
+    "currency": "RON",
+    "formatted": "0,00 lei",
+    "with_vat": true,
+    "list_amount": null,
+    "list_formatted": null,
+    "discount_pct": null
+  },
+  "specs": [
+    {
+      "name": "Brand",
+      "value": "DB Orthodontics"
+    }
+  ],
   "brand": {
     "name": "DB Orthodontics",
     "description": [
-      { "type": "paragraph", "spans": [ { "text": "Producator britanic de produse ortodontice.", "bold": false, "italic": false } ] }
+      {
+        "type": "paragraph",
+        "spans": [
+          {
+            "text": "Producator britanic de produse ortodontice.",
+            "bold": false,
+            "italic": false
+          }
+        ]
+      }
     ],
     "logo_url": "/api/app/v1/products/101/brand/logo?unique=7e2b4c1"
   },
   "documents": [
-    { "id": 4821, "name": "Fisa tehnica.pdf", "file_name": "Fisa tehnica.pdf",
-      "url": "/api/app/v1/products/101/documents/4821" }
+    {
+      "id": 4821,
+      "name": "Fisa tehnica.pdf",
+      "file_name": "Fisa tehnica.pdf",
+      "url": "/api/app/v1/products/101/documents/4821"
+    }
   ],
   "description": [
-    { "type": "heading", "spans": [ { "text": "Cleste Tie Back pentru arcuri groase", "bold": true, "italic": false } ] },
-    { "type": "paragraph", "spans": [ { "text": "Clestele este conceput pentru...", "bold": false, "italic": false } ] },
-    { "type": "bullets", "items": [
-      { "spans": [ { "text": "Falci zimtate care asigura o prindere ferma.", "bold": false, "italic": false } ] }
-    ] }
+    {
+      "type": "heading",
+      "spans": [
+        {
+          "text": "Cleste Tie Back pentru arcuri groase",
+          "bold": true,
+          "italic": false
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "spans": [
+        {
+          "text": "Clestele este conceput pentru...",
+          "bold": false,
+          "italic": false
+        }
+      ]
+    },
+    {
+      "type": "bullets",
+      "items": [
+        {
+          "spans": [
+            {
+              "text": "Falci zimtate care asigura o prindere ferma.",
+              "bold": false,
+              "italic": false
+            }
+          ]
+        }
+      ]
+    }
   ],
-  "availability": { "message": "Precomanda. Livrare incepand cu 1 August", "in_stock": true },
-  "rating": { "average": 0.0, "count": 0 },
+  "availability": {
+    "message": "Precomanda. Livrare incepand cu 1 August",
+    "in_stock": true
+  },
+  "rating": {
+    "average": 0.0,
+    "count": 0
+  },
   "reviews": [
-    { "author": "Ana P.", "rating": 5, "date": "2026-02-14", "text": "Foarte bun." }
+    {
+      "author": "Ana P.",
+      "rating": 5,
+      "date": "2026-02-14",
+      "text": "Foarte bun."
+    }
   ],
-  "similar": [ { "id": 102, "name": "Cleste Tie Back mic Ixion", "default_code": null, "image_url": null,
-                 "price": { "amount": 25.0, "currency": "RON", "formatted": "25,00 lei", "with_vat": true,
-                            "list_amount": null, "list_formatted": null, "discount_pct": null },
-                 "club_price": null, "badge": null, "rating": null } ],
+  "similar": [
+    {
+      "id": 102,
+      "name": "Cleste Tie Back mic Ixion",
+      "default_code": null,
+      "image_url": null,
+      "price": {
+        "amount": 25.0,
+        "currency": "RON",
+        "formatted": "25,00 lei",
+        "with_vat": true,
+        "list_amount": null,
+        "list_formatted": null,
+        "discount_pct": null
+      },
+      "club_price": null,
+      "badge": null,
+      "rating": null
+    }
+  ],
   "benefits": [
-    { "icon": "club", "title": "Alatura-te Ortho Club", "text": "pentru extra beneficii", "image_url": null },
-    { "icon": "delivery", "title": "Livrare gratuita", "text": "pentru comenzi de peste 400 lei",
-      "image_url": "/api/app/v1/benefits/3/image?unique=b19f0d4" },
-    { "icon": "return", "title": "Retur gratuit", "text": "30 de zile", "image_url": null },
-    { "icon": "payment", "title": "Plata online sigura", "text": "prin Stripe", "image_url": null }
+    {
+      "icon": "club",
+      "title": "Alatura-te Ortho Club",
+      "text": "pentru extra beneficii",
+      "image_url": null
+    },
+    {
+      "icon": "delivery",
+      "title": "Livrare gratuita",
+      "text": "pentru comenzi de peste 400 lei",
+      "image_url": "/api/app/v1/benefits/3/image?unique=b19f0d4"
+    },
+    {
+      "icon": "return",
+      "title": "Retur gratuit",
+      "text": "30 de zile",
+      "image_url": null
+    },
+    {
+      "icon": "payment",
+      "title": "Plata online sigura",
+      "text": "prin Stripe",
+      "image_url": null
+    }
   ]
 }

@@ -271,12 +271,16 @@ class TestControllersProducts(AppHttpCase):
         self.assertEqual(self.api_get(f'/products/{self.product_no_image.id}/image').status_code, 404)
         self.assertEqual(self.api_get('/products/999999/image').status_code, 404)
 
-    def test_product_image_of_unpublished_product_is_forbidden(self):
-        # Un produs nepublicat nu e vizibil deloc pentru portal - regulile de acces
-        # standard ale Odoo resping citirea lui, deci ruta raspunde 403, nu 404
-        # (comportament corect: nu dam de gol ca id-ul exista, dar nici nu il aratam).
+    def test_product_image_of_unpublished_product_is_not_found(self):
+        # Ruta a devenit publica (spec 2026-10-15) si trece acum prin acelasi domeniu
+        # ca lista de produse: ce nu e in catalog da 404, pentru client si pentru
+        # vizitator deopotriva. Inainte raspundea 403 - ceea ce, contrar comentariului
+        # de atunci, chiar dadea de gol ca id-ul exista, si se bateaa cu ruta de produs,
+        # care raspunde 404 pentru acelasi id.
         self.api_login()
-        self.assertEqual(self.api_get(f'/products/{self.product_unpublished.id}/image').status_code, 403)
+        self.assertEqual(self.api_get(f'/products/{self.product_unpublished.id}/image').status_code, 404)
+        self.assertEqual(
+            self.api_get(f'/products/{self.product_unpublished.id}/image', with_header=False).status_code, 404)
 
 
 @tagged('post_install', '-at_install')

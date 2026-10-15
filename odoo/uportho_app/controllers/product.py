@@ -9,7 +9,7 @@ from odoo.http import request
 
 from ..models.product_template import UPORTHO_BRAND_LOGO_FIELD
 from ..pricing import serialize_price
-from .base import API_PREFIX, ApiError, app_route, json_ok, read_json_body
+from .base import API_PREFIX, ApiError, app_route, is_signed_in, json_ok, read_json_body
 from .catalog import (
     _club_prices_by_template,
     _current_club_pricelist,
@@ -19,7 +19,9 @@ from .catalog import (
     _products_domain,
     _ratings_by_template,
     _warn_if_tax_display_mismatch,
+    _serialize_templates_without_prices,
     club_pricelist_comparable,
+    pricing_block,
     serialize_product,
 )
 from .home import _current_website, _image_response, image_unique
@@ -540,8 +542,57 @@ def _serialize_benefits():
     return [serialize_benefit(benefit, benefit.id in ids_with_image) for benefit in benefits]
 
 
+def _priced_detail(template, variant, combination_info, website):
+    """Partea cu bani a paginii de produs: pretul clientului, pretul de club, tabelele
+    de praguri, randurile de variante si totalul lor de pornire.
+
+    Stă separat de restul paginii ca sa poata fi SARITA cu totul pentru un vizitator:
+    `_customer_pricelist` ar arunca 503 pe partenerul public, iar o lista aleasa de noi
+    ar arata un pret pe care site-ul nu-l arata nimanui fara cont."""
+    partner = request.env.user.partner_id
+    pricelist = _customer_pricelist(partner)
+    club_pricelist = _current_club_pricelist()
+    _warn_if_tax_display_mismatch(website)
+    fiscal_position = request.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
+
+    amount, list_amount = template._uportho_price_amounts_for(
+        pricelist, partner, fiscal_position=fiscal_position, variant=variant)
+    price = serialize_price(amount, list_amount, pricelist.currency_id)
+
+    club_price = None
+    # Lista de club din care se face tabelul de club: goala cat timp pretul de club
+    # nu difera de al clientului (vezi mai jos).
+    club_pricelist_for_tables = request.env['product.pricelist'].browse()
+    if club_pricelist_comparable(club_pricelist, pricelist):
+        club_amount, club_list_amount = template._uportho_price_amounts_for(
+            club_pricelist, partner, fiscal_position=fiscal_position, variant=variant)
+        candidate = serialize_price(club_amount, club_list_amount, club_pricelist.currency_id)
+        # Spec 6.4: pretul de club se arata "cand difera". Cand e identic cu al
+        # clientului nu se arata nici pretul, nici tabelul lui de praguri - ar fi
+        # acelasi tabel de doua ori pe acelasi ecran.
+        if (candidate['amount'], candidate['currency']) != (price['amount'], price['currency']):
+            club_price = candidate
+            club_pricelist_for_tables = club_pricelist
+    else:
+        club_pricelist = request.env['product.pricelist'].browse()
+
+    variant_rows = template._uportho_variant_rows(
+        pricelist, partner, fiscal_position=fiscal_position)
+    price_tables = _price_tables(
+        template, combination_info, price, pricelist, club_pricelist_for_tables,
+        partner, fiscal_position, variant)
+    # Totalul de pornire al tabelului de variante: toate cantitatile sunt zero cand
+    # ecranul se deschide, iar aplicatia nu are voie sa scrie ea "0,00 lei" (nu
+    # formateaza bani). Null cand nu exista tabel - atunci nu exista nici total.
+    variant_total = (template._uportho_zero_amount(pricelist.currency_id)
+                     if variant_rows else None)
+    similar = _serialize_similar(template, website, pricelist, club_pricelist, partner,
+                                 fiscal_position)
+    return price, club_price, price_tables, variant_rows, variant_total, similar
+
+
 class AppProduct(http.Controller):
-    @app_route('/products/<int:product_id>', methods=['GET'])
+    @app_route('/products/<int:product_id>', methods=['GET'], auth='public')
     def product_detail(self, product_id, **kw):
         website, template = _visible_product(product_id)
         # `values` bate `variant_id`: aplicatia trimite combinatia, iar `variant_id`
@@ -552,35 +603,22 @@ class AppProduct(http.Controller):
         combination, variant, combination_info = _resolve_combination(
             template, variant, values=values)
 
-        partner = request.env.user.partner_id
-        pricelist = _customer_pricelist(partner)
-        club_pricelist = _current_club_pricelist()
-        _warn_if_tax_display_mismatch(website)
-        fiscal_position = request.env['account.fiscal.position'].sudo()._get_fiscal_position(partner)
-
-        amount, list_amount = template._uportho_price_amounts_for(
-            pricelist, partner, fiscal_position=fiscal_position, variant=variant)
-        price = serialize_price(amount, list_amount, pricelist.currency_id)
-
-        club_price = None
-        # Lista de club din care se face tabelul de club: goala cat timp pretul de club
-        # nu difera de al clientului (vezi mai jos).
-        club_pricelist_for_tables = request.env['product.pricelist'].browse()
-        if club_pricelist_comparable(club_pricelist, pricelist):
-            club_amount, club_list_amount = template._uportho_price_amounts_for(
-                club_pricelist, partner, fiscal_position=fiscal_position, variant=variant)
-            candidate = serialize_price(club_amount, club_list_amount, club_pricelist.currency_id)
-            # Spec 6.4: pretul de club se arata "cand difera". Cand e identic cu al
-            # clientului nu se arata nici pretul, nici tabelul lui de praguri - ar fi
-            # acelasi tabel de doua ori pe acelasi ecran.
-            if (candidate['amount'], candidate['currency']) != (price['amount'], price['currency']):
-                club_price = candidate
-                club_pricelist_for_tables = club_pricelist
+        signed_in = is_signed_in()
+        if signed_in:
+            price, club_price, price_tables, variant_rows, variant_total, similar = \
+                _priced_detail(template, variant, combination_info, website)
         else:
-            club_pricelist = request.env['product.pricelist'].browse()
+            # Un vizitator primeste pagina intreaga - galerie, descriere, documente,
+            # recenzii, specificatii - dar niciun pret, exact ca pe site. Tabelul de
+            # comanda pe variante lipseste si el: fara preturi ar ramane un tabel de
+            # cantitati fara subtotal, adica o promisiune pe care ecranul n-o poate tine.
+            price = club_price = variant_total = None
+            price_tables = []
+            variant_rows = []
+            # Produsele similare se vad si ele, tot fara preturi: pe site un vizitator
+            # le vede, iar un rand gol la capatul paginii ar arata a defect.
+            similar = _serialize_templates_without_prices(_similar_templates(template, website))
 
-        variant_rows = template._uportho_variant_rows(
-            pricelist, partner, fiscal_position=fiscal_position)
         rating, reviews = _serialize_reviews(template)
         return json_ok({
             'id': template.id,
@@ -591,12 +629,13 @@ class AppProduct(http.Controller):
             'images': _serialize_gallery(template, variant),
             'price': price,
             'club_price': club_price,
+            # De ce lipseste pretul. Aceeasi forma ca in /products si /home, ca ecranul
+            # sa aiba o singura regula de citit, nu trei.
+            'pricing': pricing_block(signed_in),
             # Cate un tabel per lista de pret aratata, cu titlul lui - unul, doua sau
             # niciunul. Aplicatia le deseneaza in ordinea primita si nu presupune
-            # niciodata cate sunt sau cum le cheama.
-            'price_tables': _price_tables(
-                template, combination_info, price, pricelist, club_pricelist_for_tables,
-                partner, fiscal_position, variant),
+            # niciodata cate sunt sau cum le cheama. Gol pentru un vizitator.
+            'price_tables': price_tables,
             'variants': template._uportho_variants(variant=variant, combination=combination),
             # Tabelul de comanda pe variante (Atribute | Pret | Cantitate | Subtotal),
             # ca pe site. Gol pentru un produs cu o singura varianta - atunci ecranul
@@ -607,8 +646,7 @@ class AppProduct(http.Controller):
             # cand ecranul se deschide, iar aplicatia nu are voie sa scrie ea "0,00 lei"
             # (nu formateaza bani). Fara el, Totalul ar arata "—" pana la prima apasare
             # pe plus. Null cand nu exista tabel - atunci nu exista nici total.
-            'variant_total': (template._uportho_zero_amount(pricelist.currency_id)
-                              if variant_rows else None),
+            'variant_total': variant_total,
             'specs': template._uportho_specs(),
             # Chenarul de brand de pe site (logo + nume + descriere). Brandul ramane
             # si in `specs`, unde intra ca atribut: site-ul il arata in amandoua
@@ -625,8 +663,7 @@ class AppProduct(http.Controller):
             'availability': template._uportho_availability(variant=variant),
             'rating': rating,
             'reviews': reviews,
-            'similar': _serialize_similar(
-                template, website, pricelist, club_pricelist, partner, fiscal_position),
+            'similar': similar,
             'benefits': _serialize_benefits(),
         })
 
@@ -697,7 +734,7 @@ class AppProduct(http.Controller):
             'total': serialize_price(currency.round(total), None, currency),
         })
 
-    @app_route('/products/<int:product_id>/gallery/<int:image_id>', methods=['GET'])
+    @app_route('/products/<int:product_id>/gallery/<int:image_id>', methods=['GET'], auth='public')
     def product_gallery_image(self, product_id, image_id, **kw):
         """Imaginile din galerie, autentificate ca si celelalte rute de imagine. Vizi-
         bilitatea produsului se verifica intai (404 pentru produs nepublicat sau de pe
@@ -713,14 +750,14 @@ class AppProduct(http.Controller):
             raise ApiError(404, 'not_found', 'Imaginea nu exista.')
         return _image_response(request.env['product.image'].browse(image.id), 'image_1920')
 
-    @app_route('/benefits/<int:benefit_id>/image', methods=['GET'])
+    @app_route('/benefits/<int:benefit_id>/image', methods=['GET'], auth='public')
     def benefit_image(self, benefit_id, **kw):
         """Logoul unui beneficiu, autentificat ca si celelalte rute de imagine ale
         modulului (bannere, iconite de categorie). Beneficiile sunt citibile de portal,
         deci nu e nevoie de sudo; fara imagine incarcata, 404."""
         return _image_response(request.env['uportho.app.benefit'].browse(benefit_id), 'image')
 
-    @app_route('/products/<int:product_id>/documents/<int:attachment_id>', methods=['GET'])
+    @app_route('/products/<int:product_id>/documents/<int:attachment_id>', methods=['GET'], auth='public')
     def product_document(self, product_id, attachment_id, **kw):
         """Fisierul unui document de produs, autentificat ca si rutele de imagine.
 
@@ -757,7 +794,7 @@ class AppProduct(http.Controller):
             raise ApiError(404, 'not_found', 'Documentul nu exista.') from error
         return stream.get_response(as_attachment=True)
 
-    @app_route('/products/<int:product_id>/brand/logo', methods=['GET'])
+    @app_route('/products/<int:product_id>/brand/logo', methods=['GET'], auth='public')
     def product_brand_logo(self, product_id, **kw):
         """Logoul de brand, autentificat ca si celelalte rute de imagine. Vizibilitatea
         produsului se verifica intai (404 pentru produs nepublicat sau de pe alt

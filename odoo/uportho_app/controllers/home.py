@@ -6,7 +6,7 @@ from odoo import fields, http
 from odoo.exceptions import AccessError, MissingError
 from odoo.http import request
 
-from .base import API_PREFIX, ApiError, app_route, json_ok
+from .base import API_PREFIX, ApiError, app_route, is_signed_in, json_ok
 
 _logger = logging.getLogger(__name__)
 
@@ -386,8 +386,12 @@ def _image_response(record, field_name):
 
 
 class AppHome(http.Controller):
-    @app_route('/home', methods=['GET'])
+    @app_route('/home', methods=['GET'], auth='public')
     def home(self, **kw):
+        # Importat aici, nu la nivel de fisier: `home` si `catalog` se importa reciproc
+        # si modulul nu mai porneste altfel (capcana scrisa in CLAUDE.md).
+        from .catalog import pricing_block
+
         website = _current_website()
         banners = request.env['uportho.app.banner']._search_active_now(website)
         categories = request.env['product.public.category']._search_app_home(website)
@@ -400,6 +404,10 @@ class AppHome(http.Controller):
             ],
             'brands': serialize_brands(website),
             'social': serialize_social(website),
+            # De ce lipsesc preturile din randurile de produse de mai jos. Importat in
+            # interiorul functiei: `home` si `catalog` se importa reciproc, iar la nivel
+            # de fisier modulul nu mai porneste.
+            'pricing': pricing_block(is_signed_in()),
             'instagram': serialize_instagram(website),
             'sections': [
                 block for block in (serialize_section(s, website) for s in sections)
@@ -407,7 +415,7 @@ class AppHome(http.Controller):
             ],
         })
 
-    @app_route('/brands/<int:value_id>/logo', methods=['GET'])
+    @app_route('/brands/<int:value_id>/logo', methods=['GET'], auth='public')
     def brand_logo(self, value_id, **kw):
         """Logoul unui brand.
 
@@ -427,11 +435,11 @@ class AppHome(http.Controller):
             raise ApiError(404, 'not_found', 'Imaginea nu exista.')
         return _image_response(value, BRAND_LOGO_FIELD)
 
-    @app_route('/banners/<int:banner_id>/image', methods=['GET'])
+    @app_route('/banners/<int:banner_id>/image', methods=['GET'], auth='public')
     def banner_image(self, banner_id, **kw):
         return _image_response(request.env['uportho.app.banner'].browse(banner_id), 'image')
 
-    @app_route('/categories/<int:category_id>/icon', methods=['GET'])
+    @app_route('/categories/<int:category_id>/icon', methods=['GET'], auth='public')
     def category_icon(self, category_id, **kw):
         """Iconita categoriei: campul de aplicatie daca exista, altfel poza din
         magazin. Aceeasi alegere ca in `/home`, ca ruta sa nu dea 404 pentru un URL

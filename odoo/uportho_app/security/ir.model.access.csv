@@ -10,3 +10,6 @@ access_app_favorite_admin,uportho.app.favorite admin,model_uportho_app_favorite,
 access_app_section_portal,uportho.app.section portal read,model_uportho_app_section,base.group_portal,1,0,0,0
 access_app_section_user,uportho.app.section user read,model_uportho_app_section,base.group_user,1,0,0,0
 access_app_section_designer,uportho.app.section designer,model_uportho_app_section,website.group_website_designer,1,1,1,1
+access_app_banner_public,uportho.app.banner public read,model_uportho_app_banner,base.group_public,1,0,0,0
+access_app_benefit_public,uportho.app.benefit public read,model_uportho_app_benefit,base.group_public,1,0,0,0
+access_app_section_public,uportho.app.section public read,model_uportho_app_section,base.group_public,1,0,0,0

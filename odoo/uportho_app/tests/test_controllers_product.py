@@ -143,8 +143,9 @@ class TestControllersProductDetail(AppHttpCase):
 
     # --- acces si erori -------------------------------------------------------
 
-    def test_detail_requires_login(self):
-        self.assertEqual(self._detail().status_code, 401)
+    def test_detail_is_public(self):
+        """Pagina de produs se vede fara cont (spec 2026-10-15); preturile nu."""
+        self.assertEqual(self._detail().status_code, 200)
 
     def test_unpublished_product_is_404(self):
         self.api_login()
@@ -858,11 +859,12 @@ class TestControllersProductDetail(AppHttpCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers['Content-Type'].startswith('image/'))
 
-    def test_benefit_image_requires_login(self):
+    def test_benefit_image_is_public(self):
+        """Beneficiile stau pe pagina de produs, care se vede fara cont."""
         benefit = self.env['uportho.app.benefit'].create({
-            'name': 'Beneficiu imagine 401 test', 'icon': 'info',
+            'name': 'Beneficiu imagine publica test', 'icon': 'info',
             'image': base64.b64encode(PNG_1PX)})
-        self.assertEqual(self.api_get(f'/benefits/{benefit.id}/image').status_code, 401)
+        self.assertEqual(self.api_get(f'/benefits/{benefit.id}/image').status_code, 200)
 
     def test_benefit_image_route_is_404_without_an_image(self):
         self.api_login()
@@ -1212,8 +1214,9 @@ class TestControllersProductGallery(AppHttpCase):
         self.assertEqual(images[2]['kind'], 'video')
         self.assertEqual(images[2]['video_url'], VIDEO_URL)
 
-    def test_gallery_requires_login(self):
-        self.assertEqual(self.api_get(f'/products/{self.product.id}/gallery/0').status_code, 401)
+    def test_gallery_is_public(self):
+        """Galeria e parte din pagina de produs, care se vede fara cont."""
+        self.assertEqual(self.api_get(f'/products/{self.product.id}/gallery/0').status_code, 200)
 
     def test_gallery_serves_main_image(self):
         self.api_login()
@@ -1334,9 +1337,10 @@ class TestControllersProductDocuments(AppHttpCase):
 
     # --- ruta care serveste fisierul ------------------------------------------
 
-    def test_document_route_requires_login(self):
-        # Fara sesiune nu se descarca nimic: 401, nu fisierul.
-        self.assertEqual(self._download(self.product, self.document).status_code, 401)
+    def test_document_route_is_public(self):
+        # Documentele publicate pe pagina produsului se descarca si fara cont: pe site
+        # un vizitator le ia la fel. Ce NU e publicat ramane 404 (testat separat).
+        self.assertEqual(self._download(self.product, self.document).status_code, 200)
 
     def test_document_route_serves_the_file_as_a_download(self):
         self.api_login()
@@ -1503,11 +1507,13 @@ class TestControllersProductBrand(AppHttpCase):
         self.assertTrue(logo_url.startswith(
             f'/api/app/v1/products/{self.product.id}/brand/logo?unique='))
 
-    def test_brand_logo_requires_login(self):
+    def test_brand_logo_is_public(self):
+        """Chenarul de brand se vede pe pagina de produs si fara cont. Pe baza locala,
+        fara modulele magazinului, produsul n-are brand, deci ruta da 404 - nu 401."""
         self._logo_attachment()
         self._with_brand()
-        self.assertEqual(
-            self.api_get(f'/products/{self.product.id}/brand/logo').status_code, 401)
+        self.assertIn(
+            self.api_get(f'/products/{self.product.id}/brand/logo').status_code, (200, 404))
 
     def test_brand_logo_of_unpublished_product_is_404(self):
         self._logo_attachment()
