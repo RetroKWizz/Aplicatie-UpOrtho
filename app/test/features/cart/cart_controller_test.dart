@@ -24,7 +24,7 @@ void main() {
   /// verifica, fara sa stie, un vizitator.
   ProviderContainer containerFor(FakeTransport transport, {bool signedIn = true}) {
     if (signedIn) {
-      transport.when('GET', '/api/app/v1/me', ApiResponse(status: 200, json: {
+      transport.when('GET', '/api/app/v1/me', const ApiResponse(status: 200, json: {
         'user': {'id': 1, 'name': 'Client Test', 'email': 'client@uportho.ro', 'partner_id': 7}
       }));
     }
